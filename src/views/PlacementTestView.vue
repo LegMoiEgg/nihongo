@@ -93,7 +93,7 @@ function generateQuestions(): PlacementQuestion[] {
   }
 
   // ── Tier 5: Kanji reading + sentence understanding (8 questions) ──
-  for (const k of kanji.slice(4, 8)) {
+  for (const k of kanji.slice(4, 7)) {
     const correct = k.kunyomi[0] || k.onyomi[0]
     const wrong = shuffle(kanji.filter(x => x.id !== k.id)).slice(0, 3).map(x => x.kunyomi[0] || x.onyomi[0])
     questions.push({ id: `t5k-${k.id}`, tier: 5, prompt: 'Wie liest man dieses Kanji?', promptJp: k.character, correctAnswer: correct, options: shuffle([correct, ...wrong]) })
@@ -102,10 +102,58 @@ function generateQuestions(): PlacementQuestion[] {
     { jp: 'わたし は みず を のみます', ans: 'Ich trinke Wasser', w: ['Ich esse Reis', 'Ich lese ein Buch', 'Ich gehe zur Schule'] },
     { jp: 'きょう は あつい です', ans: 'Heute ist es heiß', w: ['Gestern war es kalt', 'Morgen ist Sonntag', 'Das Essen ist lecker'] },
     { jp: 'おかあさん は ほん を よみます', ans: 'Mutter liest ein Buch', w: ['Vater kauft Obst', 'Schwester trinkt Tee', 'Bruder geht zur Schule'] },
-    { jp: 'がっこう に いきます', ans: 'Ich gehe zur Schule', w: ['Ich esse Fisch', 'Ich schlafe', 'Ich kaufe Gemüse'] },
   ]
-  for (const sq of shuffle(sentenceQs).slice(0, 4)) {
-    questions.push({ id: `t5s-${sq.jp.slice(0, 10)}`, tier: 5, prompt: 'Was bedeutet dieser Satz?', promptJp: sq.jp, correctAnswer: sq.ans, options: shuffle([sq.ans, ...sq.w]) })
+  for (const sq of shuffle(sentenceQs)) {
+    questions.push({ id: `t5s-${sq.jp.slice(0, 8)}`, tier: 5, prompt: 'Was bedeutet dieser Satz?', promptJp: sq.jp, correctAnswer: sq.ans, options: shuffle([sq.ans, ...sq.w]) })
+  }
+  // Kanji compound words
+  const compoundQs = [
+    { jp: '日本', ans: 'Japan', w: ['China', 'Berg', 'Fluss'] },
+    { jp: '大学', ans: 'Universität', w: ['Grundschule', 'Krankenhaus', 'Bahnhof'] },
+  ]
+  for (const cq of compoundQs) {
+    questions.push({ id: `t5c-${cq.jp}`, tier: 5, prompt: 'Was bedeutet dieses Wort?', promptJp: cq.jp, correctAnswer: cq.ans, options: shuffle([cq.ans, ...cq.w]) })
+  }
+
+  // ── Tier 6: Kanji sentences + grammar + tricky readings (8 questions) ──
+  const kanjiSentences = [
+    { jp: '私は毎日学校に行きます', ans: 'Ich gehe jeden Tag zur Schule', w: ['Ich kaufe jeden Tag Wasser', 'Ich lese jeden Tag ein Buch', 'Ich esse jeden Tag Fisch'] },
+    { jp: '母は魚を食べます', ans: 'Mutter isst Fisch', w: ['Vater trinkt Tee', 'Schwester liest ein Buch', 'Bruder geht nach Hause'] },
+    { jp: '今日は天気がいいです', ans: 'Heute ist das Wetter gut', w: ['Morgen ist es kalt', 'Gestern war es heiß', 'Das Essen ist teuer'] },
+    { jp: '友達と映画を見ました', ans: 'Ich habe mit meinem Freund einen Film gesehen', w: ['Ich habe alleine ein Buch gelesen', 'Wir haben zusammen gegessen', 'Mein Freund hat geschlafen'] },
+  ]
+  for (const ks of shuffle(kanjiSentences)) {
+    questions.push({ id: `t6s-${ks.jp.slice(0, 6)}`, tier: 6, prompt: 'Was bedeutet dieser Satz?', promptJp: ks.jp, correctAnswer: ks.ans, options: shuffle([ks.ans, ...ks.w]) })
+  }
+  // Particle usage
+  const particleQs = [
+    { prompt: 'Welcher Partikel fehlt? 学校___行きます', ans: 'に', w: ['を', 'で', 'が'] },
+    { prompt: 'Welcher Partikel fehlt? 本___読みます', ans: 'を', w: ['に', 'は', 'で'] },
+    { prompt: 'Welcher Partikel fehlt? レストラン___食べます', ans: 'で', w: ['に', 'を', 'は'] },
+    { prompt: 'Welcher Partikel fehlt? 私___学生です', ans: 'は', w: ['が', 'を', 'に'] },
+  ]
+  for (const pq of shuffle(particleQs)) {
+    questions.push({ id: `t6p-${pq.ans}-${Math.random().toString(36).slice(2, 5)}`, tier: 6, prompt: pq.prompt, correctAnswer: pq.ans, options: shuffle([pq.ans, ...pq.w]) })
+  }
+
+  // ── Tier 7: Advanced — verb conjugation, complex Kanji, long sentences (8 questions) ──
+  const conjugationQs = [
+    { prompt: 'Was ist die Vergangenheitsform von 食べる?', ans: '食べた', w: ['食べます', '食べて', '食べない'] },
+    { prompt: 'Was ist die te-Form von 行く?', ans: '行って', w: ['行った', '行かない', '行きます'] },
+    { prompt: 'Was ist die Verneinung von 飲む?', ans: '飲まない', w: ['飲んだ', '飲みます', '飲んで'] },
+    { prompt: 'Was bedeutet 食べたい?', ans: 'Ich möchte essen', w: ['Ich esse', 'Ich habe gegessen', 'Ich esse nicht'] },
+  ]
+  for (const cq of shuffle(conjugationQs)) {
+    questions.push({ id: `t7c-${cq.ans.slice(0, 3)}`, tier: 7, prompt: cq.prompt, correctAnswer: cq.ans, options: shuffle([cq.ans, ...cq.w]) })
+  }
+  const advancedSentences = [
+    { jp: '来週の月曜日に東京へ出張に行かなければなりません', ans: 'Nächsten Montag muss ich für eine Geschäftsreise nach Tokyo', w: ['Letzten Montag war ich in Osaka', 'Morgen fahre ich nach Kyoto', 'Ich möchte nächste Woche frei haben'] },
+    { jp: '日本語を勉強するのは楽しいですが、漢字は難しいです', ans: 'Japanisch lernen macht Spaß, aber Kanji sind schwierig', w: ['Japanisch ist einfach und Kanji auch', 'Ich lerne kein Japanisch mehr', 'Kanji sind einfacher als Hiragana'] },
+    { jp: '昨日、図書館で三時間勉強しました', ans: 'Gestern habe ich 3 Stunden in der Bibliothek gelernt', w: ['Heute lerne ich zu Hause', 'Morgen gehe ich zur Schule', 'Letzte Woche habe ich nicht gelernt'] },
+    { jp: '電車が遅れたので、会社に遅刻しました', ans: 'Weil der Zug Verspätung hatte, kam ich zu spät zur Firma', w: ['Der Zug war pünktlich und ich war früh da', 'Ich bin mit dem Bus gefahren', 'Die Firma war heute geschlossen'] },
+  ]
+  for (const as of shuffle(advancedSentences)) {
+    questions.push({ id: `t7s-${as.jp.slice(0, 6)}`, tier: 7, prompt: 'Was bedeutet dieser Satz?', promptJp: as.jp, correctAnswer: as.ans, options: shuffle([as.ans, ...as.w]) })
   }
 
   return questions.sort((a, b) => a.tier - b.tier)
@@ -119,11 +167,11 @@ const isChecked = ref(false)
 const isCorrect = ref(false)
 const tierScores = ref<Record<number, { correct: number; total: number }>>({
   1: { correct: 0, total: 0 }, 2: { correct: 0, total: 0 }, 3: { correct: 0, total: 0 },
-  4: { correct: 0, total: 0 }, 5: { correct: 0, total: 0 },
+  4: { correct: 0, total: 0 }, 5: { correct: 0, total: 0 }, 6: { correct: 0, total: 0 },
+  7: { correct: 0, total: 0 },
 })
 const testComplete = ref(false)
 const resultLevel = ref(1)
-const resultXp = ref(0)
 
 const currentQuestion = computed(() => questions.value[currentIndex.value])
 const progress = computed(() => questions.value.length > 0 ? Math.round((currentIndex.value / questions.value.length) * 100) : 0)
@@ -158,10 +206,9 @@ function calculateResult() {
   if (scores[3].total > 0 && scores[3].correct / scores[3].total >= 0.5) level = 9
   if (scores[4].total > 0 && scores[4].correct / scores[4].total >= 0.5) level = 13
   if (scores[5].total > 0 && scores[5].correct / scores[5].total >= 0.4) level = 17
+  if (scores[6].total > 0 && scores[6].correct / scores[6].total >= 0.4) level = 22
+  if (scores[7].total > 0 && scores[7].correct / scores[7].total >= 0.3) level = 28
   resultLevel.value = level
-
-  const thresholds = [0, 200, 500, 900, 1400, 2000, 2800, 3800, 5000, 6500, 8200, 10000, 12000, 14500, 17000, 20000, 23500]
-  resultXp.value = thresholds[Math.min(level - 1, thresholds.length - 1)] || 0
 }
 
 /**
@@ -170,11 +217,8 @@ function calculateResult() {
  * - Marks relevant kana/vocab as "seen" in learning store
  */
 function applyResult() {
-  // Set XP directly — does NOT count toward daily goal or badges
-  if (resultXp.value > userStore.totalXp) {
-    userStore.totalXp = resultXp.value
-    localStorage.setItem('nihongo_xp', JSON.stringify(resultXp.value))
-  }
+  // Set placement level — no XP awarded, no daily/badge triggers
+  userStore.setPlacementLevel(resultLevel.value)
 
   const scores = tierScores.value
 
@@ -232,8 +276,8 @@ onMounted(() => { questions.value = generateQuestions() })
       </div>
       <div class="result-stats">{{ totalCorrect }} / {{ questions.length }} richtig</div>
       <div class="tier-breakdown">
-        <div v-for="tier in 5" :key="tier" class="tier-row">
-          <span class="tier-label">{{ ['Hiragana', 'Kana erweitert', 'Vokabeln', 'Kanji', 'Fortgeschritten'][tier - 1] }}</span>
+        <div v-for="tier in 7" :key="tier" class="tier-row">
+          <span class="tier-label">{{ ['Hiragana', 'Kana erweitert', 'Vokabeln', 'Kanji', 'Sätze', 'Grammatik', 'Fortgeschritten'][tier - 1] }}</span>
           <div class="tier-bar"><div class="tier-fill" :style="{ width: (tierScores[tier].total > 0 ? (tierScores[tier].correct / tierScores[tier].total) * 100 : 0) + '%' }" /></div>
           <span class="tier-score">{{ tierScores[tier].correct }}/{{ tierScores[tier].total }}</span>
         </div>

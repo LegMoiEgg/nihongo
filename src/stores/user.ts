@@ -111,7 +111,8 @@ export const useUserStore = defineStore('user', () => {
 
   // Profile
   const displayName = ref('')
-  const avatarDataUrl = ref('') // base64 data URL from file upload
+  const avatarDataUrl = ref('')
+  const placementLevel = ref(0) // minimum level from placement test (0 = not taken) // base64 data URL from file upload
 
   // Computed
   const currentLevel = computed(() => {
@@ -122,6 +123,11 @@ export const useUserStore = defineStore('user', () => {
       } else {
         break
       }
+    }
+    // Placement test can set a minimum level
+    if (placementLevel.value > lvl.level) {
+      const placementLvl = LEVEL_THRESHOLDS.find(t => t.level === placementLevel.value)
+      if (placementLvl) return placementLvl
     }
     return lvl
   })
@@ -187,6 +193,7 @@ export const useUserStore = defineStore('user', () => {
     sessionsCompletedTotal.value = loadFromStorage('nihongo_sessions_total', 0)
     displayName.value = loadFromStorage('nihongo_display_name', '')
     avatarDataUrl.value = loadFromStorage('nihongo_avatar', '')
+    placementLevel.value = loadFromStorage('nihongo_placement_level', 0)
 
     updateStreak()
   }
@@ -282,6 +289,11 @@ export const useUserStore = defineStore('user', () => {
     saveToStorage('nihongo_avatar', dataUrl)
   }
 
+  function setPlacementLevel(level: number) {
+    placementLevel.value = level
+    saveToStorage('nihongo_placement_level', level)
+  }
+
   return {
     // State
     totalXp,
@@ -294,6 +306,7 @@ export const useUserStore = defineStore('user', () => {
     sessionsCompletedTotal,
     displayName,
     avatarDataUrl,
+    placementLevel,
     // Computed
     currentLevel,
     nextLevel,
@@ -310,5 +323,6 @@ export const useUserStore = defineStore('user', () => {
     completeSession,
     setDisplayName,
     setAvatar,
+    setPlacementLevel,
   }
 })
