@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
+import { scheduleSave } from '../stores/sync'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { kanjiData, type KanjiCard } from '../data/kanji'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
@@ -294,6 +295,7 @@ function nextExercise() {
     sessionComplete.value = true
     userStore.completeSession()
     badgesStore.checkAllBadges()
+    scheduleSave()
   }
 }
 

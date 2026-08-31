@@ -197,12 +197,12 @@ const completedDays = computed(() =>
 
     <!-- Continue Section -->
     <section class="continue-section">
-      <router-link to="/sentences" class="continue-card card">
+      <router-link to="/social" class="continue-card card">
         <div class="continue-info">
-          <span class="continue-icon">🧩</span>
+          <span class="continue-icon">👥</span>
           <div>
-            <h3>Sätze bauen</h3>
-            <p>Übe mit gelernten Wörtern Sätze zu bilden</p>
+            <h3>Social</h3>
+            <p>Tritt einer Gruppe bei und vergleiche dich</p>
           </div>
         </div>
         <span class="continue-arrow">→</span>

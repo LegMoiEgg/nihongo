@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
+import { scheduleSave } from '../stores/sync'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 
@@ -161,6 +162,7 @@ function nextQuestion() {
     sessionComplete.value = true
     userStore.completeSession()
     badgesStore.checkAllBadges()
+    scheduleSave()
   }
 }
 

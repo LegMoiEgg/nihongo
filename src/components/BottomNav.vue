@@ -8,7 +8,7 @@ const userStore = useUserStore()
 const navItems = [
   { path: '/', label: 'Home', icon: '🏠', name: 'dashboard' },
   { path: '/learn', label: 'Lernen', icon: '📚', name: 'learn' },
-  { path: '/sentences', label: 'Sätze', icon: '🧩', name: 'sentences' },
+  { path: '/social', label: 'Social', icon: '👥', name: 'social' },
   { path: '/test', label: 'Test', icon: '📝', name: 'test' },
   { path: '/profile', label: 'Profil', icon: '', name: 'profile' },
 ]

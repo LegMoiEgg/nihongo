@@ -75,10 +75,16 @@ const router = createRouter({
       props: { category: 'vocabulary' }
     },
     {
+      path: '/social',
+      name: 'social',
+      component: () => import('../views/SocialView.vue'),
+      meta: { title: 'Social', icon: 'social' }
+    },
+    {
       path: '/sentences',
       name: 'sentences',
       component: () => import('../views/SentenceBuilderView.vue'),
-      meta: { title: 'Sätze', icon: 'puzzle' }
+      meta: { title: 'Sätze' }
     },
     {
       path: '/test',
@@ -97,6 +103,12 @@ const router = createRouter({
       name: 'badges',
       component: () => import('../views/BadgesView.vue'),
       meta: { title: 'Erfolge' }
+    },
+    {
+      path: '/auth',
+      name: 'auth',
+      component: () => import('../views/AuthView.vue'),
+      meta: { title: 'Anmelden' }
     }
   ]
 })

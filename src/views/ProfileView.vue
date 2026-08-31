@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
+import { useAuthStore } from '../stores/auth'
+import { useNotificationsStore } from '../stores/notifications'
 import { useBadgesStore, ALL_BADGES, type BadgeDefinition } from '../stores/badges'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
@@ -10,6 +12,8 @@ import { vocabularyData } from '../data/vocabulary'
 
 const userStore = useUserStore()
 const learningStore = useLearningStore()
+const authStore = useAuthStore()
+const notifStore = useNotificationsStore()
 const badgesStore = useBadgesStore()
 learningStore.initialize()
 badgesStore.initialize()
@@ -210,6 +214,42 @@ const maxWeeklyXp = computed(() =>
       <router-link to="/badges" class="badges-more-link">
         Alle Erfolge anzeigen →
       </router-link>
+    </section>
+
+    <!-- Account Section -->
+    <section class="account-section card">
+      <h2>👤 Account</h2>
+      <div v-if="authStore.isLoggedIn" class="account-logged-in">
+        <div class="account-info">
+          <span class="account-email">{{ authStore.email }}</span>
+          <span class="account-status">✅ Angemeldet</span>
+        </div>
+        <button class="btn btn-ghost" @click="authStore.logout()">Abmelden</button>
+      </div>
+      <div v-else class="account-logged-out">
+        <p class="account-hint">Melde dich an um deinen Fortschritt zu sichern und mit Freunden zu vergleichen.</p>
+        <router-link to="/auth" class="btn btn-primary account-login-btn">
+          Anmelden / Registrieren
+        </router-link>
+      </div>
+    </section>
+
+    <!-- Notifications -->
+    <section v-if="notifStore.supported" class="notif-section card">
+      <h2>🔔 Benachrichtigungen</h2>
+      <div v-if="notifStore.isEnabled" class="notif-enabled">
+        <span class="notif-status">✅ Aktiviert</span>
+        <p class="notif-hint">Du bekommst Erinnerungen zum Lernen.</p>
+      </div>
+      <div v-else-if="notifStore.canAsk" class="notif-ask">
+        <p class="notif-hint">Aktiviere Benachrichtigungen um an deine tägliche Lektion erinnert zu werden.</p>
+        <button class="btn btn-secondary" @click="notifStore.requestPermission()">
+          🔔 Aktivieren
+        </button>
+      </div>
+      <div v-else class="notif-denied">
+        <p class="notif-hint">Benachrichtigungen wurden blockiert. Ändere die Einstellung in deinem Browser.</p>
+      </div>
     </section>
 
     <!-- Overview Cards -->
@@ -535,6 +575,101 @@ const maxWeeklyXp = computed(() =>
 
 .badges-more-link:hover {
   opacity: 0.8;
+}
+
+/* ── Account Section ── */
+.account-section {
+  margin-bottom: 20px;
+}
+
+.account-section h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.account-logged-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-email {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.account-status {
+  font-size: 0.75rem;
+  color: var(--accent-success);
+}
+
+.account-logged-out {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.account-login-btn {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  padding: 12px;
+  font-size: 0.95rem;
+}
+
+/* ── Notifications ── */
+.notif-section {
+  margin-bottom: 20px;
+}
+
+.notif-section h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.notif-enabled {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notif-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-success);
+}
+
+.notif-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.notif-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.notif-denied .notif-hint {
+  color: var(--text-muted);
+  text-align: center;
 }
 
 /* ── Stats (same as before) ── */

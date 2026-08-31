@@ -1,15 +1,30 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import BottomNav from './components/BottomNav.vue'
 import { useUserStore } from './stores/user'
+import { useAuthStore } from './stores/auth'
 import { useBadgesStore } from './stores/badges'
+import { loadFromCloud, saveToCloud } from './stores/sync'
+import { useNotificationsStore } from './stores/notifications'
 
 const userStore = useUserStore()
+const authStore = useAuthStore()
 const badgesStore = useBadgesStore()
+const notifStore = useNotificationsStore()
 
 // Initialize on app start
 userStore.initializeUser()
+authStore.initAuth()
 badgesStore.initialize()
 badgesStore.checkAllBadges()
+notifStore.initialize()
+
+// When user logs in/out, sync with cloud
+watch(() => authStore.isLoggedIn, async (loggedIn) => {
+  if (loggedIn) {
+    await loadFromCloud()
+  }
+})
 </script>
 
 <template>

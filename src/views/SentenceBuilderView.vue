@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
+import { scheduleSave } from '../stores/sync'
 import { vocabularyData } from '../data/vocabulary'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
 
@@ -104,6 +105,7 @@ function nextChallenge() {
     sessionComplete.value = true
     userStore.completeSession()
     badgesStore.checkAllBadges()
+    scheduleSave()
   }
 }
 

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
+import { scheduleSave } from '../stores/sync'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 
 const userStore = useUserStore()
@@ -174,6 +175,7 @@ function finishTest() {
   userStore.completeSession()
   badgesStore.checkAllBadges()
   badgesStore.checkPerfectTest(score.value, questions.value.length)
+  scheduleSave()
 }
 
 function startTimer() {
