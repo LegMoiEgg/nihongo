@@ -85,6 +85,13 @@ export async function loadFromCloud(): Promise<boolean> {
 
     const cloud = snapshot.data() as CloudUserData
     mergeCloudData(cloud)
+
+    // Mark onboarding as done if cloud has data (returning user on new device)
+    if (cloud.totalXp > 0 || cloud.cardProgress?.length > 0) {
+      localStorage.setItem('nihongo_onboarding_done', 'true')
+      localStorage.setItem('nihongo_placement_done', 'true')
+    }
+
     return true
   } catch (e) {
     console.error('Failed to load from cloud:', e)

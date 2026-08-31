@@ -114,6 +114,18 @@ function closeGroup() {
               <template v-else-if="index === 2">🥉</template>
               <template v-else>{{ index + 1 }}</template>
             </span>
+            <img
+              v-if="member.avatarDataUrl"
+              :src="member.avatarDataUrl"
+              alt=""
+              class="member-avatar"
+            />
+            <div v-else class="member-avatar-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" class="member-avatar-icon">
+                <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                <path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6" fill="currentColor"/>
+              </svg>
+            </div>
             <div class="member-info">
               <span class="member-name">{{ member.displayName }}</span>
               <span class="member-meta">Lv. {{ member.level }} · 🔥 {{ member.currentStreak }}</span>
@@ -444,6 +456,32 @@ function closeGroup() {
   font-size: 1.1rem;
   color: var(--text-muted);
   flex-shrink: 0;
+}
+
+.member-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--bg-accent);
+  flex-shrink: 0;
+}
+
+.member-avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.member-avatar-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
 }
 
 .member-info {

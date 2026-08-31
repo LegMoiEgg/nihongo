@@ -132,11 +132,26 @@ const router = createRouter({
 })
 
 // Redirect to onboarding on first launch
+// Skip if user already has progress (e.g. logged in on another device)
 router.beforeEach((to) => {
+  if (to.meta.skipOnboardingCheck || to.name === 'onboarding') return
+
   const onboardingDone = localStorage.getItem('nihongo_onboarding_done') === 'true'
-  if (!onboardingDone && !to.meta.skipOnboardingCheck && to.name !== 'onboarding') {
-    return { name: 'onboarding' }
+  if (onboardingDone) return
+
+  // Check if user already has data from cloud sync (returning user on new device)
+  const hasXp = parseInt(localStorage.getItem('nihongo_xp') || '0') > 0
+  const hasPlacement = parseInt(localStorage.getItem('nihongo_placement_level') || '0') > 0
+  const hasProgress = localStorage.getItem('nihongo_card_progress') !== null
+
+  if (hasXp || hasPlacement || hasProgress) {
+    // Returning user — mark onboarding as done and let them through
+    localStorage.setItem('nihongo_onboarding_done', 'true')
+    localStorage.setItem('nihongo_placement_done', 'true')
+    return
   }
+
+  return { name: 'onboarding' }
 })
 
 export default router

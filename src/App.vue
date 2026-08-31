@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { watch } from 'vue'
+import { useRouter } from 'vue-router'
 import BottomNav from './components/BottomNav.vue'
 import { useUserStore } from './stores/user'
 import { useAuthStore } from './stores/auth'
@@ -13,6 +14,7 @@ const userStore = useUserStore()
 const authStore = useAuthStore()
 const badgesStore = useBadgesStore()
 const notifStore = useNotificationsStore()
+const router = useRouter()
 
 // Initialize on app start
 userStore.initializeUser()
@@ -44,7 +46,14 @@ checkRemoteReset()
 // When user logs in/out, sync with cloud
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
   if (loggedIn) {
-    await loadFromCloud()
+    const loaded = await loadFromCloud()
+    // If cloud had data and we're on onboarding, redirect to home
+    if (loaded && localStorage.getItem('nihongo_onboarding_done') === 'true') {
+      const currentRoute = router.currentRoute.value.name
+      if (currentRoute === 'onboarding' || currentRoute === 'placement') {
+        router.replace('/')
+      }
+    }
   }
 })
 </script>

@@ -18,6 +18,7 @@ import { useAuthStore } from './auth'
 export interface GroupMember {
   uid: string
   displayName: string
+  avatarDataUrl: string
   totalXp: number
   currentStreak: number
   level: number
@@ -179,6 +180,7 @@ export const useSocialStore = defineStore('social', () => {
             members.push({
               uid,
               displayName: data.displayName || 'Anonym',
+              avatarDataUrl: data.avatarDataUrl || '',
               totalXp: data.totalXp || 0,
               currentStreak: data.currentStreak || 0,
               level: computeLevel(data.totalXp || 0),
