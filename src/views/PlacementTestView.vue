@@ -7,6 +7,7 @@ import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
 import { vocabularyData } from '../data/vocabulary'
+import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -183,7 +184,12 @@ function selectAnswer(option: string) {
   isChecked.value = true
   isCorrect.value = option === currentQuestion.value.correctAnswer
   tierScores.value[currentQuestion.value.tier].total++
-  if (isCorrect.value) tierScores.value[currentQuestion.value.tier].correct++
+  if (isCorrect.value) {
+    tierScores.value[currentQuestion.value.tier].correct++
+    playCorrectSound()
+  } else {
+    playWrongSound()
+  }
 }
 
 function nextQuestion() {
