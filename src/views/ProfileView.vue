@@ -5,6 +5,7 @@ import { useLearningStore } from '../stores/learning'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
 import { useBadgesStore, ALL_BADGES, type BadgeDefinition } from '../stores/badges'
+import { scheduleSave } from '../stores/sync'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
@@ -41,6 +42,7 @@ function startEditName() {
 function saveName() {
   userStore.setDisplayName(nameInput.value)
   isEditingName.value = false
+  scheduleSave()
 }
 
 function cancelEditName() {
@@ -73,6 +75,7 @@ function onAvatarSelected(event: Event) {
       ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
       userStore.setAvatar(dataUrl)
+      scheduleSave()
     }
     img.src = e.target?.result as string
   }
