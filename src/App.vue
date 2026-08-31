@@ -6,6 +6,8 @@ import { useAuthStore } from './stores/auth'
 import { useBadgesStore } from './stores/badges'
 import { loadFromCloud, saveToCloud } from './stores/sync'
 import { useNotificationsStore } from './stores/notifications'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from './firebase'
 
 const userStore = useUserStore()
 const authStore = useAuthStore()
@@ -18,6 +20,26 @@ authStore.initAuth()
 badgesStore.initialize()
 badgesStore.checkAllBadges()
 notifStore.initialize()
+
+// Check for remote reset trigger from Firestore
+async function checkRemoteReset() {
+  try {
+    const snap = await getDoc(doc(db, 'config', 'app'))
+    if (!snap.exists()) return
+    const remoteVersion = snap.data().resetVersion || 0
+    const localVersion = parseInt(localStorage.getItem('nihongo_reset_version') || '0')
+    if (remoteVersion > localVersion) {
+      // Remote reset triggered — clear everything and reload
+      const newVersion = remoteVersion.toString()
+      localStorage.clear()
+      localStorage.setItem('nihongo_reset_version', newVersion)
+      window.location.href = '/'
+    }
+  } catch {
+    // Firestore not reachable (offline) — skip check
+  }
+}
+checkRemoteReset()
 
 // When user logs in/out, sync with cloud
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
