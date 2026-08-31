@@ -240,8 +240,7 @@ function closeGroup() {
   max-width: 600px;
   margin: 0 auto;
   padding: var(--content-padding);
-  padding-bottom: 32px;
-  min-height: calc(100vh - var(--nav-height));
+  padding-bottom: 16px;
 }
 
 /* Login Prompt */
@@ -250,7 +249,7 @@ function closeGroup() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - var(--nav-height) - 32px);
+  min-height: calc(100dvh - var(--nav-height) - 32px);
   gap: 16px;
   text-align: center;
 }

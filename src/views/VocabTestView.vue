@@ -472,7 +472,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 </template>
 
 <style scoped>
-.vocab-test { max-width: 600px; margin: 0 auto; min-height: calc(100vh - var(--nav-height)); display: flex; flex-direction: column; }
+.vocab-test { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; }
 
 /* Mode Selection */
 .test-select { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 20px; }
