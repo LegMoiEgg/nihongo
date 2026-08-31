@@ -478,7 +478,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 .test-select { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 20px; }
 .select-header { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .select-icon { font-size: 3rem; }
-.select-header h1 { font-size: 1.5rem; font-weight: 700; }
+.select-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
 .select-header p { color: var(--text-secondary); font-size: 0.9rem; }
 
 .mode-list { width: 100%; display: flex; flex-direction: column; gap: 8px; }
@@ -488,7 +488,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 .mode-card.disabled:hover { transform: none; box-shadow: var(--shadow-card); }
 .mode-icon { font-size: 1.8rem; width: 48px; text-align: center; flex-shrink: 0; }
 .mode-info { display: flex; flex-direction: column; gap: 2px; }
-.mode-label { font-weight: 600; font-size: 0.95rem; }
+.mode-label { font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
 .mode-desc { font-size: 0.8rem; color: var(--text-muted); }
 
 .start-btn { width: 100%; padding: 14px; font-size: 1.05rem; margin-top: 8px; }
@@ -504,8 +504,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 /* Question */
 .question-area { flex: 1; padding: 0 16px 16px; display: flex; flex-direction: column; gap: 16px; }
 .question-prompt { text-align: center; padding: 20px; }
-.question-text { font-size: 1.1rem; font-weight: 600; }
-.question-jp { font-size: 2.5rem; font-weight: 700; margin-top: 8px; line-height: 1.2; }
+.question-text { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+.question-jp { font-size: 2.5rem; font-weight: 700; margin-top: 8px; line-height: 1.2; color: var(--text-primary); }
 
 /* MC Options */
 .mc-options { display: flex; flex-direction: column; gap: 10px; }
