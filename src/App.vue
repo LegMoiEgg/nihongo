@@ -29,14 +29,14 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
 
 <template>
   <div class="app-container">
-    <main class="app-content">
+    <main class="app-content" :class="{ 'no-nav': $route.name === 'onboarding' }">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
     </main>
-    <BottomNav />
+    <BottomNav v-if="$route.name !== 'onboarding'" />
   </div>
 </template>
 
@@ -52,6 +52,10 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
   flex: 1;
   padding-bottom: var(--nav-height);
   overflow-y: auto;
+}
+
+.app-content.no-nav {
+  padding-bottom: 0;
 }
 
 .fade-enter-active,

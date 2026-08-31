@@ -1,5 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+declare module 'vue-router' {
+  interface RouteMeta {
+    skipOnboardingCheck?: boolean
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -109,8 +115,22 @@ const router = createRouter({
       name: 'auth',
       component: () => import('../views/AuthView.vue'),
       meta: { title: 'Anmelden' }
+    },
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: () => import('../views/OnboardingView.vue'),
+      meta: { title: 'Willkommen', skipOnboardingCheck: true }
     }
   ]
+})
+
+// Redirect to onboarding on first launch
+router.beforeEach((to) => {
+  const onboardingDone = localStorage.getItem('nihongo_onboarding_done') === 'true'
+  if (!onboardingDone && !to.meta.skipOnboardingCheck && to.name !== 'onboarding') {
+    return { name: 'onboarding' }
+  }
 })
 
 export default router
