@@ -8,6 +8,7 @@ import { scheduleSave } from '../stores/sync'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { kanjiData, type KanjiCard } from '../data/kanji'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
+import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -62,8 +63,7 @@ const mcChecked = ref(false)
 const mcCorrect = ref(false)
 
 // Sentence state
-const selectedBlocks = ref<string[]>([])
-const availableBlocks = ref<string[]>([])
+const sentenceBlocks = useSentenceBlocks()
 const sentenceChecked = ref(false)
 const sentenceCorrect = ref(false)
 const showHint = ref(false)
@@ -203,16 +203,13 @@ function resetCurrentState() {
   selectedMcAnswer.value = null
   mcChecked.value = false
   mcCorrect.value = false
-  selectedBlocks.value = []
-  availableBlocks.value = []
   sentenceChecked.value = false
   sentenceCorrect.value = false
   showHint.value = false
 
   const ex = currentExercise.value
   if (ex?.type === 'sentence' && ex.sentence) {
-    const all = [...ex.sentence.correctOrder, ...(ex.sentence.distractors || [])]
-    availableBlocks.value = shuffle(all)
+    sentenceBlocks.initBlocks(ex.sentence.correctOrder, ex.sentence.distractors || [])
   }
 }
 
@@ -248,28 +245,16 @@ function selectMcOption(option: string) {
 }
 
 // ── Sentence handlers ──
-function selectBlock(block: string, index: number) {
-  if (sentenceChecked.value) return
-  selectedBlocks.value.push(block)
-  availableBlocks.value.splice(index, 1)
-}
-
-function removeBlock(index: number) {
-  if (sentenceChecked.value) return
-  const block = selectedBlocks.value[index]
-  availableBlocks.value.push(block)
-  selectedBlocks.value.splice(index, 1)
-}
-
 function checkSentence() {
   const ex = currentExercise.value
-  if (!ex?.sentence || selectedBlocks.value.length === 0) return
+  if (!ex?.sentence || sentenceBlocks.selectedBlocks.value.length === 0) return
 
   sentenceChecked.value = true
+  sentenceBlocks.lock()
   const correct = ex.sentence.correctOrder
   sentenceCorrect.value =
-    selectedBlocks.value.length === correct.length &&
-    selectedBlocks.value.every((b, i) => b === correct[i])
+    sentenceBlocks.selectedBlocks.value.length === correct.length &&
+    sentenceBlocks.selectedBlocks.value.every((b, i) => b === correct[i])
 
   if (sentenceCorrect.value) {
     score.value++
@@ -282,8 +267,7 @@ function checkSentence() {
 function showSentenceAnswer() {
   const ex = currentExercise.value
   if (!ex?.sentence) return
-  selectedBlocks.value = [...ex.sentence.correctOrder]
-  availableBlocks.value = [...(ex.sentence.distractors || [])]
+  sentenceBlocks.showCorrectAnswer(ex.sentence.correctOrder, ex.sentence.distractors)
 }
 
 // ── Navigation ──
@@ -550,23 +534,24 @@ onMounted(() => {
         <div class="sentence-answer" :class="{ 'is-correct': sentenceChecked && sentenceCorrect, 'is-wrong': sentenceChecked && !sentenceCorrect }">
           <div class="answer-blocks">
             <button
-              v-for="(block, i) in selectedBlocks"
+              v-for="(block, i) in sentenceBlocks.selectedBlocks.value"
               :key="'sel-' + i"
               class="word-block selected jp"
-              :class="{ disabled: sentenceChecked }"
-              @click="removeBlock(i)"
+              :class="{ disabled: sentenceChecked, swapping: sentenceBlocks.swapIndex.value === i }"
+              @click="sentenceBlocks.tapPlacedBlock(i)"
+              @dblclick="sentenceBlocks.removePlacedBlock(i)"
             >{{ block }}</button>
-            <span v-if="selectedBlocks.length === 0" class="answer-placeholder">Tippe auf die Wörter unten</span>
+            <span v-if="sentenceBlocks.selectedBlocks.value.length === 0" class="answer-placeholder">Tippe auf die Wörter unten</span>
           </div>
         </div>
 
         <div class="block-pool">
           <button
-            v-for="(block, i) in availableBlocks"
+            v-for="(block, i) in sentenceBlocks.availableBlocks.value"
             :key="'avail-' + i"
             class="word-block available jp"
             :class="{ disabled: sentenceChecked }"
-            @click="selectBlock(block, i)"
+            @click="sentenceBlocks.selectBlock(i)"
           >{{ block }}</button>
         </div>
 
@@ -583,7 +568,7 @@ onMounted(() => {
         <button
           v-else
           class="btn btn-primary check-btn"
-          :disabled="selectedBlocks.length === 0"
+          :disabled="sentenceBlocks.selectedBlocks.value.length === 0"
           @click="checkSentence"
         >Prüfen</button>
       </template>
@@ -946,6 +931,12 @@ onMounted(() => {
 .word-block.selected {
   background: var(--gradient-accent);
   color: white;
+}
+
+.word-block.selected.swapping {
+  border: 2px solid var(--accent-warning);
+  box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+  transform: scale(1.05);
 }
 
 .word-block.disabled {

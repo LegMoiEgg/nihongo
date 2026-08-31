@@ -61,6 +61,14 @@ const comboSelected = ref<string | null>(null)
 const comboChecked = ref(false)
 const comboCorrect = ref(false)
 
+// Kanji multi-select meaning state
+const kanjiMeaningOptions = ref<string[]>([])
+const kanjiSelectedMeanings = ref<Set<string>>(new Set())
+const kanjiChecked = ref(false)
+const kanjiCorrect = ref(false)
+const kanjiCorrectMeanings = ref<string[]>([])
+const kanjiShowDetail = ref(false)
+
 const categoryTitle = computed(() => {
   const titles: Record<CardCategory, string> = {
     hiragana: 'Hiragana',
@@ -285,6 +293,9 @@ function loadCurrentItem() {
         reversedMcOptions.value = generateReversedMcOptions(item.card)
       }
     }
+    if (item.card && isKanjiCard(item.card)) {
+      loadKanjiQuiz()
+    }
   }
 }
 
@@ -354,6 +365,87 @@ function nextItem() {
 // Flashcard mode (Kanji / Vocabulary)
 function flipCard() {
   isFlipped.value = true
+}
+
+/** Generate multi-select meaning options for a kanji card */
+function generateKanjiMeaningOptions(card: KanjiCard): string[] {
+  const correctMeanings = card.meanings
+  // Get wrong meanings from other kanji
+  const allMeanings = kanjiData
+    .filter(k => k.id !== card.id)
+    .flatMap(k => k.meanings)
+  const wrongMeanings = shuffle(allMeanings)
+    .filter(m => !correctMeanings.includes(m))
+    .slice(0, Math.max(4, 6 - correctMeanings.length))
+  return shuffle([...correctMeanings, ...wrongMeanings])
+}
+
+function loadKanjiQuiz() {
+  const card = currentCard.value
+  if (!card || !isKanjiCard(card)) return
+  kanjiCorrectMeanings.value = card.meanings
+  kanjiMeaningOptions.value = generateKanjiMeaningOptions(card)
+  kanjiSelectedMeanings.value = new Set()
+  kanjiChecked.value = false
+  kanjiCorrect.value = false
+  kanjiShowDetail.value = false
+}
+
+function toggleKanjiMeaning(meaning: string) {
+  if (kanjiChecked.value) return
+  const selected = new Set(kanjiSelectedMeanings.value)
+  if (selected.has(meaning)) {
+    selected.delete(meaning)
+  } else {
+    selected.add(meaning)
+  }
+  kanjiSelectedMeanings.value = selected
+}
+
+function checkKanjiMeanings() {
+  if (kanjiSelectedMeanings.value.size === 0) return
+  kanjiChecked.value = true
+
+  const selected = kanjiSelectedMeanings.value
+  const correct = kanjiCorrectMeanings.value
+
+  // Correct if: selected all correct meanings AND no wrong ones
+  kanjiCorrect.value =
+    correct.every(m => selected.has(m)) &&
+    selected.size === correct.length
+
+  const card = currentCard.value
+  if (card) {
+    learningStore.recordAnswer(card.id, props.category, kanjiCorrect.value)
+  }
+
+  if (kanjiCorrect.value) {
+    sessionCorrect.value++
+    const xp = userStore.xpPerCorrect
+    sessionXp.value += xp
+    userStore.addXp(xp, 1)
+    answerFeedback.value = 'correct'
+  } else {
+    sessionIncorrect.value++
+    answerFeedback.value = 'incorrect'
+  }
+  kanjiShowDetail.value = true
+}
+
+function nextKanjiCard() {
+  answerFeedback.value = null
+  if (currentIndex.value < sessionItems.value.length - 1) {
+    currentIndex.value++
+    loadCurrentItem()
+    // Load kanji quiz if next card is kanji
+    const nextCard = currentCard.value
+    if (nextCard && isKanjiCard(nextCard)) loadKanjiQuiz()
+  } else {
+    sessionComplete.value = true
+    userStore.completeSession()
+    badgesStore.checkAllBadges()
+    scheduleSave()
+  }
 }
 
 function answer(correct: boolean) {
@@ -554,7 +646,55 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- ==================== Flashcard Mode (Kanji / Vocabulary) ==================== -->
+    <!-- ==================== Kanji: Multi-Select Meaning Quiz ==================== -->
+    <div v-else-if="currentCard && isKanjiCard(currentCard)" class="kanji-quiz-container">
+      <div class="kanji-quiz-display" :class="answerFeedback ? `feedback-${answerFeedback}` : ''">
+        <span class="kanji-quiz-char jp">{{ currentCard.character }}</span>
+        <p class="kanji-quiz-meta">{{ currentCard.strokes }} Striche</p>
+        <p v-if="!kanjiChecked" class="kanji-quiz-prompt">Wähle alle richtigen Bedeutungen:</p>
+      </div>
+
+      <div v-if="!kanjiShowDetail" class="kanji-options">
+        <button
+          v-for="option in kanjiMeaningOptions"
+          :key="option"
+          class="kanji-option"
+          :class="{ selected: kanjiSelectedMeanings.has(option) }"
+          @click="toggleKanjiMeaning(option)"
+        >
+          {{ option }}
+        </button>
+      </div>
+
+      <button
+        v-if="!kanjiChecked"
+        class="btn btn-primary check-kanji-btn"
+        :disabled="kanjiSelectedMeanings.size === 0"
+        @click="checkKanjiMeanings"
+      >Prüfen</button>
+
+      <div v-if="kanjiShowDetail" class="kanji-feedback animate-slide-up">
+        <p :class="kanjiCorrect ? 'fb-correct' : 'fb-wrong'">
+          {{ kanjiCorrect ? '✅ Richtig!' : '❌ Nicht ganz' }}
+        </p>
+        <div class="kanji-detail card-flat">
+          <p class="kanji-detail-meanings">{{ currentCard.meanings.join(', ') }}</p>
+          <p class="kanji-detail-readings">
+            <span class="reading-label">On:</span> {{ currentCard.onyomi.join(', ') }}
+            <br />
+            <span class="reading-label">Kun:</span> {{ currentCard.kunyomi.join(', ') }}
+          </p>
+          <div v-if="currentCard.examples.length > 0" class="kanji-detail-example">
+            <span class="jp">{{ currentCard.examples[0].word }}</span>
+            <span class="kanji-detail-example-reading">{{ currentCard.examples[0].reading }}</span>
+            <span class="kanji-detail-example-meaning">{{ currentCard.examples[0].meaning }}</span>
+          </div>
+        </div>
+        <button class="btn btn-primary next-btn" @click="nextKanjiCard">Weiter →</button>
+      </div>
+    </div>
+
+    <!-- ==================== Flashcard Mode (Vocabulary only) ==================== -->
     <div v-else-if="currentCard" class="flashcard-container">
       <div
         class="flashcard"
@@ -573,20 +713,6 @@ onMounted(() => {
         <div class="flashcard-front" v-if="!isFlipped">
           <span class="card-character jp">{{ getDisplayCharacter(currentCard) }}</span>
           <p class="card-hint">Tippe zum Aufdecken</p>
-        </div>
-
-        <!-- Back - Kanji -->
-        <div class="flashcard-back" v-else-if="isKanjiCard(currentCard)">
-          <span class="card-character jp">{{ currentCard.character }}</span>
-          <div class="kanji-info">
-            <div class="kanji-meaning">{{ currentCard.meanings.join(', ') }}</div>
-            <div class="kanji-readings">
-              <span class="reading-label">On:</span> {{ currentCard.onyomi.join(', ') }}
-              <br />
-              <span class="reading-label">Kun:</span> {{ currentCard.kunyomi.join(', ') }}
-            </div>
-            <div class="kanji-meta">{{ currentCard.strokes }} Striche</div>
-          </div>
         </div>
 
         <!-- Back - Vocabulary -->
@@ -828,7 +954,147 @@ onMounted(() => {
   font-size: 1.05rem;
 }
 
-/* ===================== Flashcard Mode (Kanji/Vocab) ===================== */
+/* ===================== Kanji Multi-Select Quiz ===================== */
+.kanji-quiz-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 20px;
+}
+
+.kanji-quiz-display {
+  width: 100%;
+  max-width: 350px;
+  padding: 32px 24px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid transparent;
+  transition: border-color var(--transition-fast);
+}
+
+.kanji-quiz-display.feedback-correct { border-color: var(--accent-success); }
+.kanji-quiz-display.feedback-incorrect { border-color: var(--accent-primary); }
+
+.kanji-quiz-char {
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.kanji-quiz-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.kanji-quiz-prompt {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.kanji-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+  max-width: 350px;
+}
+
+.kanji-option {
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border: 2px solid var(--bg-accent);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  touch-action: manipulation;
+}
+
+.kanji-option:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-card-hover);
+}
+
+.kanji-option.selected {
+  border-color: var(--accent-primary);
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.check-kanji-btn {
+  width: 100%;
+  max-width: 350px;
+  padding: 14px;
+  font-size: 1rem;
+}
+
+.check-kanji-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.kanji-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 350px;
+}
+
+.kanji-detail {
+  width: 100%;
+  text-align: center;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanji-detail-meanings {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.kanji-detail-readings {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.kanji-detail-example {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bg-accent);
+  font-size: 0.9rem;
+}
+
+.kanji-detail-example-reading {
+  color: var(--text-secondary);
+}
+
+.kanji-detail-example-meaning {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ===================== Flashcard Mode (Vocab) ===================== */
 .flashcard-container {
   flex: 1;
   display: flex;

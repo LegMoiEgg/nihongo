@@ -6,6 +6,7 @@ import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
 import { vocabularyData } from '../data/vocabulary'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
+import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 
 const userStore = useUserStore()
 const learningStore = useLearningStore()
@@ -14,8 +15,7 @@ learningStore.initialize()
 
 // State
 const currentChallengeIndex = ref(0)
-const selectedBlocks = ref<string[]>([])
-const availableBlocks = ref<string[]>([])
+const blocks = useSentenceBlocks()
 const isChecked = ref(false)
 const isCorrect = ref(false)
 const showHint = ref(false)
@@ -34,7 +34,6 @@ const progress = computed(() => {
 })
 
 function initSession() {
-  // Get learned vocab IDs
   const learnedIds = vocabularyData
     .filter(v => {
       const p = learningStore.cardProgress.find(c => c.id === v.id)
@@ -42,7 +41,6 @@ function initSession() {
     })
     .map(v => v.id)
 
-  // Generate sentences dynamically from learned vocab
   const generated = generateDynamicSentences(learnedIds, 10)
   challenges.value = generated
   currentChallengeIndex.value = 0
@@ -55,39 +53,24 @@ function initSession() {
 
 function loadChallenge() {
   if (!currentChallenge.value) return
-
   const challenge = currentChallenge.value
-  const allBlocks = [...challenge.correctOrder, ...(challenge.distractors || [])]
-  availableBlocks.value = allBlocks.sort(() => Math.random() - 0.5)
-  selectedBlocks.value = []
+  blocks.initBlocks(challenge.correctOrder, challenge.distractors || [])
   isChecked.value = false
   isCorrect.value = false
   showHint.value = false
 }
 
-function selectBlock(block: string, index: number) {
-  if (isChecked.value) return
-  selectedBlocks.value.push(block)
-  availableBlocks.value.splice(index, 1)
-}
-
-function removeBlock(index: number) {
-  if (isChecked.value) return
-  const block = selectedBlocks.value[index]
-  availableBlocks.value.push(block)
-  selectedBlocks.value.splice(index, 1)
-}
-
 function checkAnswer() {
-  if (!currentChallenge.value || selectedBlocks.value.length === 0) return
+  if (!currentChallenge.value || blocks.selectedBlocks.value.length === 0) return
 
   isChecked.value = true
+  blocks.lock()
   sessionTotal.value++
 
   const correct = currentChallenge.value.correctOrder
   isCorrect.value =
-    selectedBlocks.value.length === correct.length &&
-    selectedBlocks.value.every((block, i) => block === correct[i])
+    blocks.selectedBlocks.value.length === correct.length &&
+    blocks.selectedBlocks.value.every((block, i) => block === correct[i])
 
   if (isCorrect.value) {
     sessionScore.value++
@@ -111,8 +94,7 @@ function nextChallenge() {
 
 function showCorrectAnswer() {
   if (!currentChallenge.value) return
-  selectedBlocks.value = [...currentChallenge.value.correctOrder]
-  availableBlocks.value = [...(currentChallenge.value.distractors || [])]
+  blocks.showCorrectAnswer(currentChallenge.value.correctOrder, currentChallenge.value.distractors)
 }
 
 onMounted(() => {
@@ -183,15 +165,16 @@ onMounted(() => {
       <div class="answer-area" :class="{ 'is-correct': isChecked && isCorrect, 'is-wrong': isChecked && !isCorrect }">
         <div class="answer-blocks">
           <button
-            v-for="(block, i) in selectedBlocks"
+            v-for="(block, i) in blocks.selectedBlocks.value"
             :key="'sel-' + i"
             class="word-block selected jp"
-            :class="{ disabled: isChecked }"
-            @click="removeBlock(i)"
+            :class="{ disabled: isChecked, swapping: blocks.swapIndex.value === i }"
+            @click="blocks.tapPlacedBlock(i)"
+            @dblclick="blocks.removePlacedBlock(i)"
           >
             {{ block }}
           </button>
-          <span v-if="selectedBlocks.length === 0" class="answer-placeholder">
+          <span v-if="blocks.selectedBlocks.value.length === 0" class="answer-placeholder">
             Tippe auf die Wörter unten
           </span>
         </div>
@@ -200,11 +183,11 @@ onMounted(() => {
       <!-- Available blocks -->
       <div class="available-area">
         <button
-          v-for="(block, i) in availableBlocks"
+          v-for="(block, i) in blocks.availableBlocks.value"
           :key="'avail-' + i"
           class="word-block available jp"
           :class="{ disabled: isChecked }"
-          @click="selectBlock(block, i)"
+          @click="blocks.selectBlock(i)"
         >
           {{ block }}
         </button>
@@ -231,7 +214,7 @@ onMounted(() => {
       <button
         v-else
         class="btn btn-primary check-btn"
-        :disabled="selectedBlocks.length === 0"
+        :disabled="blocks.selectedBlocks.value.length === 0"
         @click="checkAnswer"
       >
         Prüfen
@@ -377,6 +360,12 @@ onMounted(() => {
 .word-block.selected {
   background: var(--gradient-accent);
   color: white;
+}
+
+.word-block.selected.swapping {
+  border: 2px solid var(--accent-warning);
+  box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+  transform: scale(1.05);
 }
 
 .word-block.selected:hover {
