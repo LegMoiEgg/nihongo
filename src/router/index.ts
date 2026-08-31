@@ -87,10 +87,10 @@ const router = createRouter({
       meta: { title: 'Test', icon: 'test' }
     },
     {
-      path: '/progress',
-      name: 'progress',
-      component: () => import('../views/ProgressView.vue'),
-      meta: { title: 'Fortschritt', icon: 'chart' }
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { title: 'Profil', icon: 'profile' }
     }
   ]
 })

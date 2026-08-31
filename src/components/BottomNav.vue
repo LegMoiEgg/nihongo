@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { useUserStore } from '../stores/user'
 
 const route = useRoute()
+const userStore = useUserStore()
 
 const navItems = [
   { path: '/', label: 'Home', icon: '🏠', name: 'dashboard' },
   { path: '/learn', label: 'Lernen', icon: '📚', name: 'learn' },
   { path: '/sentences', label: 'Sätze', icon: '🧩', name: 'sentences' },
   { path: '/test', label: 'Test', icon: '📝', name: 'test' },
-  { path: '/progress', label: 'Stats', icon: '📊', name: 'progress' },
+  { path: '/profile', label: 'Profil', icon: '', name: 'profile' },
 ]
 
 function isActive(item: typeof navItems[0]): boolean {
@@ -30,7 +32,26 @@ function isActive(item: typeof navItems[0]): boolean {
       :aria-label="item.label"
       :aria-current="isActive(item) ? 'page' : undefined"
     >
-      <span class="nav-icon">{{ item.icon }}</span>
+      <!-- Profile tab: show avatar or placeholder -->
+      <template v-if="item.name === 'profile'">
+        <span class="nav-icon nav-avatar-wrap">
+          <img
+            v-if="userStore.avatarDataUrl"
+            :src="userStore.avatarDataUrl"
+            alt=""
+            class="nav-avatar-img"
+            :class="{ 'avatar-active': isActive(item) }"
+          />
+          <svg v-else viewBox="0 0 24 24" fill="none" class="nav-avatar-placeholder" :class="{ 'avatar-active': isActive(item) }">
+            <circle cx="12" cy="8" r="4" fill="currentColor"/>
+            <path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6" fill="currentColor"/>
+          </svg>
+        </span>
+      </template>
+      <!-- Normal tabs -->
+      <template v-else>
+        <span class="nav-icon">{{ item.icon }}</span>
+      </template>
       <span class="nav-label">{{ item.label }}</span>
     </router-link>
   </nav>
@@ -82,5 +103,38 @@ function isActive(item: typeof navItems[0]): boolean {
   font-size: 0.65rem;
   font-weight: 500;
   letter-spacing: 0.02em;
+}
+
+/* Profile avatar in nav */
+.nav-avatar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+}
+
+.nav-avatar-img {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--bg-accent);
+  transition: border-color var(--transition-fast);
+}
+
+.nav-avatar-img.avatar-active {
+  border-color: var(--accent-primary);
+}
+
+.nav-avatar-placeholder {
+  width: 26px;
+  height: 26px;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.nav-avatar-placeholder.avatar-active {
+  color: var(--accent-primary);
 }
 </style>

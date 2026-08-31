@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { hiraganaData } from '../data/hiragana'
@@ -11,35 +11,81 @@ const userStore = useUserStore()
 const learningStore = useLearningStore()
 learningStore.initialize()
 
+// ── Profile editing ──
+const isEditingName = ref(false)
+const nameInput = ref('')
+const fileInput = ref<HTMLInputElement | null>(null)
+
+function startEditName() {
+  nameInput.value = userStore.displayName
+  isEditingName.value = true
+}
+
+function saveName() {
+  userStore.setDisplayName(nameInput.value)
+  isEditingName.value = false
+}
+
+function cancelEditName() {
+  isEditingName.value = false
+}
+
+function triggerAvatarUpload() {
+  fileInput.value?.click()
+}
+
+function onAvatarSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  // Resize to max 200x200 and convert to data URL
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const size = 200
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')!
+      // Center crop
+      const minDim = Math.min(img.width, img.height)
+      const sx = (img.width - minDim) / 2
+      const sy = (img.height - minDim) / 2
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+      userStore.setAvatar(dataUrl)
+    }
+    img.src = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+  // Reset input so same file can be re-selected
+  input.value = ''
+}
+
+// ── Stats ──
 const categories = computed(() => [
   {
-    id: 'hiragana',
-    label: 'Hiragana',
-    icon: 'あ',
+    id: 'hiragana', label: 'Hiragana', icon: 'あ',
     totalCards: hiraganaData.length,
     ...learningStore.getCategoryStats('hiragana'),
     color: '#e94560'
   },
   {
-    id: 'katakana',
-    label: 'Katakana',
-    icon: 'ア',
+    id: 'katakana', label: 'Katakana', icon: 'ア',
     totalCards: katakanaData.length,
     ...learningStore.getCategoryStats('katakana'),
     color: '#533483'
   },
   {
-    id: 'kanji',
-    label: 'Kanji',
-    icon: '漢',
+    id: 'kanji', label: 'Kanji', icon: '漢',
     totalCards: kanjiData.length,
     ...learningStore.getCategoryStats('kanji'),
     color: '#0f3460'
   },
   {
-    id: 'vocabulary',
-    label: 'Vokabeln',
-    icon: '📝',
+    id: 'vocabulary', label: 'Vokabeln', icon: '📝',
     totalCards: vocabularyData.length,
     ...learningStore.getCategoryStats('vocabulary'),
     color: '#00c853'
@@ -48,10 +94,6 @@ const categories = computed(() => [
 
 const totalMastered = computed(() =>
   categories.value.reduce((sum, c) => sum + c.mastered, 0)
-)
-
-const totalCards = computed(() =>
-  categories.value.reduce((sum, c) => sum + c.totalCards, 0)
 )
 
 const weeklyActivity = computed(() => {
@@ -71,17 +113,63 @@ const weeklyActivity = computed(() => {
   return days
 })
 
-const maxWeeklyXp = computed(() => {
-  const max = Math.max(...weeklyActivity.value.map(d => d.xp), 1)
-  return max
-})
+const maxWeeklyXp = computed(() =>
+  Math.max(...weeklyActivity.value.map(d => d.xp), 1)
+)
 </script>
 
 <template>
-  <div class="progress-page">
-    <header class="page-header">
-      <h1>📊 Fortschritt</h1>
-    </header>
+  <div class="profile-page">
+    <!-- Profile Header -->
+    <section class="profile-header">
+      <div class="avatar-wrapper" @click="triggerAvatarUpload">
+        <img
+          v-if="userStore.avatarDataUrl"
+          :src="userStore.avatarDataUrl"
+          alt="Profilbild"
+          class="avatar-img"
+        />
+        <div v-else class="avatar-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" class="avatar-icon">
+            <circle cx="12" cy="8" r="4" fill="currentColor"/>
+            <path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6" fill="currentColor"/>
+          </svg>
+        </div>
+        <span class="avatar-edit-badge">📷</span>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          class="avatar-file-input"
+          @change="onAvatarSelected"
+          aria-label="Profilbild hochladen"
+        />
+      </div>
+
+      <div class="profile-name-area">
+        <div v-if="!isEditingName" class="name-display" @click="startEditName">
+          <span class="display-name">{{ userStore.displayName || 'Name festlegen' }}</span>
+          <span class="name-edit-icon">✏️</span>
+        </div>
+        <div v-else class="name-edit">
+          <input
+            v-model="nameInput"
+            class="name-input"
+            placeholder="Dein Name"
+            maxlength="20"
+            @keydown.enter="saveName"
+            @keydown.escape="cancelEditName"
+          />
+          <button class="btn btn-primary name-save-btn" @click="saveName">OK</button>
+        </div>
+      </div>
+
+      <div class="profile-badges">
+        <span class="badge badge-level">Lv. {{ userStore.currentLevel.level }}</span>
+        <span class="badge badge-xp">{{ userStore.totalXp }} XP</span>
+        <span class="badge badge-streak">🔥 {{ userStore.currentStreak }}</span>
+      </div>
+    </section>
 
     <!-- Overview Cards -->
     <section class="overview-cards">
@@ -107,11 +195,7 @@ const maxWeeklyXp = computed(() => {
     <section class="weekly-section card">
       <h2>Wochenaktivität</h2>
       <div class="weekly-chart">
-        <div
-          v-for="day in weeklyActivity"
-          :key="day.date"
-          class="chart-bar"
-        >
+        <div v-for="day in weeklyActivity" :key="day.date" class="chart-bar">
           <div class="bar-container">
             <div
               class="bar-fill"
@@ -170,9 +254,6 @@ const maxWeeklyXp = computed(() => {
           <span class="streak-item-label">Rekord</span>
         </div>
       </div>
-      <p class="streak-tip">
-        💡 Lerne jeden Tag, um deinen Streak nicht zu verlieren!
-      </p>
     </section>
 
     <!-- Level Progress -->
@@ -194,31 +275,144 @@ const maxWeeklyXp = computed(() => {
       <p class="level-xp-text" v-if="userStore.nextLevel">
         Noch {{ userStore.xpForNextLevel }} XP bis zum nächsten Level
       </p>
-      <p class="level-xp-text" v-else>
-        🎉 Maximales Level erreicht!
-      </p>
+      <p class="level-xp-text" v-else>🎉 Maximales Level erreicht!</p>
     </section>
   </div>
 </template>
 
 <style scoped>
-.progress-page {
+.profile-page {
   padding: var(--content-padding);
   padding-bottom: 32px;
   max-width: 600px;
   margin: 0 auto;
 }
 
-.page-header {
-  padding: 20px 0;
+/* ── Profile Header ── */
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0 20px;
 }
 
-.page-header h1 {
-  font-size: 1.6rem;
+.avatar-wrapper {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  cursor: pointer;
+}
+
+.avatar-img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent-primary);
+}
+
+.avatar-placeholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 3px solid var(--bg-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--text-muted);
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  border: 2px solid var(--bg-primary);
+}
+
+.avatar-file-input {
+  display: none;
+}
+
+/* Name */
+.profile-name-area {
+  text-align: center;
+}
+
+.name-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.name-display:hover {
+  background: var(--bg-card);
+}
+
+.display-name {
+  font-size: 1.3rem;
   font-weight: 700;
 }
 
-/* Overview */
+.name-edit-icon {
+  font-size: 0.85rem;
+  opacity: 0.5;
+}
+
+.name-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.name-input {
+  background: var(--bg-card);
+  border: 2px solid var(--bg-accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  width: 180px;
+  text-align: center;
+}
+
+.name-input:focus {
+  border-color: var(--accent-primary);
+}
+
+.name-save-btn {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+}
+
+/* Profile badges */
+.profile-badges {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Stats (same as before) ── */
 .overview-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -247,7 +441,6 @@ const maxWeeklyXp = computed(() => {
   margin-top: 4px;
 }
 
-/* Weekly Chart */
 .weekly-section {
   margin-bottom: 20px;
 }
@@ -309,7 +502,6 @@ const maxWeeklyXp = computed(() => {
   border-top: 1px solid var(--bg-accent);
 }
 
-/* Categories */
 .categories-section {
   margin-bottom: 20px;
 }
@@ -326,9 +518,7 @@ const maxWeeklyXp = computed(() => {
   gap: 10px;
 }
 
-.cat-stat {
-  padding: 14px;
-}
+.cat-stat { padding: 14px; }
 
 .cat-stat-header {
   display: flex;
@@ -337,37 +527,13 @@ const maxWeeklyXp = computed(() => {
   margin-bottom: 10px;
 }
 
-.cat-stat-icon {
-  font-size: 1.3rem;
-}
+.cat-stat-icon { font-size: 1.3rem; }
+.cat-stat-name { font-weight: 600; font-size: 0.95rem; }
+.cat-stat-mastered { margin-left: auto; color: var(--text-secondary); font-size: 0.8rem; }
+.cat-stat-details { margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); }
 
-.cat-stat-name {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.cat-stat-mastered {
-  margin-left: auto;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-}
-
-.cat-stat-details {
-  margin-top: 8px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* Streak */
-.streak-section {
-  margin-bottom: 20px;
-}
-
-.streak-section h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
+.streak-section { margin-bottom: 20px; }
+.streak-section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
 
 .streak-info {
   display: flex;
@@ -383,15 +549,8 @@ const maxWeeklyXp = computed(() => {
   gap: 4px;
 }
 
-.streak-item-value {
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.streak-item-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
+.streak-item-value { font-size: 2rem; font-weight: 700; }
+.streak-item-label { font-size: 0.8rem; color: var(--text-muted); }
 
 .streak-divider {
   width: 1px;
@@ -399,25 +558,8 @@ const maxWeeklyXp = computed(() => {
   background: var(--bg-accent);
 }
 
-.streak-tip {
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--bg-accent);
-}
-
-/* Level */
-.level-section {
-  margin-bottom: 20px;
-}
-
-.level-section h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
+.level-section { margin-bottom: 20px; }
+.level-section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; }
 
 .level-info {
   display: flex;

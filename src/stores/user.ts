@@ -54,6 +54,10 @@ export const useUserStore = defineStore('user', () => {
   const wordsLearnedTotal = ref(0)
   const sessionsCompletedTotal = ref(0)
 
+  // Profile
+  const displayName = ref('')
+  const avatarDataUrl = ref('') // base64 data URL from file upload
+
   // Computed
   const currentLevel = computed(() => {
     let lvl = LEVEL_THRESHOLDS[0]
@@ -120,6 +124,8 @@ export const useUserStore = defineStore('user', () => {
     dailyLog.value = loadFromStorage('nihongo_daily_log', [])
     wordsLearnedTotal.value = loadFromStorage('nihongo_words_total', 0)
     sessionsCompletedTotal.value = loadFromStorage('nihongo_sessions_total', 0)
+    displayName.value = loadFromStorage('nihongo_display_name', '')
+    avatarDataUrl.value = loadFromStorage('nihongo_avatar', '')
 
     updateStreak()
   }
@@ -205,6 +211,16 @@ export const useUserStore = defineStore('user', () => {
     saveToStorage('nihongo_sessions_total', sessionsCompletedTotal.value)
   }
 
+  function setDisplayName(name: string) {
+    displayName.value = name.trim()
+    saveToStorage('nihongo_display_name', displayName.value)
+  }
+
+  function setAvatar(dataUrl: string) {
+    avatarDataUrl.value = dataUrl
+    saveToStorage('nihongo_avatar', dataUrl)
+  }
+
   return {
     // State
     totalXp,
@@ -215,6 +231,8 @@ export const useUserStore = defineStore('user', () => {
     dailyLog,
     wordsLearnedTotal,
     sessionsCompletedTotal,
+    displayName,
+    avatarDataUrl,
     // Computed
     currentLevel,
     nextLevel,
@@ -227,5 +245,7 @@ export const useUserStore = defineStore('user', () => {
     initializeUser,
     addXp,
     completeSession,
+    setDisplayName,
+    setAvatar,
   }
 })
