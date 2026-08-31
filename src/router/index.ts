@@ -28,9 +28,33 @@ const router = createRouter({
       props: { category: 'hiragana' }
     },
     {
+      path: '/learn/hiragana/overview',
+      name: 'overview-hiragana',
+      component: () => import('../views/KanaOverviewView.vue'),
+      props: { category: 'hiragana' }
+    },
+    {
+      path: '/learn/hiragana/combos',
+      name: 'combos-hiragana',
+      component: () => import('../views/KanaCombosView.vue'),
+      props: { category: 'hiragana' }
+    },
+    {
       path: '/learn/katakana',
       name: 'learn-katakana',
       component: () => import('../views/LearnSessionView.vue'),
+      props: { category: 'katakana' }
+    },
+    {
+      path: '/learn/katakana/overview',
+      name: 'overview-katakana',
+      component: () => import('../views/KanaOverviewView.vue'),
+      props: { category: 'katakana' }
+    },
+    {
+      path: '/learn/katakana/combos',
+      name: 'combos-katakana',
+      component: () => import('../views/KanaCombosView.vue'),
       props: { category: 'katakana' }
     },
     {
@@ -38,6 +62,11 @@ const router = createRouter({
       name: 'learn-kanji',
       component: () => import('../views/LearnSessionView.vue'),
       props: { category: 'kanji' }
+    },
+    {
+      path: '/learn/kanji/overview',
+      name: 'overview-kanji',
+      component: () => import('../views/KanjiOverviewView.vue'),
     },
     {
       path: '/learn/vocabulary',

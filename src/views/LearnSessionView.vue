@@ -33,6 +33,15 @@ const mcOptions = ref<string[]>([])
 const selectedOption = ref<string | null>(null)
 const showExample = ref(false)
 
+// Combo reading state (interleaved for kana sessions)
+const isComboQuestion = ref(false)
+const comboKana = ref('')
+const comboCorrectRomaji = ref('')
+const comboOptions = ref<string[]>([])
+const comboSelected = ref<string | null>(null)
+const comboChecked = ref(false)
+const comboCorrect = ref(false)
+
 const categoryTitle = computed(() => {
   const titles: Record<CardCategory, string> = {
     hiragana: 'Hiragana',
@@ -43,11 +52,15 @@ const categoryTitle = computed(() => {
   return titles[props.category]
 })
 
-const currentCard = computed(() => sessionCards.value[currentIndex.value])
+const currentCard = computed(() => {
+  const item = sessionItems.value[currentIndex.value]
+  if (item?.type === 'kana') return item.card ?? null
+  return sessionCards.value[currentIndex.value] ?? null
+})
 
 const progress = computed(() => {
-  if (sessionCards.value.length === 0) return 0
-  return Math.round((currentIndex.value / sessionCards.value.length) * 100)
+  if (sessionItems.value.length === 0) return 0
+  return Math.round((currentIndex.value / sessionItems.value.length) * 100)
 })
 
 function isKanaCard(card: KanaCard | KanjiCard | VocabCard): card is KanaCard {
@@ -85,6 +98,69 @@ function generateMcOptions(correctCard: KanaCard): string[] {
   return options.sort(() => Math.random() - 0.5)
 }
 
+/** Learned single-character kana (for building combos) */
+function getLearnedSingleKana(): KanaCard[] {
+  const all = getAllKanaForCategory()
+  return all.filter(c => {
+    if (c.character.length > 1) return false
+    if (c.group === 'Sokuon') return false
+    const p = learningStore.cardProgress.find(cp => cp.id === c.id)
+    return p && p.status !== 'new'
+  })
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+/** Session items: either a kana card or a combo reading question */
+interface SessionItem {
+  type: 'kana' | 'combo'
+  card?: KanaCard  // for type=kana
+  comboKana?: string   // for type=combo, e.g. "かき"
+  comboRomaji?: string // for type=combo, e.g. "kaki"
+  comboOptions?: string[] // 4 romaji options
+}
+
+const sessionItems = ref<SessionItem[]>([])
+
+function generateComboItem(learned: KanaCard[]): SessionItem {
+  const len = Math.random() < 0.5 ? 2 : 3
+  let kana = ''
+  let romaji = ''
+  for (let i = 0; i < len; i++) {
+    const c = pickRandom(learned)
+    kana += c.character
+    romaji += c.romaji
+  }
+  // Generate 3 wrong options
+  const wrongs = new Set<string>()
+  let attempts = 0
+  while (wrongs.size < 3 && attempts < 20) {
+    let w = ''
+    for (let i = 0; i < len; i++) w += pickRandom(learned).romaji
+    if (w !== romaji) wrongs.add(w)
+    attempts++
+  }
+  while (wrongs.size < 3) wrongs.add(romaji + 'x')
+
+  return {
+    type: 'combo',
+    comboKana: kana,
+    comboRomaji: romaji,
+    comboOptions: shuffle([romaji, ...wrongs]),
+  }
+}
+
 function initSession() {
   let allCards: (KanaCard | KanjiCard | VocabCard)[]
 
@@ -105,26 +181,55 @@ function initSession() {
       allCards = []
   }
 
-  // Initialize progress for all cards
   for (const card of allCards) {
     learningStore.getOrCreateProgress(card.id, props.category)
   }
 
-  // Get due cards first, then new cards, limit to 20
   const dueCards = learningStore.getDueCardsForCategory(props.category, 20)
   const dueIds = new Set(dueCards.map(c => c.id))
 
   let selected = allCards.filter(c => dueIds.has(c.id))
 
-  // If we have fewer than 10 due, add some new ones
   if (selected.length < 10) {
     const newCards = allCards.filter(c => !dueIds.has(c.id))
     const shuffled = newCards.sort(() => Math.random() - 0.5)
     selected = [...selected, ...shuffled.slice(0, 10 - selected.length)]
   }
 
-  // Shuffle
-  sessionCards.value = selected.sort(() => Math.random() - 0.5)
+  selected = selected.sort(() => Math.random() - 0.5)
+  sessionCards.value = selected
+
+  // Build session items: kana cards + interleaved combos for kana mode
+  const items: SessionItem[] = []
+
+  if (isKanaMode.value) {
+    const learned = getLearnedSingleKana()
+    const canDoCombo = learned.length >= 5
+
+    for (let i = 0; i < selected.length; i++) {
+      const card = selected[i]
+      if (isKanaCard(card)) {
+        items.push({ type: 'kana', card })
+      }
+      // After every 3 kana cards, insert a combo question if possible
+      if (canDoCombo && (i + 1) % 3 === 0) {
+        items.push(generateComboItem(learned))
+      }
+    }
+    // Add a few more combos at the end if we have enough learned
+    if (canDoCombo) {
+      const extraCombos = Math.min(3, Math.floor(learned.length / 5))
+      for (let i = 0; i < extraCombos; i++) {
+        items.push(generateComboItem(learned))
+      }
+    }
+  } else {
+    for (const card of selected) {
+      items.push({ type: 'kana', card: card as KanaCard })
+    }
+  }
+
+  sessionItems.value = items
   currentIndex.value = 0
   sessionCorrect.value = 0
   sessionIncorrect.value = 0
@@ -133,56 +238,81 @@ function initSession() {
   isFlipped.value = false
   selectedOption.value = null
   showExample.value = false
+  isComboQuestion.value = false
 
-  // Generate MC options for first kana card
-  if (isKanaMode.value && sessionCards.value.length > 0) {
-    const card = sessionCards.value[0]
-    if (isKanaCard(card)) {
-      mcOptions.value = generateMcOptions(card)
+  loadCurrentItem()
+}
+
+function loadCurrentItem() {
+  const item = sessionItems.value[currentIndex.value]
+  if (!item) return
+
+  if (item.type === 'combo') {
+    isComboQuestion.value = true
+    comboKana.value = item.comboKana!
+    comboCorrectRomaji.value = item.comboRomaji!
+    comboOptions.value = item.comboOptions!
+    comboSelected.value = null
+    comboChecked.value = false
+    comboCorrect.value = false
+  } else {
+    isComboQuestion.value = false
+    selectedOption.value = null
+    showExample.value = false
+    if (item.card && isKanaCard(item.card)) {
+      mcOptions.value = generateMcOptions(item.card)
     }
   }
 }
 
 function loadNextKanaMcOptions() {
-  const card = currentCard.value
-  if (card && isKanaCard(card)) {
-    mcOptions.value = generateMcOptions(card)
+  loadCurrentItem()
+}
+
+function selectComboOption(option: string) {
+  if (comboChecked.value) return
+  comboSelected.value = option
+  comboChecked.value = true
+  comboCorrect.value = option === comboCorrectRomaji.value
+
+  if (comboCorrect.value) {
+    sessionCorrect.value++
+    sessionXp.value += 2
+    userStore.addXp(2)
+  } else {
+    sessionIncorrect.value++
   }
-  selectedOption.value = null
-  showExample.value = false
 }
 
 function selectKanaOption(option: string) {
-  if (selectedOption.value !== null) return // already answered
-  if (!currentCard.value || !isKanaCard(currentCard.value)) return
+  if (selectedOption.value !== null) return
+  const item = sessionItems.value[currentIndex.value]
+  if (!item || item.type !== 'kana' || !item.card || !isKanaCard(item.card)) return
 
   selectedOption.value = option
-  const correct = option === currentCard.value.romaji
+  const correct = option === item.card.romaji
 
-  learningStore.recordAnswer(currentCard.value.id, props.category, correct)
+  learningStore.recordAnswer(item.card.id, props.category, correct)
 
   if (correct) {
     sessionCorrect.value++
-    const xp = 10
-    sessionXp.value += xp
-    userStore.addXp(xp, 1)
+    sessionXp.value += 2
+    userStore.addXp(2, 1)
     answerFeedback.value = 'correct'
     showExample.value = true
   } else {
     sessionIncorrect.value++
-    userStore.addXp(2)
     answerFeedback.value = 'incorrect'
-    // Show example too so they can learn from it
     showExample.value = true
   }
 }
 
-function nextKanaCard() {
+function nextItem() {
   answerFeedback.value = null
 
-  if (currentIndex.value < sessionCards.value.length - 1) {
+  if (currentIndex.value < sessionItems.value.length - 1) {
     currentIndex.value++
-    loadNextKanaMcOptions()
+    loadCurrentItem()
   } else {
     sessionComplete.value = true
     userStore.completeSession()
@@ -228,7 +358,11 @@ function restartSession() {
 }
 
 function goBack() {
-  router.push('/learn')
+  if (isKanaMode.value) {
+    router.push(`/learn/${props.category}/overview`)
+  } else {
+    router.push('/learn')
+  }
 }
 
 onMounted(() => {
@@ -240,9 +374,9 @@ onMounted(() => {
   <div class="learn-session">
     <!-- Header -->
     <header class="session-header">
-      <button class="btn-ghost back-btn" @click="goBack" aria-label="Zurück">← Zurück</button>
+      <button class="btn-ghost back-btn" @click="goBack" aria-label="Zurück">‹</button>
       <h1>{{ categoryTitle }}</h1>
-      <span class="card-counter">{{ currentIndex + 1 }} / {{ sessionCards.length }}</span>
+      <span class="card-counter">{{ currentIndex + 1 }} / {{ sessionItems.length }}</span>
     </header>
 
     <!-- Progress Bar -->
@@ -269,7 +403,7 @@ onMounted(() => {
         </div>
       </div>
       <div class="complete-accuracy">
-        Genauigkeit: {{ sessionCards.length > 0 ? Math.round((sessionCorrect / sessionCards.length) * 100) : 0 }}%
+        Genauigkeit: {{ sessionItems.length > 0 ? Math.round((sessionCorrect / sessionItems.length) * 100) : 0 }}%
       </div>
       <div class="complete-actions">
         <button class="btn btn-primary" @click="restartSession">Nochmal üben</button>
@@ -317,7 +451,43 @@ onMounted(() => {
           <p class="example-meaning">{{ currentCard.exampleMeaning }}</p>
         </div>
 
-        <button class="btn btn-primary next-btn" @click="nextKanaCard">
+        <button class="btn btn-primary next-btn" @click="nextItem">
+          Weiter →
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== COMBO: Reading Combination ==================== -->
+    <div v-else-if="isComboQuestion && isKanaMode" class="kana-mc-container">
+      <div class="combo-badge badge badge-streak">🔗 Lese-Kombi</div>
+      <div class="kana-display">
+        <span class="kana-character jp">{{ comboKana }}</span>
+        <p v-if="!comboChecked" class="kana-prompt">Wie liest man das?</p>
+      </div>
+
+      <div v-if="!comboChecked" class="mc-options">
+        <button
+          v-for="option in comboOptions"
+          :key="option"
+          class="mc-option"
+          :class="{
+            correct: comboChecked && option === comboCorrectRomaji,
+            wrong: comboChecked && comboSelected === option && option !== comboCorrectRomaji,
+          }"
+          :disabled="comboChecked"
+          @click="selectComboOption(option)"
+        >
+          {{ option }}
+        </button>
+      </div>
+
+      <div v-if="comboChecked" class="kana-example animate-slide-up">
+        <div class="example-result">
+          <span v-if="comboCorrect" class="result-icon">✅</span>
+          <span v-else class="result-icon">❌</span>
+          <span class="result-reading">{{ comboCorrectRomaji }}</span>
+        </div>
+        <button class="btn btn-primary next-btn" @click="nextItem">
           Weiter →
         </button>
       </div>
@@ -413,7 +583,14 @@ onMounted(() => {
 }
 
 .back-btn {
-  font-size: 0.85rem;
+  font-size: 1.4rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
 }
 
 /* ===================== Kana Multiple Choice ===================== */
@@ -458,6 +635,11 @@ onMounted(() => {
 .kana-prompt {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.combo-badge {
+  align-self: flex-start;
+  margin-bottom: -8px;
 }
 
 /* MC Options */

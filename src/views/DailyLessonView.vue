@@ -308,7 +308,7 @@ onMounted(() => {
   <div class="daily-lesson">
     <!-- Header -->
     <header class="lesson-header">
-      <button class="btn-ghost back-btn" @click="goHome" aria-label="Zurück">✕</button>
+      <button class="btn-ghost back-btn" @click="goHome" aria-label="Zurück">‹</button>
       <h1>Tägliche Lektion</h1>
       <span class="counter">{{ currentIndex + 1 }} / {{ exercises.length }}</span>
     </header>
@@ -614,8 +614,14 @@ onMounted(() => {
 }
 
 .back-btn {
-  font-size: 1.1rem;
-  padding: 4px 10px;
+  font-size: 1.4rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
 }
 
 /* Type badge row */

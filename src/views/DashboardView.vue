@@ -8,6 +8,9 @@ const learningStore = useLearningStore()
 
 learningStore.initialize()
 
+const level = computed(() => userStore.currentLevel.level)
+const kanjiUnlocked = computed(() => level.value >= 5)
+
 // ── Week calendar logic ──
 // Week runs Mon–Sun. Sunday is test day.
 interface WeekDay {
@@ -152,27 +155,32 @@ const completedDays = computed(() =>
     <section class="quick-actions">
       <h2>Weiterlernen</h2>
       <div class="action-grid">
-        <router-link to="/learn/hiragana" class="action-card card">
+        <router-link to="/learn/hiragana/overview" class="action-card card">
           <span class="action-icon jp-large">あ</span>
           <span class="action-label">Hiragana</span>
           <span class="action-due badge badge-xp" v-if="learningStore.dueByCategory.hiragana > 0">
             {{ learningStore.dueByCategory.hiragana }} fällig
           </span>
         </router-link>
-        <router-link to="/learn/katakana" class="action-card card">
+        <router-link to="/learn/katakana/overview" class="action-card card">
           <span class="action-icon jp-large">ア</span>
           <span class="action-label">Katakana</span>
           <span class="action-due badge badge-xp" v-if="learningStore.dueByCategory.katakana > 0">
             {{ learningStore.dueByCategory.katakana }} fällig
           </span>
         </router-link>
-        <router-link to="/learn/kanji" class="action-card card">
+        <router-link v-if="kanjiUnlocked" to="/learn/kanji/overview" class="action-card card">
           <span class="action-icon jp-large">漢</span>
           <span class="action-label">Kanji</span>
           <span class="action-due badge badge-xp" v-if="learningStore.dueByCategory.kanji > 0">
             {{ learningStore.dueByCategory.kanji }} fällig
           </span>
         </router-link>
+        <div v-else class="action-card card action-locked">
+          <span class="action-icon jp-large">漢</span>
+          <span class="action-label">Kanji</span>
+          <span class="action-lock">🔒 Lv. 5</span>
+        </div>
         <router-link to="/learn/vocabulary" class="action-card card">
           <span class="action-icon">📝</span>
           <span class="action-label">Vokabeln</span>
@@ -539,6 +547,22 @@ const completedDays = computed(() =>
 
 .action-due {
   font-size: 0.7rem;
+}
+
+.action-locked {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.action-locked:hover {
+  transform: none;
+  box-shadow: var(--shadow-card);
+}
+
+.action-lock {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 /* Continue Section */
