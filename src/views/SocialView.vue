@@ -9,7 +9,9 @@ const socialStore = useSocialStore()
 const showCreateModal = ref(false)
 const showJoinModal = ref(false)
 const newGroupName = ref('')
+const newGroupPassword = ref('')
 const joinGroupId = ref('')
+const joinGroupPassword = ref('')
 const creating = ref(false)
 const joining = ref(false)
 
@@ -22,19 +24,29 @@ onMounted(() => {
 async function createGroup() {
   if (!newGroupName.value.trim()) return
   creating.value = true
-  await socialStore.createGroup(newGroupName.value.trim())
+  await socialStore.createGroup(
+    newGroupName.value.trim(),
+    newGroupPassword.value.trim() || undefined
+  )
   creating.value = false
   newGroupName.value = ''
+  newGroupPassword.value = ''
   showCreateModal.value = false
 }
 
 async function joinGroup() {
   if (!joinGroupId.value.trim()) return
   joining.value = true
-  await socialStore.joinGroup(joinGroupId.value.trim())
+  await socialStore.joinGroup(
+    joinGroupId.value.trim(),
+    joinGroupPassword.value.trim() || undefined
+  )
   joining.value = false
-  joinGroupId.value = ''
-  showJoinModal.value = false
+  if (!socialStore.error) {
+    joinGroupId.value = ''
+    joinGroupPassword.value = ''
+    showJoinModal.value = false
+  }
 }
 
 async function openGroup(groupId: string) {
@@ -68,6 +80,7 @@ function closeGroup() {
       <div class="group-id-card card-flat">
         <span class="group-id-label">Gruppen-ID zum Teilen:</span>
         <code class="group-id-value">{{ socialStore.currentGroup.id }}</code>
+        <span v-if="socialStore.currentGroup.password" class="group-protected">🔒 Passwortgeschützt</span>
       </div>
 
       <!-- Leaderboard -->
@@ -160,6 +173,10 @@ function closeGroup() {
             <label>Gruppenname</label>
             <input v-model="newGroupName" placeholder="z.B. Japanisch Lerngruppe" maxlength="40" required />
           </div>
+          <div class="form-group">
+            <label>Passwort (optional)</label>
+            <input v-model="newGroupPassword" type="password" placeholder="Leer = offen für alle" maxlength="30" />
+          </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-ghost" @click="showCreateModal = false">Abbrechen</button>
             <button type="submit" class="btn btn-primary" :disabled="creating">
@@ -178,6 +195,10 @@ function closeGroup() {
           <div class="form-group">
             <label>Gruppen-ID</label>
             <input v-model="joinGroupId" placeholder="Gruppen-ID einfügen" required />
+          </div>
+          <div class="form-group">
+            <label>Passwort (falls nötig)</label>
+            <input v-model="joinGroupPassword" type="password" placeholder="Leer wenn keine Passwort nötig" />
           </div>
           <p v-if="socialStore.error" class="modal-error">{{ socialStore.error }}</p>
           <div class="modal-actions">
@@ -360,6 +381,12 @@ function closeGroup() {
   color: var(--text-secondary);
   word-break: break-all;
   user-select: all;
+}
+
+.group-protected {
+  font-size: 0.75rem;
+  color: var(--accent-warning);
+  font-weight: 500;
 }
 
 /* Leaderboard */

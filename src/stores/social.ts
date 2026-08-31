@@ -26,6 +26,7 @@ export interface GroupMember {
 export interface SocialGroup {
   id: string
   name: string
+  password?: string  // optional group access code
   createdBy: string
   createdAt: string
   memberUids: string[]
@@ -68,7 +69,7 @@ export const useSocialStore = defineStore('social', () => {
   }
 
   /** Create a new group */
-  async function createGroup(name: string): Promise<string | null> {
+  async function createGroup(name: string, password?: string): Promise<string | null> {
     const authStore = useAuthStore()
     if (!authStore.isLoggedIn || !authStore.uid) return null
 
@@ -81,6 +82,7 @@ export const useSocialStore = defineStore('social', () => {
         createdBy: authStore.uid,
         createdAt: new Date().toISOString(),
         memberUids: [authStore.uid],
+        ...(password ? { password } : {}),
       }
       await setDoc(doc(db, 'groups', groupId), groupData)
       await loadMyGroups()
@@ -93,7 +95,7 @@ export const useSocialStore = defineStore('social', () => {
   }
 
   /** Join a group by ID */
-  async function joinGroup(groupId: string): Promise<boolean> {
+  async function joinGroup(groupId: string, password?: string): Promise<boolean> {
     const authStore = useAuthStore()
     if (!authStore.isLoggedIn || !authStore.uid) return false
 
@@ -106,6 +108,20 @@ export const useSocialStore = defineStore('social', () => {
       if (!snapshot.exists()) {
         error.value = 'Gruppe nicht gefunden.'
         return false
+      }
+
+      const groupData = snapshot.data() as SocialGroup
+
+      // Check password if group has one
+      if (groupData.password) {
+        if (!password) {
+          error.value = 'Diese Gruppe erfordert ein Passwort.'
+          return false
+        }
+        if (password !== groupData.password) {
+          error.value = 'Falsches Passwort.'
+          return false
+        }
       }
 
       await updateDoc(groupRef, {
