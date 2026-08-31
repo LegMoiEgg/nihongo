@@ -482,12 +482,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 .select-header p { color: var(--text-secondary); font-size: 0.9rem; }
 
 .mode-list { width: 100%; display: flex; flex-direction: column; gap: 8px; }
-.mode-card { display: flex; align-items: center; gap: 14px; cursor: pointer; border: 2px solid transparent; transition: all var(--transition-fast); }
+.mode-card { display: flex; align-items: center; gap: 14px; cursor: pointer; border: 2px solid transparent; transition: all var(--transition-fast); padding: 14px 16px; }
 .mode-card.selected { border-color: var(--accent-primary); background: rgba(233, 69, 96, 0.08); }
 .mode-card.disabled { opacity: 0.4; cursor: not-allowed; }
 .mode-card.disabled:hover { transform: none; box-shadow: var(--shadow-card); }
-.mode-icon { font-size: 1.8rem; width: 48px; text-align: center; flex-shrink: 0; }
-.mode-info { display: flex; flex-direction: column; gap: 2px; }
+.mode-icon { font-size: 1.8rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-accent); border-radius: var(--radius-md); }
+.mode-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .mode-label { font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
 .mode-desc { font-size: 0.8rem; color: var(--text-muted); }
 
