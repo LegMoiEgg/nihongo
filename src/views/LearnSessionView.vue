@@ -56,8 +56,9 @@ const categoryTitle = computed(() => {
 
 const currentCard = computed(() => {
   const item = sessionItems.value[currentIndex.value]
-  if (item?.type === 'kana') return item.card ?? null
-  return sessionCards.value[currentIndex.value] ?? null
+  if (!item) return null
+  if (item.type === 'kana') return item.card ?? null
+  return null // combo items have no card
 })
 
 const progress = computed(() => {
@@ -347,7 +348,7 @@ function answer(correct: boolean) {
   setTimeout(() => {
     answerFeedback.value = null
 
-    if (currentIndex.value < sessionCards.value.length - 1) {
+    if (currentIndex.value < sessionItems.value.length - 1) {
       currentIndex.value++
       isFlipped.value = false
     } else {
