@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useSocialStore } from '../stores/social'
 
@@ -17,6 +17,13 @@ const joining = ref(false)
 
 onMounted(() => {
   if (authStore.isLoggedIn) {
+    socialStore.loadMyGroups()
+  }
+})
+
+// Also reload when auth state changes (e.g. after page refresh)
+watch(() => authStore.isLoggedIn, (loggedIn) => {
+  if (loggedIn) {
     socialStore.loadMyGroups()
   }
 })
@@ -61,7 +68,10 @@ function closeGroup() {
 <template>
   <div class="social-page">
     <!-- Not logged in -->
-    <div v-if="!authStore.isLoggedIn" class="social-login-prompt">
+    <div v-if="authStore.loading" class="social-loading">
+      <p>Laden...</p>
+    </div>
+    <div v-else-if="!authStore.isLoggedIn" class="social-login-prompt">
       <div class="prompt-icon">👥</div>
       <h1>Social</h1>
       <p>Melde dich an um Gruppen beizutreten und dich mit Freunden zu messen.</p>
