@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
-import { useBadgesStore, ALL_BADGES } from '../stores/badges'
+import { useBadgesStore, ALL_BADGES, type BadgeDefinition } from '../stores/badges'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
@@ -13,6 +13,16 @@ const learningStore = useLearningStore()
 const badgesStore = useBadgesStore()
 learningStore.initialize()
 badgesStore.initialize()
+
+// Latest 3 earned badges (newest first)
+const latestBadges = computed((): BadgeDefinition[] => {
+  const sorted = [...badgesStore.earnedBadges]
+    .sort((a, b) => b.earnedAt.localeCompare(a.earnedAt))
+    .slice(0, 3)
+  return sorted
+    .map(eb => ALL_BADGES.find(b => b.id === eb.id))
+    .filter((b): b is BadgeDefinition => !!b)
+})
 
 // ── Profile editing ──
 const isEditingName = ref(false)
@@ -174,24 +184,32 @@ const maxWeeklyXp = computed(() =>
       </div>
     </section>
 
-    <!-- Badges -->
-    <section class="badges-section">
+    <!-- Badges Preview -->
+    <section class="badges-section card">
       <div class="badges-header">
         <h2>🏅 Erfolge</h2>
         <span class="badges-count">{{ badgesStore.earnedCount }} / {{ badgesStore.totalBadges }}</span>
       </div>
-      <div class="badges-grid">
+
+      <!-- Latest 3 earned -->
+      <div v-if="latestBadges.length > 0" class="badges-preview">
         <div
-          v-for="badge in ALL_BADGES"
+          v-for="badge in latestBadges"
           :key="badge.id"
-          class="badge-cell"
-          :class="{ earned: badgesStore.hasBadge(badge.id) }"
-          :title="badge.description"
+          class="badge-preview-cell"
         >
           <span class="badge-icon">{{ badge.icon }}</span>
-          <span class="badge-name">{{ badge.name }}</span>
+          <div class="badge-preview-info">
+            <span class="badge-preview-name">{{ badge.name }}</span>
+            <span class="badge-preview-desc">{{ badge.description }}</span>
+          </div>
         </div>
       </div>
+      <p v-else class="no-badges-text">Noch keine Erfolge freigeschaltet. Lerne weiter!</p>
+
+      <router-link to="/badges" class="badges-more-link">
+        Alle Erfolge anzeigen →
+      </router-link>
     </section>
 
     <!-- Overview Cards -->
@@ -435,7 +453,7 @@ const maxWeeklyXp = computed(() =>
   gap: 8px;
 }
 
-/* ── Badges ── */
+/* ── Badges Preview ── */
 .badges-section {
   margin-bottom: 20px;
 }
@@ -457,47 +475,66 @@ const maxWeeklyXp = computed(() =>
   color: var(--text-muted);
 }
 
-.badges-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.badge-cell {
+.badges-preview {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 6px;
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
-  border: 1px solid var(--bg-accent);
-  opacity: 0.3;
-  filter: grayscale(1);
-  transition: all var(--transition-fast);
+  gap: 10px;
 }
 
-.badge-cell.earned {
-  opacity: 1;
-  filter: none;
-  border-color: var(--accent-gold);
+.badge-preview-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
   background: rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: var(--radius-sm);
 }
 
 .badge-icon {
   font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-.badge-name {
-  font-size: 0.6rem;
+.badge-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.badge-preview-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.badge-preview-desc {
+  font-size: 0.75rem;
   color: var(--text-muted);
-  text-align: center;
-  font-weight: 500;
-  line-height: 1.2;
 }
 
-.badge-cell.earned .badge-name {
-  color: var(--text-secondary);
+.no-badges-text {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.badges-more-link {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bg-accent);
+  color: var(--accent-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.badges-more-link:hover {
+  opacity: 0.8;
 }
 
 /* ── Stats (same as before) ── */

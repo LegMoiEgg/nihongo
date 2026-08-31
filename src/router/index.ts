@@ -91,6 +91,12 @@ const router = createRouter({
       name: 'profile',
       component: () => import('../views/ProfileView.vue'),
       meta: { title: 'Profil', icon: 'profile' }
+    },
+    {
+      path: '/badges',
+      name: 'badges',
+      component: () => import('../views/BadgesView.vue'),
+      meta: { title: 'Erfolge' }
     }
   ]
 })
