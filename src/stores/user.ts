@@ -139,7 +139,11 @@ export const useUserStore = defineStore('user', () => {
 
   const xpForNextLevel = computed(() => {
     if (!nextLevel.value) return 0
-    return Math.max(0, nextLevel.value.xpRequired - totalXp.value)
+    // Only show XP needed within the current level range
+    const currentLevelXp = currentLevel.value.xpRequired
+    const nextLevelXp = nextLevel.value.xpRequired
+    const xpIntoLevel = Math.max(0, totalXp.value - currentLevelXp)
+    return nextLevelXp - currentLevelXp - xpIntoLevel
   })
 
   const levelProgress = computed(() => {
@@ -148,10 +152,8 @@ export const useUserStore = defineStore('user', () => {
     const nextLevelXp = nextLevel.value.xpRequired
     const range = nextLevelXp - currentLevelXp
     if (range <= 0) return 100
-    // If placement put us above current XP, progress starts at 0%
-    const effectiveXp = Math.max(totalXp.value, currentLevelXp)
-    const progress = effectiveXp - currentLevelXp
-    return Math.min(100, Math.max(0, Math.round((progress / range) * 100)))
+    const xpIntoLevel = Math.max(0, totalXp.value - currentLevelXp)
+    return Math.min(100, Math.max(0, Math.round((xpIntoLevel / range) * 100)))
   })
 
   const todayLog = computed((): DailyLog => {
