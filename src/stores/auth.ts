@@ -3,12 +3,16 @@ import { ref, computed } from 'vue'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile,
   type User,
 } from 'firebase/auth'
 import { auth } from '../firebase'
+
+const googleProvider = new GoogleAuthProvider()
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -56,6 +60,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function loginWithGoogle() {
+    error.value = ''
+    try {
+      const cred = await signInWithPopup(auth, googleProvider)
+      user.value = cred.user
+    } catch (e: any) {
+      if (e.code === 'auth/popup-closed-by-user') return // user cancelled, not an error
+      error.value = mapFirebaseError(e.code)
+      throw e
+    }
+  }
+
   async function logout() {
     error.value = ''
     await signOut(auth)
@@ -77,6 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
     initAuth,
     register,
     login,
+    loginWithGoogle,
     logout,
     clearError,
   }
