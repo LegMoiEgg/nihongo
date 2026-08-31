@@ -4,6 +4,7 @@ import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
+import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 
 const userStore = useUserStore()
@@ -152,6 +153,9 @@ function selectAnswer(answer: string) {
     const xp = userStore.xpPerCorrect
     totalXp.value += xp
     userStore.addXp(xp, 1)
+    playCorrectSound()
+  } else {
+    playWrongSound()
   }
 }
 

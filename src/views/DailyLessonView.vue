@@ -5,6 +5,7 @@ import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
+import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { kanjiData, type KanjiCard } from '../data/kanji'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
@@ -238,6 +239,9 @@ function selectMcOption(option: string) {
     const xp = userStore.xpPerCorrect
     totalXp.value += xp
     userStore.addXp(xp, 1)
+    playCorrectSound()
+  } else {
+    playWrongSound()
   }
 
   if (ex.vocab) learningStore.recordAnswer(ex.vocab.id, 'vocabulary', correct)
@@ -261,6 +265,9 @@ function checkSentence() {
     const xp = userStore.xpPerCorrect
     totalXp.value += xp
     userStore.addXp(xp)
+    playCorrectSound()
+  } else {
+    playWrongSound()
   }
 }
 

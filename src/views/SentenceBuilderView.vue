@@ -7,6 +7,7 @@ import { scheduleSave } from '../stores/sync'
 import { vocabularyData } from '../data/vocabulary'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
+import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 
 const userStore = useUserStore()
 const learningStore = useLearningStore()
@@ -77,6 +78,9 @@ function checkAnswer() {
     const xp = userStore.xpPerCorrect
     sessionXp.value += xp
     userStore.addXp(xp)
+    playCorrectSound()
+  } else {
+    playWrongSound()
   }
 }
 

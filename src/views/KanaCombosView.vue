@@ -5,6 +5,7 @@ import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
+import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 
@@ -151,6 +152,9 @@ function selectAnswer(option: string) {
     const xp = 1 // kana combos always 1 XP
     totalXp.value += xp
     userStore.addXp(xp)
+    playCorrectSound()
+  } else {
+    playWrongSound()
   }
 }
 

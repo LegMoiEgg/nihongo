@@ -5,6 +5,7 @@ import { useUserStore } from '../stores/user'
 import { useLearningStore, type CardCategory } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
+import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
@@ -314,8 +315,10 @@ function selectComboOption(option: string) {
     const xp = 1 // kana combos always 1 XP
     sessionXp.value += xp
     userStore.addXp(xp)
+    playCorrectSound()
   } else {
     sessionIncorrect.value++
+    playWrongSound()
   }
 }
 
@@ -341,10 +344,12 @@ function selectKanaOption(option: string) {
     userStore.addXp(xp, 1)
     answerFeedback.value = 'correct'
     showExample.value = true
+    playCorrectSound()
   } else {
     sessionIncorrect.value++
     answerFeedback.value = 'incorrect'
     showExample.value = true
+    playWrongSound()
   }
 }
 
@@ -425,9 +430,11 @@ function checkKanjiMeanings() {
     sessionXp.value += xp
     userStore.addXp(xp, 1)
     answerFeedback.value = 'correct'
+    playCorrectSound()
   } else {
     sessionIncorrect.value++
     answerFeedback.value = 'incorrect'
+    playWrongSound()
   }
   kanjiShowDetail.value = true
 }
@@ -459,8 +466,10 @@ function answer(correct: boolean) {
     const xp = userStore.xpPerCorrect
     sessionXp.value += xp
     userStore.addXp(xp, 1)
+    playCorrectSound()
   } else {
     sessionIncorrect.value++
+    playWrongSound()
   }
 
   setTimeout(() => {
