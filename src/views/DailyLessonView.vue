@@ -7,6 +7,8 @@ import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
 import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
+import { hiraganaData, type KanaCard } from '../data/hiragana'
+import { katakanaData } from '../data/katakana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
@@ -38,7 +40,7 @@ function vocabHasFurigana(v: VocabCard): boolean {
 }
 
 // ── Exercise types ──
-type ExerciseType = 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence'
+type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence'
 
 interface Exercise {
   type: ExerciseType
@@ -48,6 +50,8 @@ interface Exercise {
   kanji?: KanjiCard
   kanjiOptions?: string[]
   sentence?: SentenceChallenge
+  kana?: KanaCard
+  kanaOptions?: string[]
 }
 
 // ── State ──
@@ -93,15 +97,75 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 // ── Generate exercises based on level ──
-// Target: minimum 20 questions per session
-// Each vocab word appears in BOTH directions (DE→JP then JP→DE)
-// Sentences added at level 3+, Kanji at level 5+
+// Level 1-4: Kana only (Hiragana + Katakana recognition)
+// Level 5-9: Kana + Vocabulary
+// Level 10+: Vocab + Sentences
+// Level 15+: Vocab + Sentences + Kanji
 function generateExercises(): Exercise[] {
   const result: Exercise[] = []
   const lvl = level.value
-  const allVocabIds = vocabularyData.map(v => v.id)
 
-  // Get smart vocab pool from learning store (more words for longer sessions)
+  // ── Level 1-4: KANA ONLY ──
+  if (lvl <= 4) {
+    const allHira = hiraganaData.filter(h => h.group !== 'Sokuon')
+    const allKata = katakanaData.filter(k => k.group !== 'Sokuon')
+
+    // Pick kana to practice — prioritize due/learning, then add new
+    const hiraPool = shuffle(allHira).slice(0, lvl <= 2 ? 8 : 12)
+    const kataPool = lvl >= 3 ? shuffle(allKata).slice(0, 6) : []
+
+    // Initialize progress for these kana
+    for (const card of [...hiraPool, ...kataPool]) {
+      learningStore.getOrCreateProgress(card.id, card.id.startsWith('h-') ? 'hiragana' : 'katakana')
+    }
+
+    // For level 1-2: show romaji, pick kana character
+    if (lvl <= 2) {
+      for (const card of hiraPool) {
+        const wrong = shuffle(allHira.filter(h => h.character !== card.character && h.character.length === 1))
+          .slice(0, 3).map(h => h.character)
+        result.push({
+          type: 'kana-char',
+          kana: card,
+          kanaOptions: shuffle([card.character, ...wrong]),
+        })
+      }
+    } else {
+      // Level 3-4: mix of romaji→kana and kana→romaji
+      for (const card of hiraPool.slice(0, 6)) {
+        const wrong = shuffle(allHira.filter(h => h.romaji !== card.romaji))
+          .slice(0, 3).map(h => h.romaji)
+        result.push({
+          type: 'kana-romaji',
+          kana: card,
+          kanaOptions: shuffle([card.romaji, ...wrong]),
+        })
+      }
+      for (const card of hiraPool.slice(6)) {
+        const wrong = shuffle(allHira.filter(h => h.character !== card.character))
+          .slice(0, 3).map(h => h.character)
+        result.push({
+          type: 'kana-char',
+          kana: card,
+          kanaOptions: shuffle([card.character, ...wrong]),
+        })
+      }
+      for (const card of kataPool) {
+        const wrong = shuffle(allKata.filter(k => k.romaji !== card.romaji))
+          .slice(0, 3).map(k => k.romaji)
+        result.push({
+          type: 'kana-romaji',
+          kana: card,
+          kanaOptions: shuffle([card.romaji, ...wrong]),
+        })
+      }
+    }
+
+    return shuffle(result)
+  }
+
+  // ── Level 5+: Vocabulary (+ sentences + kanji at higher levels) ──
+  const allVocabIds = vocabularyData.map(v => v.id)
   const vocabSlots = learningStore.getVocabForDailyLesson(allVocabIds, lvl, 10)
   const vocabCards = vocabSlots
     .map(slot => {
@@ -112,9 +176,8 @@ function generateExercises(): Exercise[] {
 
   newWordsInSession.value = vocabCards.filter(v => v.isNew).length
 
-  // ── Every vocab word in BOTH directions ──
+  // Every vocab word in BOTH directions
   for (const { card, isNew } of vocabCards) {
-    // Direction 1: DE → JP
     const wrongJp = shuffle(vocabularyData.filter(v => v.id !== card.id))
       .slice(0, 3).map(v => vocabDisplay(v))
     result.push({
@@ -124,7 +187,6 @@ function generateExercises(): Exercise[] {
       vocabOptions: shuffle([vocabDisplay(card), ...wrongJp]),
     })
 
-    // Direction 2: JP → DE
     const wrongDe = shuffle(vocabularyData.filter(v => v.id !== card.id))
       .slice(0, 3).map(v => v.meaning)
     result.push({
@@ -135,7 +197,7 @@ function generateExercises(): Exercise[] {
     })
   }
 
-  // ── Sentences (level 3+) — dynamically generated from learned vocab ──
+  // Sentences (level 10+)
   if (lvl >= 10) {
     const learnedIds = vocabCards.map(v => v.card.id)
     const sentenceCount = lvl >= 15 ? 5 : 3
@@ -145,7 +207,7 @@ function generateExercises(): Exercise[] {
     }
   }
 
-  // ── Kanji (level 5+) with furigana ──
+  // Kanji (level 15+)
   if (lvl >= 15) {
     const kanjiPool = shuffle(kanjiData)
     const kanjiCount = lvl >= 20 ? 4 : 3
@@ -218,6 +280,8 @@ function resetCurrentState() {
 function getCorrectMcAnswer(): string {
   const ex = currentExercise.value
   if (!ex) return ''
+  if (ex.type === 'kana-char' && ex.kana) return ex.kana.character
+  if (ex.type === 'kana-romaji' && ex.kana) return ex.kana.romaji
   if (ex.type === 'vocab-de-jp') return vocabDisplay(ex.vocab!)
   if (ex.type === 'vocab-jp-de') return ex.vocab!.meaning
   if (ex.type === 'kanji-meaning') return ex.kanji!.meanings[0]
@@ -236,9 +300,10 @@ function selectMcOption(option: string) {
   const ex = currentExercise.value!
   if (correct) {
     score.value++
-    const xp = userStore.xpPerCorrect
+    // Kana exercises always 1 XP, vocab/kanji use dynamic XP
+    const xp = (ex.type === 'kana-char' || ex.type === 'kana-romaji') ? 1 : userStore.xpPerCorrect
     totalXp.value += xp
-    userStore.addXp(xp, 1)
+    userStore.addXp(xp, ex.type.startsWith('kana') ? 0 : 1)
     playCorrectSound()
   } else {
     playWrongSound()
@@ -246,6 +311,7 @@ function selectMcOption(option: string) {
 
   if (ex.vocab) learningStore.recordAnswer(ex.vocab.id, 'vocabulary', correct)
   if (ex.kanji) learningStore.recordAnswer(ex.kanji.id, 'kanji', correct)
+  if (ex.kana) learningStore.recordAnswer(ex.kana.id, ex.kana.id.startsWith('h-') ? 'hiragana' : 'katakana', correct)
 }
 
 // ── Sentence handlers ──
@@ -347,7 +413,9 @@ onMounted(() => {
 
       <!-- Exercise Type Badge + New Word indicator -->
       <div class="type-badge-row">
-        <span v-if="currentExercise.type === 'vocab-de-jp'" class="badge badge-xp">🇩🇪 → 🇯🇵 Vokabel</span>
+        <span v-if="currentExercise.type === 'kana-char'" class="badge badge-streak">あ Zeichen erkennen</span>
+        <span v-else-if="currentExercise.type === 'kana-romaji'" class="badge badge-streak">あ → Lesung</span>
+        <span v-else-if="currentExercise.type === 'vocab-de-jp'" class="badge badge-xp">🇩🇪 → 🇯🇵 Vokabel</span>
         <span v-else-if="currentExercise.type === 'vocab-jp-de'" class="badge badge-xp">🇯🇵 → 🇩🇪 Vokabel</span>
         <span v-else-if="currentExercise.type === 'kanji-meaning'" class="badge badge-level">漢字 Bedeutung</span>
         <span v-else-if="currentExercise.type === 'kanji-reading'" class="badge badge-level">漢字 Lesung</span>
@@ -366,8 +434,56 @@ onMounted(() => {
         <span class="mastery-label">{{ currentMasteryProgress }}/{{ learningStore.MASTERY_STREAK }}</span>
       </div>
 
+      <!-- ══════════ KANA: Show romaji, pick character ══════════ -->
+      <template v-if="currentExercise.type === 'kana-char' && currentExercise.kana">
+        <div class="prompt-card card-flat">
+          <p class="prompt-label">Welches Zeichen ist das?</p>
+          <p class="prompt-romaji">{{ currentExercise.kana.romaji }}</p>
+        </div>
+        <div class="mc-grid">
+          <button
+            v-for="option in currentExercise.kanaOptions" :key="option"
+            class="mc-option mc-option-kana jp"
+            :class="{ correct: mcChecked && option === currentExercise.kana!.character, wrong: mcChecked && selectedMcAnswer === option && option !== currentExercise.kana!.character, dimmed: mcChecked && option !== currentExercise.kana!.character && selectedMcAnswer !== option }"
+            :disabled="mcChecked" @click="selectMcOption(option)"
+          >{{ option }}</button>
+        </div>
+        <div v-if="mcChecked" class="feedback animate-slide-up">
+          <p :class="mcCorrect ? 'fb-correct' : 'fb-wrong'">{{ mcCorrect ? '✅ Richtig!' : '❌ Falsch' }}</p>
+          <div v-if="currentExercise.kana.example" class="fb-example">
+            <span class="jp">{{ currentExercise.kana.example }}</span>
+            <span class="fb-example-meaning">{{ currentExercise.kana.exampleMeaning }}</span>
+          </div>
+          <button class="btn btn-primary next-btn" @click="nextExercise">Weiter →</button>
+        </div>
+      </template>
+
+      <!-- ══════════ KANA: Show character, pick romaji ══════════ -->
+      <template v-else-if="currentExercise.type === 'kana-romaji' && currentExercise.kana">
+        <div class="prompt-card card-flat">
+          <p class="prompt-label">Wie liest man das?</p>
+          <p class="prompt-text jp-large">{{ currentExercise.kana.character }}</p>
+        </div>
+        <div class="mc-grid">
+          <button
+            v-for="option in currentExercise.kanaOptions" :key="option"
+            class="mc-option"
+            :class="{ correct: mcChecked && option === currentExercise.kana!.romaji, wrong: mcChecked && selectedMcAnswer === option && option !== currentExercise.kana!.romaji, dimmed: mcChecked && option !== currentExercise.kana!.romaji && selectedMcAnswer !== option }"
+            :disabled="mcChecked" @click="selectMcOption(option)"
+          >{{ option }}</button>
+        </div>
+        <div v-if="mcChecked" class="feedback animate-slide-up">
+          <p :class="mcCorrect ? 'fb-correct' : 'fb-wrong'">{{ mcCorrect ? '✅ Richtig!' : '❌ Falsch' }}</p>
+          <div v-if="currentExercise.kana.example" class="fb-example">
+            <span class="jp">{{ currentExercise.kana.example }}</span>
+            <span class="fb-example-meaning">{{ currentExercise.kana.exampleMeaning }}</span>
+          </div>
+          <button class="btn btn-primary next-btn" @click="nextExercise">Weiter →</button>
+        </div>
+      </template>
+
       <!-- ══════════ VOCAB DE→JP ══════════ -->
-      <template v-if="currentExercise.type === 'vocab-de-jp' && currentExercise.vocab">
+      <template v-else-if="currentExercise.type === 'vocab-de-jp' && currentExercise.vocab">
         <div class="prompt-card card-flat">
           <p class="prompt-label">Was heißt das auf Japanisch?</p>
           <p class="prompt-text">{{ currentExercise.vocab.meaning }}</p>
@@ -697,6 +813,31 @@ onMounted(() => {
   color: var(--text-secondary);
   font-size: 0.95rem;
   margin-top: 4px;
+}
+
+.prompt-romaji {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  letter-spacing: 0.05em;
+}
+
+.mc-option-kana {
+  font-size: 1.8rem !important;
+  text-align: center !important;
+  padding: 14px 20px !important;
+}
+
+.fb-example {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+}
+
+.fb-example-meaning {
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 .hint-btn {

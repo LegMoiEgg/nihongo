@@ -139,21 +139,34 @@ export const useUserStore = defineStore('user', () => {
 
   const xpForNextLevel = computed(() => {
     if (!nextLevel.value) return 0
-    // Only show XP needed within the current level range
     const currentLevelXp = currentLevel.value.xpRequired
     const nextLevelXp = nextLevel.value.xpRequired
+    const levelRange = nextLevelXp - currentLevelXp
+
+    // If placement level is active (XP is below current level's threshold),
+    // treat all earned XP as progress within this level
+    if (placementLevel.value > 0 && totalXp.value < currentLevelXp) {
+      return Math.max(0, levelRange - totalXp.value)
+    }
+
     const xpIntoLevel = Math.max(0, totalXp.value - currentLevelXp)
-    return nextLevelXp - currentLevelXp - xpIntoLevel
+    return Math.max(0, levelRange - xpIntoLevel)
   })
 
   const levelProgress = computed(() => {
     if (!nextLevel.value) return 100
     const currentLevelXp = currentLevel.value.xpRequired
     const nextLevelXp = nextLevel.value.xpRequired
-    const range = nextLevelXp - currentLevelXp
-    if (range <= 0) return 100
+    const levelRange = nextLevelXp - currentLevelXp
+    if (levelRange <= 0) return 100
+
+    // If placement level is active, use total XP as progress within this level
+    if (placementLevel.value > 0 && totalXp.value < currentLevelXp) {
+      return Math.min(100, Math.max(0, Math.round((totalXp.value / levelRange) * 100)))
+    }
+
     const xpIntoLevel = Math.max(0, totalXp.value - currentLevelXp)
-    return Math.min(100, Math.max(0, Math.round((xpIntoLevel / range) * 100)))
+    return Math.min(100, Math.max(0, Math.round((xpIntoLevel / levelRange) * 100)))
   })
 
   const todayLog = computed((): DailyLog => {
