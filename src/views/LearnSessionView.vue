@@ -21,6 +21,22 @@ learningStore.initialize()
 
 const isKanaMode = computed(() => props.category === 'hiragana' || props.category === 'katakana')
 
+/** Show romaji hints next to kana for beginners (level 1-2) */
+const showRomajiHints = computed(() => userStore.currentLevel.level <= 2 && isKanaMode.value)
+
+/** For level 1-2: reversed MC — show romaji, pick the kana character */
+const reversedMcOptions = ref<string[]>([])
+
+function generateReversedMcOptions(correctCard: KanaCard): string[] {
+  const allKana = getAllKanaForCategory()
+  const wrong = allKana
+    .filter(k => k.character !== correctCard.character)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3)
+    .map(k => k.character)
+  return [...wrong, correctCard.character].sort(() => Math.random() - 0.5)
+}
+
 // Session state
 const currentIndex = ref(0)
 const isFlipped = ref(false)
@@ -265,6 +281,9 @@ function loadCurrentItem() {
     showExample.value = false
     if (item.card && isKanaCard(item.card)) {
       mcOptions.value = generateMcOptions(item.card)
+      if (showRomajiHints.value) {
+        reversedMcOptions.value = generateReversedMcOptions(item.card)
+      }
     }
   }
 }
@@ -281,7 +300,7 @@ function selectComboOption(option: string) {
 
   if (comboCorrect.value) {
     sessionCorrect.value++
-    const xp = userStore.xpPerCorrect
+    const xp = 1 // kana combos always 1 XP
     sessionXp.value += xp
     userStore.addXp(xp)
   } else {
@@ -295,13 +314,18 @@ function selectKanaOption(option: string) {
   if (!item || item.type !== 'kana' || !item.card || !isKanaCard(item.card)) return
 
   selectedOption.value = option
-  const correct = option === item.card.romaji
+
+  // In reversed mode (level 1-2): option is a kana character, compare to card's character
+  // In normal mode: option is romaji, compare to card's romaji
+  const correct = showRomajiHints.value
+    ? option === item.card.character
+    : option === item.card.romaji
 
   learningStore.recordAnswer(item.card.id, props.category, correct)
 
   if (correct) {
     sessionCorrect.value++
-    const xp = userStore.xpPerCorrect
+    const xp = 1 // kana MC always 1 XP
     sessionXp.value += xp
     userStore.addXp(xp, 1)
     answerFeedback.value = 'correct'
@@ -424,26 +448,54 @@ onMounted(() => {
     <div v-else-if="currentCard && isKanaMode && isKanaCard(currentCard)" class="kana-mc-container">
       <!-- Character Display -->
       <div class="kana-display" :class="answerFeedback ? `feedback-${answerFeedback}` : ''">
-        <span class="kana-character jp">{{ currentCard.character }}</span>
-        <p v-if="!selectedOption" class="kana-prompt">Was ist die Lesung?</p>
+        <!-- Level 1-2: show romaji, ask for kana -->
+        <template v-if="showRomajiHints">
+          <span class="kana-romaji-prompt">{{ currentCard.romaji }}</span>
+          <p v-if="!selectedOption" class="kana-prompt">Welches Zeichen ist das?</p>
+        </template>
+        <!-- Level 3+: show kana, ask for romaji -->
+        <template v-else>
+          <span class="kana-character jp">{{ currentCard.character }}</span>
+          <p v-if="!selectedOption" class="kana-prompt">Was ist die Lesung?</p>
+        </template>
       </div>
 
       <!-- Answer Options -->
       <div v-if="!showExample" class="mc-options">
-        <button
-          v-for="option in mcOptions"
-          :key="option"
-          class="mc-option"
-          :class="{
-            selected: selectedOption === option,
-            correct: selectedOption !== null && option === currentCard.romaji,
-            wrong: selectedOption === option && option !== currentCard.romaji,
-          }"
-          :disabled="selectedOption !== null"
-          @click="selectKanaOption(option)"
-        >
-          {{ option }}
-        </button>
+        <!-- Level 1-2: kana character options -->
+        <template v-if="showRomajiHints">
+          <button
+            v-for="option in reversedMcOptions"
+            :key="option"
+            class="mc-option mc-option-kana jp"
+            :class="{
+              selected: selectedOption === option,
+              correct: selectedOption !== null && option === currentCard.character,
+              wrong: selectedOption === option && option !== currentCard.character,
+            }"
+            :disabled="selectedOption !== null"
+            @click="selectKanaOption(option)"
+          >
+            {{ option }}
+          </button>
+        </template>
+        <!-- Level 3+: romaji options -->
+        <template v-else>
+          <button
+            v-for="option in mcOptions"
+            :key="option"
+            class="mc-option"
+            :class="{
+              selected: selectedOption === option,
+              correct: selectedOption !== null && option === currentCard.romaji,
+              wrong: selectedOption === option && option !== currentCard.romaji,
+            }"
+            :disabled="selectedOption !== null"
+            @click="selectKanaOption(option)"
+          >
+            {{ option }}
+          </button>
+        </template>
       </div>
 
       <!-- Example Word (shown after answering) -->
@@ -645,6 +697,19 @@ onMounted(() => {
 .kana-prompt {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.kana-romaji-prompt {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  letter-spacing: 0.05em;
+}
+
+.mc-option-kana {
+  font-size: 1.8rem !important;
+  text-align: center !important;
+  padding: 14px 20px !important;
 }
 
 .combo-badge {

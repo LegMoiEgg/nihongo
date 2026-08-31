@@ -29,14 +29,14 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
 
 <template>
   <div class="app-container">
-    <main class="app-content" :class="{ 'no-nav': $route.name === 'onboarding' }">
+    <main class="app-content" :class="{ 'no-nav': $route.name === 'onboarding' || $route.name === 'placement' }">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
     </main>
-    <BottomNav v-if="$route.name !== 'onboarding'" />
+    <BottomNav v-if="$route.name !== 'onboarding' && $route.name !== 'placement'" />
   </div>
 </template>
 

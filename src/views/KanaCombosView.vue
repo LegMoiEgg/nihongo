@@ -148,7 +148,7 @@ function selectAnswer(option: string) {
 
   if (isCorrect.value) {
     score.value++
-    const xp = userStore.xpPerCorrect
+    const xp = 1 // kana combos always 1 XP
     totalXp.value += xp
     userStore.addXp(xp)
   }

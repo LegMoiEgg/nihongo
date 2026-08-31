@@ -47,15 +47,25 @@ function skipLogin() {
 
 async function enableNotifications() {
   await notifStore.requestPermission()
-  finishOnboarding()
+  goToPlacement()
 }
 
 function skipNotifications() {
-  finishOnboarding()
+  goToPlacement()
 }
 
-function finishOnboarding() {
+function goToPlacement() {
+  step.value = 3
+}
+
+function startPlacementTest() {
   localStorage.setItem('nihongo_onboarding_done', 'true')
+  router.replace('/placement')
+}
+
+function skipPlacement() {
+  localStorage.setItem('nihongo_onboarding_done', 'true')
+  localStorage.setItem('nihongo_placement_done', 'true')
   router.replace('/')
 }
 </script>
@@ -130,6 +140,26 @@ function finishOnboarding() {
       </div>
 
       <p class="ob-notif-hint">Du kannst das jederzeit im Profil ändern.</p>
+    </div>
+
+    <!-- Step 3: Placement Test -->
+    <div v-else-if="step === 3" class="onboarding-step animate-fade-in">
+      <div class="ob-header">
+        <span class="ob-icon">🎯</span>
+        <h1>Einstufungstest</h1>
+        <p>Kannst du schon etwas Japanisch? Mach einen kurzen Test damit wir dein Level bestimmen können.</p>
+      </div>
+
+      <div class="ob-placement-actions">
+        <button class="btn btn-primary ob-placement-btn" @click="startPlacementTest">
+          Test starten
+        </button>
+        <button class="btn btn-ghost ob-placement-btn" @click="skipPlacement">
+          Ich bin Anfänger, bei Level 1 starten
+        </button>
+      </div>
+
+      <p class="ob-notif-hint">Der Test dauert ca. 5 Minuten und kann nur einmal gemacht werden.</p>
     </div>
   </div>
 </template>
@@ -330,5 +360,19 @@ function finishOnboarding() {
   color: var(--text-muted);
   font-size: 0.8rem;
   text-align: center;
+}
+
+/* Placement step */
+.ob-placement-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ob-placement-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
 }
 </style>

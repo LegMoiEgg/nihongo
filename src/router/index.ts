@@ -121,6 +121,12 @@ const router = createRouter({
       name: 'onboarding',
       component: () => import('../views/OnboardingView.vue'),
       meta: { title: 'Willkommen', skipOnboardingCheck: true }
+    },
+    {
+      path: '/placement',
+      name: 'placement',
+      component: () => import('../views/PlacementTestView.vue'),
+      meta: { title: 'Einstufungstest', skipOnboardingCheck: true }
     }
   ]
 })
