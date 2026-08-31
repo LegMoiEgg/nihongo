@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useLearningStore, type CardCategory } from '../stores/learning'
+import { useBadgesStore } from '../stores/badges'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
@@ -13,6 +14,7 @@ const props = defineProps<{ category: CardCategory }>()
 const router = useRouter()
 const userStore = useUserStore()
 const learningStore = useLearningStore()
+const badgesStore = useBadgesStore()
 
 learningStore.initialize()
 
@@ -277,8 +279,9 @@ function selectComboOption(option: string) {
 
   if (comboCorrect.value) {
     sessionCorrect.value++
-    sessionXp.value += 2
-    userStore.addXp(2)
+    const xp = userStore.xpPerCorrect
+    sessionXp.value += xp
+    userStore.addXp(xp)
   } else {
     sessionIncorrect.value++
   }
@@ -296,8 +299,9 @@ function selectKanaOption(option: string) {
 
   if (correct) {
     sessionCorrect.value++
-    sessionXp.value += 2
-    userStore.addXp(2, 1)
+    const xp = userStore.xpPerCorrect
+    sessionXp.value += xp
+    userStore.addXp(xp, 1)
     answerFeedback.value = 'correct'
     showExample.value = true
   } else {
@@ -316,6 +320,7 @@ function nextItem() {
   } else {
     sessionComplete.value = true
     userStore.completeSession()
+    badgesStore.checkAllBadges()
   }
 }
 
@@ -332,12 +337,11 @@ function answer(correct: boolean) {
 
   if (correct) {
     sessionCorrect.value++
-    const xp = props.category === 'kanji' ? 15 : 10
+    const xp = userStore.xpPerCorrect
     sessionXp.value += xp
     userStore.addXp(xp, 1)
   } else {
     sessionIncorrect.value++
-    userStore.addXp(2)
   }
 
   setTimeout(() => {
@@ -349,6 +353,7 @@ function answer(correct: boolean) {
     } else {
       sessionComplete.value = true
       userStore.completeSession()
+      badgesStore.checkAllBadges()
     }
   }, 600)
 }
@@ -583,7 +588,7 @@ onMounted(() => {
 }
 
 .back-btn {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   width: 36px;
   height: 36px;
   display: flex;
@@ -591,6 +596,7 @@ onMounted(() => {
   justify-content: center;
   padding: 0;
   line-height: 1;
+  border-radius: 50%;
 }
 
 /* ===================== Kana Multiple Choice ===================== */

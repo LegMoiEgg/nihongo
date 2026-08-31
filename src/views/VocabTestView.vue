@@ -2,10 +2,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
+import { useBadgesStore } from '../stores/badges'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 
 const userStore = useUserStore()
 const learningStore = useLearningStore()
+const badgesStore = useBadgesStore()
 learningStore.initialize()
 
 interface TestQuestion {
@@ -146,8 +148,9 @@ function selectAnswer(answer: string) {
 
   if (isCorrect.value) {
     score.value++
-    totalXp.value += 2
-    userStore.addXp(2, 1)
+    const xp = userStore.xpPerCorrect
+    totalXp.value += xp
+    userStore.addXp(xp, 1)
   }
 }
 
@@ -169,6 +172,8 @@ function finishTest() {
     timer = null
   }
   userStore.completeSession()
+  badgesStore.checkAllBadges()
+  badgesStore.checkPerfectTest(score.value, questions.value.length)
 }
 
 function startTimer() {

@@ -3,13 +3,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
+import { useBadgesStore } from '../stores/badges'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { kanjiData, type KanjiCard } from '../data/kanji'
-import { sentenceData, type SentenceChallenge } from '../data/sentences'
+import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
 
 const router = useRouter()
 const userStore = useUserStore()
 const learningStore = useLearningStore()
+const badgesStore = useBadgesStore()
 learningStore.initialize()
 
 const level = computed(() => userStore.currentLevel.level)
@@ -17,7 +19,7 @@ const level = computed(() => userStore.currentLevel.level)
 // ── Display mode for vocab: should we show kanji or only hiragana? ──
 // Level 1-4: hiragana only
 // Level 5+:  kanji with furigana
-const showKanjiForm = computed(() => level.value >= 5)
+const showKanjiForm = computed(() => level.value >= 15)
 
 /**
  * Returns the display form of a vocab word depending on current level.
@@ -131,23 +133,20 @@ function generateExercises(): Exercise[] {
     })
   }
 
-  // ── Sentences (level 3+) ──
-  if (lvl >= 3) {
-    const maxDifficulty = lvl >= 5 ? 'hard' : 'medium'
-    const eligible = sentenceData.filter(s =>
-      maxDifficulty === 'hard' ? true : s.difficulty !== 'hard'
-    )
-    const sentenceCount = lvl >= 5 ? 5 : 3
-    const picked = shuffle(eligible).slice(0, sentenceCount)
-    for (const sentence of picked) {
+  // ── Sentences (level 3+) — dynamically generated from learned vocab ──
+  if (lvl >= 10) {
+    const learnedIds = vocabCards.map(v => v.card.id)
+    const sentenceCount = lvl >= 15 ? 5 : 3
+    const generated = generateDynamicSentences(learnedIds, sentenceCount)
+    for (const sentence of generated) {
       result.push({ type: 'sentence', sentence })
     }
   }
 
   // ── Kanji (level 5+) with furigana ──
-  if (lvl >= 5) {
+  if (lvl >= 15) {
     const kanjiPool = shuffle(kanjiData)
-    const kanjiCount = lvl >= 7 ? 4 : 3
+    const kanjiCount = lvl >= 20 ? 4 : 3
 
     for (const kanji of kanjiPool.slice(0, kanjiCount)) {
       const wrong = shuffle(kanjiData.filter(k => k.id !== kanji.id))
@@ -159,7 +158,7 @@ function generateExercises(): Exercise[] {
       })
     }
 
-    if (lvl >= 6) {
+    if (lvl >= 17) {
       for (const kanji of kanjiPool.slice(kanjiCount, kanjiCount + 3)) {
         const correctReading = kanji.kunyomi[0] || kanji.onyomi[0]
         const wrong = shuffle(kanjiData.filter(k => k.id !== kanji.id))
@@ -238,8 +237,9 @@ function selectMcOption(option: string) {
   const ex = currentExercise.value!
   if (correct) {
     score.value++
-    totalXp.value += 2
-    userStore.addXp(2, 1)
+    const xp = userStore.xpPerCorrect
+    totalXp.value += xp
+    userStore.addXp(xp, 1)
   }
 
   if (ex.vocab) learningStore.recordAnswer(ex.vocab.id, 'vocabulary', correct)
@@ -272,8 +272,9 @@ function checkSentence() {
 
   if (sentenceCorrect.value) {
     score.value++
-    totalXp.value += 2
-    userStore.addXp(2)
+    const xp = userStore.xpPerCorrect
+    totalXp.value += xp
+    userStore.addXp(xp)
   }
 }
 
@@ -292,6 +293,7 @@ function nextExercise() {
   } else {
     sessionComplete.value = true
     userStore.completeSession()
+    badgesStore.checkAllBadges()
   }
 }
 
@@ -614,7 +616,7 @@ onMounted(() => {
 }
 
 .back-btn {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   width: 36px;
   height: 36px;
   display: flex;
@@ -622,6 +624,7 @@ onMounted(() => {
   justify-content: center;
   padding: 0;
   line-height: 1;
+  border-radius: 50%;
 }
 
 /* Type badge row */

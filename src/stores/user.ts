@@ -9,21 +9,76 @@ export interface DailyLog {
 }
 
 const LEVEL_THRESHOLDS = [
+  // ── N5: Levels 1–30 (Beginner → JLPT N5 ready) ──
+  // ~100 XP/day target. N5 takes several months.
   { level: 1, label: 'Anfänger', jlpt: 'N5', xpRequired: 0 },
-  { level: 2, label: 'N5 Basis', jlpt: 'N5', xpRequired: 500 },
-  { level: 3, label: 'N5 Fortgeschritten', jlpt: 'N5', xpRequired: 1500 },
-  { level: 4, label: 'N5 Meister', jlpt: 'N5', xpRequired: 3000 },
-  { level: 5, label: 'N4 Basis', jlpt: 'N4', xpRequired: 5000 },
-  { level: 6, label: 'N4 Fortgeschritten', jlpt: 'N4', xpRequired: 8000 },
-  { level: 7, label: 'N4 Meister', jlpt: 'N4', xpRequired: 12000 },
-  { level: 8, label: 'N3 Basis', jlpt: 'N3', xpRequired: 17000 },
-  { level: 9, label: 'N3 Fortgeschritten', jlpt: 'N3', xpRequired: 23000 },
-  { level: 10, label: 'N3 Meister', jlpt: 'N3', xpRequired: 30000 },
-  { level: 11, label: 'N2 Basis', jlpt: 'N2', xpRequired: 40000 },
-  { level: 12, label: 'N2 Fortgeschritten', jlpt: 'N2', xpRequired: 55000 },
-  { level: 13, label: 'N2 Meister', jlpt: 'N2', xpRequired: 75000 },
-  { level: 14, label: 'N1 Basis', jlpt: 'N1', xpRequired: 100000 },
-  { level: 15, label: 'N1 Meister', jlpt: 'N1', xpRequired: 150000 },
+  { level: 2, label: 'Anfänger II', jlpt: 'N5', xpRequired: 200 },
+  { level: 3, label: 'Anfänger III', jlpt: 'N5', xpRequired: 500 },
+  { level: 4, label: 'N5 · Kana Einsteiger', jlpt: 'N5', xpRequired: 900 },
+  { level: 5, label: 'N5 · Kana Lerner', jlpt: 'N5', xpRequired: 1400 },
+  { level: 6, label: 'N5 · Kana Kenner', jlpt: 'N5', xpRequired: 2000 },
+  { level: 7, label: 'N5 · Erste Wörter', jlpt: 'N5', xpRequired: 2800 },
+  { level: 8, label: 'N5 · Wortschatz I', jlpt: 'N5', xpRequired: 3800 },
+  { level: 9, label: 'N5 · Wortschatz II', jlpt: 'N5', xpRequired: 5000 },
+  { level: 10, label: 'N5 · Erste Sätze', jlpt: 'N5', xpRequired: 6500 },
+  { level: 11, label: 'N5 · Satzbau I', jlpt: 'N5', xpRequired: 8200 },
+  { level: 12, label: 'N5 · Satzbau II', jlpt: 'N5', xpRequired: 10000 },
+  { level: 13, label: 'N5 · Grundlagen', jlpt: 'N5', xpRequired: 12000 },
+  { level: 14, label: 'N5 · Grundlagen II', jlpt: 'N5', xpRequired: 14500 },
+  { level: 15, label: 'N5 · Kanji Einsteiger', jlpt: 'N5', xpRequired: 17000 },
+  { level: 16, label: 'N5 · Kanji Lerner', jlpt: 'N5', xpRequired: 20000 },
+  { level: 17, label: 'N5 · Kanji & Vokabeln', jlpt: 'N5', xpRequired: 23500 },
+  { level: 18, label: 'N5 · Aufbau I', jlpt: 'N5', xpRequired: 27000 },
+  { level: 19, label: 'N5 · Aufbau II', jlpt: 'N5', xpRequired: 31000 },
+  { level: 20, label: 'N5 · Fortgeschritten', jlpt: 'N5', xpRequired: 35500 },
+  { level: 21, label: 'N5 · Fortgeschritten II', jlpt: 'N5', xpRequired: 40000 },
+  { level: 22, label: 'N5 · Fortgeschritten III', jlpt: 'N5', xpRequired: 45000 },
+  { level: 23, label: 'N5 · Vertiefung I', jlpt: 'N5', xpRequired: 50500 },
+  { level: 24, label: 'N5 · Vertiefung II', jlpt: 'N5', xpRequired: 56000 },
+  { level: 25, label: 'N5 · Vertiefung III', jlpt: 'N5', xpRequired: 62000 },
+  { level: 26, label: 'N5 · Prüfungsvorbereitung', jlpt: 'N5', xpRequired: 68500 },
+  { level: 27, label: 'N5 · Prüfungsreif I', jlpt: 'N5', xpRequired: 75000 },
+  { level: 28, label: 'N5 · Prüfungsreif II', jlpt: 'N5', xpRequired: 82000 },
+  { level: 29, label: 'N5 · Fast Meister', jlpt: 'N5', xpRequired: 90000 },
+  { level: 30, label: 'N5 · Meister', jlpt: 'N5', xpRequired: 100000 },
+
+  // ── N4: Levels 31–55 ──
+  { level: 31, label: 'N4 · Einsteiger', jlpt: 'N4', xpRequired: 110000 },
+  { level: 32, label: 'N4 · Einsteiger II', jlpt: 'N4', xpRequired: 121000 },
+  { level: 33, label: 'N4 · Basis I', jlpt: 'N4', xpRequired: 133000 },
+  { level: 34, label: 'N4 · Basis II', jlpt: 'N4', xpRequired: 146000 },
+  { level: 35, label: 'N4 · Basis III', jlpt: 'N4', xpRequired: 160000 },
+  { level: 36, label: 'N4 · Wortschatz I', jlpt: 'N4', xpRequired: 175000 },
+  { level: 37, label: 'N4 · Wortschatz II', jlpt: 'N4', xpRequired: 192000 },
+  { level: 38, label: 'N4 · Grammatik I', jlpt: 'N4', xpRequired: 210000 },
+  { level: 39, label: 'N4 · Grammatik II', jlpt: 'N4', xpRequired: 230000 },
+  { level: 40, label: 'N4 · Aufbau', jlpt: 'N4', xpRequired: 252000 },
+  { level: 41, label: 'N4 · Aufbau II', jlpt: 'N4', xpRequired: 276000 },
+  { level: 42, label: 'N4 · Fortgeschritten', jlpt: 'N4', xpRequired: 302000 },
+  { level: 43, label: 'N4 · Fortgeschritten II', jlpt: 'N4', xpRequired: 330000 },
+  { level: 44, label: 'N4 · Vertiefung', jlpt: 'N4', xpRequired: 360000 },
+  { level: 45, label: 'N4 · Meister', jlpt: 'N4', xpRequired: 400000 },
+
+  // ── N3: Levels 46–60 ──
+  { level: 46, label: 'N3 · Einsteiger', jlpt: 'N3', xpRequired: 440000 },
+  { level: 47, label: 'N3 · Basis', jlpt: 'N3', xpRequired: 485000 },
+  { level: 48, label: 'N3 · Wortschatz', jlpt: 'N3', xpRequired: 535000 },
+  { level: 49, label: 'N3 · Grammatik', jlpt: 'N3', xpRequired: 590000 },
+  { level: 50, label: 'N3 · Aufbau', jlpt: 'N3', xpRequired: 650000 },
+  { level: 51, label: 'N3 · Fortgeschritten', jlpt: 'N3', xpRequired: 720000 },
+  { level: 52, label: 'N3 · Vertiefung', jlpt: 'N3', xpRequired: 800000 },
+  { level: 53, label: 'N3 · Meister', jlpt: 'N3', xpRequired: 900000 },
+
+  // ── N2: Levels 54–60 ──
+  { level: 54, label: 'N2 · Einsteiger', jlpt: 'N2', xpRequired: 1000000 },
+  { level: 55, label: 'N2 · Basis', jlpt: 'N2', xpRequired: 1150000 },
+  { level: 56, label: 'N2 · Fortgeschritten', jlpt: 'N2', xpRequired: 1350000 },
+  { level: 57, label: 'N2 · Meister', jlpt: 'N2', xpRequired: 1600000 },
+
+  // ── N1: Levels 58–60 ──
+  { level: 58, label: 'N1 · Einsteiger', jlpt: 'N1', xpRequired: 1900000 },
+  { level: 59, label: 'N1 · Fortgeschritten', jlpt: 'N1', xpRequired: 2300000 },
+  { level: 60, label: 'N1 · Meister', jlpt: 'N1', xpRequired: 2800000 },
 ]
 
 function getToday(): string {
@@ -49,7 +104,7 @@ export const useUserStore = defineStore('user', () => {
   const currentStreak = ref(0)
   const longestStreak = ref(0)
   const lastActiveDate = ref('')
-  const dailyXpGoal = ref(50)
+  const dailyXpGoal = ref(100)
   const dailyLog = ref<DailyLog[]>([])
   const wordsLearnedTotal = ref(0)
   const sessionsCompletedTotal = ref(0)
@@ -103,6 +158,12 @@ export const useUserStore = defineStore('user', () => {
   const dailyGoalProgress = computed(() => {
     return Math.min(100, Math.round((todayLog.value.xpEarned / dailyXpGoal.value) * 100))
   })
+
+  /** Whether the daily XP goal has been reached today */
+  const dailyGoalReached = computed(() => todayLog.value.xpEarned >= dailyXpGoal.value)
+
+  /** XP to award for a correct answer: 2 before daily goal, 1 after */
+  const xpPerCorrect = computed(() => dailyGoalReached.value ? 1 : 2)
 
   const weeklyXp = computed(() => {
     const now = new Date()
@@ -240,6 +301,8 @@ export const useUserStore = defineStore('user', () => {
     levelProgress,
     todayLog,
     dailyGoalProgress,
+    dailyGoalReached,
+    xpPerCorrect,
     weeklyXp,
     // Actions
     initializeUser,

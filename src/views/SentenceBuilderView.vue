@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../stores/user'
-import { sentenceData, type SentenceChallenge } from '../data/sentences'
+import { useLearningStore } from '../stores/learning'
+import { useBadgesStore } from '../stores/badges'
+import { vocabularyData } from '../data/vocabulary'
+import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
 
 const userStore = useUserStore()
+const learningStore = useLearningStore()
+const badgesStore = useBadgesStore()
+learningStore.initialize()
 
 // State
 const currentChallengeIndex = ref(0)
@@ -27,8 +33,17 @@ const progress = computed(() => {
 })
 
 function initSession() {
-  const filtered = sentenceData.filter(s => s.difficulty === difficulty.value)
-  challenges.value = filtered.sort(() => Math.random() - 0.5).slice(0, 10)
+  // Get learned vocab IDs
+  const learnedIds = vocabularyData
+    .filter(v => {
+      const p = learningStore.cardProgress.find(c => c.id === v.id)
+      return p && p.status !== 'new'
+    })
+    .map(v => v.id)
+
+  // Generate sentences dynamically from learned vocab
+  const generated = generateDynamicSentences(learnedIds, 10)
+  challenges.value = generated
   currentChallengeIndex.value = 0
   sessionScore.value = 0
   sessionTotal.value = 0
@@ -75,11 +90,9 @@ function checkAnswer() {
 
   if (isCorrect.value) {
     sessionScore.value++
-    const xp = difficulty.value === 'easy' ? 10 : difficulty.value === 'medium' ? 20 : 30
+    const xp = userStore.xpPerCorrect
     sessionXp.value += xp
     userStore.addXp(xp)
-  } else {
-    userStore.addXp(2)
   }
 }
 
@@ -90,6 +103,7 @@ function nextChallenge() {
   } else {
     sessionComplete.value = true
     userStore.completeSession()
+    badgesStore.checkAllBadges()
   }
 }
 

@@ -12,7 +12,7 @@ const userStore = useUserStore()
 learningStore.initialize()
 
 const level = computed(() => userStore.currentLevel.level)
-const kanjiUnlocked = computed(() => level.value >= 5)
+const kanjiUnlocked = computed(() => level.value >= 15)
 
 const categories = computed(() => [
   {
@@ -46,7 +46,7 @@ const categories = computed(() => [
   {
     id: 'kanji',
     title: 'Kanji',
-    subtitle: kanjiUnlocked.value ? 'Chinesische Zeichen' : 'Ab Level 5 verfügbar',
+    subtitle: kanjiUnlocked.value ? 'Chinesische Zeichen' : 'Ab Level 15 verfügbar',
     icon: '漢',
     iconClass: 'jp-large',
     total: kanjiData.length,
@@ -55,7 +55,7 @@ const categories = computed(() => [
     color: '#0f3460',
     route: '/learn/kanji/overview',
     locked: !kanjiUnlocked.value,
-    lockLabel: `🔒 Level 5`,
+    lockLabel: `🔒 Level 15`,
   },
   {
     id: 'vocabulary',

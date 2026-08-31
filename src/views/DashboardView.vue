@@ -2,14 +2,16 @@
 import { computed } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
+import { useBadgesStore } from '../stores/badges'
 
 const userStore = useUserStore()
 const learningStore = useLearningStore()
+const badgesStore = useBadgesStore()
 
 learningStore.initialize()
 
 const level = computed(() => userStore.currentLevel.level)
-const kanjiUnlocked = computed(() => level.value >= 5)
+const kanjiUnlocked = computed(() => level.value >= 15)
 
 // ── Week calendar logic ──
 // Week runs Mon–Sun. Sunday is test day.
@@ -56,9 +58,11 @@ const weekDays = computed((): WeekDay[] => {
 })
 
 // All 7 days completed → gold week
-const isGoldWeek = computed(() =>
-  weekDays.value.every(d => d.completed)
-)
+const isGoldWeek = computed(() => {
+  const gold = weekDays.value.every(d => d.completed)
+  if (gold) badgesStore.checkPerfectWeek()
+  return gold
+})
 
 // Number of completed days this week
 const completedDays = computed(() =>
@@ -179,7 +183,7 @@ const completedDays = computed(() =>
         <div v-else class="action-card card action-locked">
           <span class="action-icon jp-large">漢</span>
           <span class="action-label">Kanji</span>
-          <span class="action-lock">🔒 Lv. 5</span>
+          <span class="action-lock">🔒 Lv. 15</span>
         </div>
         <router-link to="/learn/vocabulary" class="action-card card">
           <span class="action-icon">📝</span>

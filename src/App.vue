@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import BottomNav from './components/BottomNav.vue'
 import { useUserStore } from './stores/user'
+import { useBadgesStore } from './stores/badges'
 
 const userStore = useUserStore()
+const badgesStore = useBadgesStore()
 
-// Initialize user data on app start
+// Initialize on app start
 userStore.initializeUser()
+badgesStore.initialize()
+badgesStore.checkAllBadges()
 </script>
 
 <template>

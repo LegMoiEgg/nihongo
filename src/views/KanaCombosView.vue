@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
+import { useBadgesStore } from '../stores/badges'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 
@@ -11,6 +12,7 @@ const props = defineProps<{ category: 'hiragana' | 'katakana' }>()
 const router = useRouter()
 const userStore = useUserStore()
 const learningStore = useLearningStore()
+const badgesStore = useBadgesStore()
 learningStore.initialize()
 
 const title = computed(() => props.category === 'hiragana' ? 'Hiragana Lese-Kombis' : 'Katakana Lese-Kombis')
@@ -145,8 +147,9 @@ function selectAnswer(option: string) {
 
   if (isCorrect.value) {
     score.value++
-    totalXp.value += 2
-    userStore.addXp(2)
+    const xp = userStore.xpPerCorrect
+    totalXp.value += xp
+    userStore.addXp(xp)
   }
 }
 
@@ -157,6 +160,7 @@ function nextQuestion() {
   } else {
     sessionComplete.value = true
     userStore.completeSession()
+    badgesStore.checkAllBadges()
   }
 }
 
@@ -282,7 +286,7 @@ onMounted(() => {
 }
 
 .back-btn {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   width: 36px;
   height: 36px;
   display: flex;
@@ -290,6 +294,7 @@ onMounted(() => {
   justify-content: center;
   padding: 0;
   line-height: 1;
+  border-radius: 50%;
 }
 
 /* Question */

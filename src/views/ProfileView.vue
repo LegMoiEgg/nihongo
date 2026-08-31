@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
+import { useBadgesStore, ALL_BADGES } from '../stores/badges'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
@@ -9,7 +10,9 @@ import { vocabularyData } from '../data/vocabulary'
 
 const userStore = useUserStore()
 const learningStore = useLearningStore()
+const badgesStore = useBadgesStore()
 learningStore.initialize()
+badgesStore.initialize()
 
 // ── Profile editing ──
 const isEditingName = ref(false)
@@ -168,6 +171,26 @@ const maxWeeklyXp = computed(() =>
         <span class="badge badge-level">Lv. {{ userStore.currentLevel.level }}</span>
         <span class="badge badge-xp">{{ userStore.totalXp }} XP</span>
         <span class="badge badge-streak">🔥 {{ userStore.currentStreak }}</span>
+      </div>
+    </section>
+
+    <!-- Badges -->
+    <section class="badges-section">
+      <div class="badges-header">
+        <h2>🏅 Erfolge</h2>
+        <span class="badges-count">{{ badgesStore.earnedCount }} / {{ badgesStore.totalBadges }}</span>
+      </div>
+      <div class="badges-grid">
+        <div
+          v-for="badge in ALL_BADGES"
+          :key="badge.id"
+          class="badge-cell"
+          :class="{ earned: badgesStore.hasBadge(badge.id) }"
+          :title="badge.description"
+        >
+          <span class="badge-icon">{{ badge.icon }}</span>
+          <span class="badge-name">{{ badge.name }}</span>
+        </div>
       </div>
     </section>
 
@@ -410,6 +433,71 @@ const maxWeeklyXp = computed(() =>
 .profile-badges {
   display: flex;
   gap: 8px;
+}
+
+/* ── Badges ── */
+.badges-section {
+  margin-bottom: 20px;
+}
+
+.badges-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.badges-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.badges-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.badge-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--bg-accent);
+  opacity: 0.3;
+  filter: grayscale(1);
+  transition: all var(--transition-fast);
+}
+
+.badge-cell.earned {
+  opacity: 1;
+  filter: none;
+  border-color: var(--accent-gold);
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.badge-icon {
+  font-size: 1.5rem;
+}
+
+.badge-name {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.badge-cell.earned .badge-name {
+  color: var(--text-secondary);
 }
 
 /* ── Stats (same as before) ── */

@@ -27,21 +27,22 @@ const MASTERY_STREAK = 5
  */
 const VOCAB_POOL_SIZE_BY_LEVEL: Record<number, number> = {
   1: 8,
-  2: 16,
-  3: 24,
-  4: 32,
-  5: 40,
-  6: 48,
-  7: 56,
-  8: 64,
-  9: 72,
-  10: 80,
+  2: 10,
+  3: 12,
+  4: 14,
+  5: 16,
+  6: 18,
+  7: 20,
+  8: 24,
+  9: 28,
+  10: 32,
 }
 
 function getVocabPoolSize(level: number): number {
   if (level <= 0) return 8
-  if (level >= 10) return Infinity // all unlocked
-  return VOCAB_POOL_SIZE_BY_LEVEL[level] ?? Math.min(8 + (level - 1) * 8, 200)
+  if (level >= 20) return Infinity // all unlocked after solid N5 progress
+  if (level > 10) return Math.min(32 + (level - 10) * 4, 200)
+  return VOCAB_POOL_SIZE_BY_LEVEL[level] ?? Math.min(8 + (level - 1) * 3, 200)
 }
 
 function loadFromStorage<T>(key: string, fallback: T): T {

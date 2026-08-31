@@ -157,7 +157,7 @@ function goBack() {
 }
 
 .back-btn {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   width: 36px;
   height: 36px;
   display: flex;
@@ -165,6 +165,7 @@ function goBack() {
   justify-content: center;
   padding: 0;
   line-height: 1;
+  border-radius: 50%;
 }
 
 /* Progress Summary */
