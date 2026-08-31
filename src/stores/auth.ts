@@ -66,7 +66,9 @@ export const useAuthStore = defineStore('auth', () => {
       const cred = await signInWithPopup(auth, googleProvider)
       user.value = cred.user
     } catch (e: any) {
-      if (e.code === 'auth/popup-closed-by-user') return // user cancelled, not an error
+      console.error('Google login error:', e.code, e.message)
+      if (e.code === 'auth/popup-closed-by-user') return
+      if (e.code === 'auth/cancelled-popup-request') return
       error.value = mapFirebaseError(e.code)
       throw e
     }
@@ -109,6 +111,9 @@ function mapFirebaseError(code: string): string {
     'auth/invalid-credential': 'E-Mail oder Passwort falsch.',
     'auth/too-many-requests': 'Zu viele Versuche. Bitte warte kurz.',
     'auth/network-request-failed': 'Netzwerkfehler. Bist du online?',
+    'auth/unauthorized-domain': 'Diese Domain ist nicht autorisiert. Füge sie in Firebase Console unter Authentication → Settings → Authorized domains hinzu.',
+    'auth/popup-blocked': 'Popup wurde vom Browser blockiert. Erlaube Popups für diese Seite.',
+    'auth/account-exists-with-different-credential': 'Ein Account mit dieser E-Mail existiert bereits mit einer anderen Anmeldemethode.',
   }
-  return map[code] || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.'
+  return map[code] || `Ein Fehler ist aufgetreten (${code}). Bitte versuche es erneut.`
 }
