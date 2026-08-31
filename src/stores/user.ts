@@ -181,7 +181,7 @@ export const useUserStore = defineStore('user', () => {
     currentStreak.value = loadFromStorage('nihongo_streak', 0)
     longestStreak.value = loadFromStorage('nihongo_longest_streak', 0)
     lastActiveDate.value = loadFromStorage('nihongo_last_active', '')
-    dailyXpGoal.value = loadFromStorage('nihongo_daily_goal', 50)
+    dailyXpGoal.value = 100 // fixed, not user-configurable yet
     dailyLog.value = loadFromStorage('nihongo_daily_log', [])
     wordsLearnedTotal.value = loadFromStorage('nihongo_words_total', 0)
     sessionsCompletedTotal.value = loadFromStorage('nihongo_sessions_total', 0)
