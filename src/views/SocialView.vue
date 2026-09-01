@@ -179,7 +179,32 @@ async function refreshGroup() {
   await socialStore.loadGroupDetails(g.id)
 }
 
-async function nudgeMember(member: { uid: string; displayName: string }) {
+interface NudgeMember {
+  uid: string
+  displayName: string
+  goalReachedToday: boolean
+  canBeNudged: boolean
+}
+
+/** Whether a reminder can be sent to this member right now. */
+function canNudge(member: NudgeMember): boolean {
+  return (
+    member.canBeNudged &&
+    !member.goalReachedToday &&
+    !socialStore.hasNudged(member.uid)
+  )
+}
+
+/** Tooltip explaining the bell state. */
+function nudgeTitle(member: NudgeMember): string {
+  if (member.goalReachedToday) return 'Tagesziel bereits erreicht'
+  if (!member.canBeNudged) return 'Keine Benachrichtigungen aktiv'
+  if (socialStore.hasNudged(member.uid)) return 'Heute schon erinnert'
+  return 'Erinnern'
+}
+
+async function nudgeMember(member: NudgeMember) {
+  if (!canNudge(member)) return
   const g = socialStore.currentGroup
   if (!g) return
   const myName = userStore.displayName || authStore.displayName || 'Ein Freund'
@@ -274,25 +299,22 @@ async function nudgeMember(member: { uid: string; displayName: string }) {
               <span class="member-name">{{ member.displayName }}</span>
               <span class="member-meta">
                 Lv. {{ member.level }} · 🔥 {{ member.currentStreak }}
-                <span v-if="member.goalReachedToday" class="goal-done" title="Tagesziel erreicht">✓</span>
               </span>
             </div>
             <span class="member-xp">{{ member.totalXp }} XP</span>
 
-            <!-- Nudge bell: only for OTHER members who haven't reached the goal -->
+            <!-- Nudge bell: always shown for OTHER members.
+                 Active (🔔) only when a reminder makes sense; otherwise
+                 disabled (🔕) = goal reached / notifications off / already nudged. -->
             <button
-              v-if="member.uid !== authStore.uid && !member.goalReachedToday"
+              v-if="member.uid !== authStore.uid"
               class="nudge-btn"
-              :class="{ nudged: socialStore.hasNudged(member.uid) }"
-              :disabled="socialStore.hasNudged(member.uid) || !member.canBeNudged"
-              :title="!member.canBeNudged
-                ? 'Kann nicht erinnert werden (keine Benachrichtigungen aktiv)'
-                : socialStore.hasNudged(member.uid)
-                  ? 'Heute schon erinnert'
-                  : 'Erinnern'"
+              :class="{ nudged: !canNudge(member) }"
+              :disabled="!canNudge(member)"
+              :title="nudgeTitle(member)"
               @click="nudgeMember(member)"
             >
-              {{ socialStore.hasNudged(member.uid) ? '🔕' : '🔔' }}
+              {{ canNudge(member) ? '🔔' : '🔕' }}
             </button>
           </div>
         </div>
@@ -813,12 +835,6 @@ async function nudgeMember(member: { uid: string; displayName: string }) {
 .nudge-btn:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-.goal-done {
-  color: var(--accent-success);
-  font-weight: 700;
-  margin-left: 4px;
 }
 
 /* Nudge confirmation toast */
