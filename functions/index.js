@@ -126,7 +126,10 @@ exports.streakReminder = onSchedule(
  * nudge the same target once per day — repeated writes reuse the same doc.
  */
 exports.sendNudge = onDocumentCreated(
-  { document: "nudges/{nudgeId}", region: "europe-west1" },
+  // No explicit region: let Firebase use the Firestore database's region.
+  // Forcing a region that differs from the Firestore location makes the
+  // Firestore (Eventarc) trigger fail to deploy.
+  "nudges/{nudgeId}",
   async (event) => {
     const snap = event.data;
     if (!snap) return;
