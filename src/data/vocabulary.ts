@@ -87,6 +87,69 @@ export const vocabularyData: VocabCard[] = [
   { id: 'v-tanoshii', japanese: '楽しい', reading: 'たのしい', meaning: 'lustig / spaßig', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
   { id: 'v-kirei', japanese: 'きれい', reading: 'きれい', meaning: 'schön / sauber', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
   { id: 'v-genki', japanese: '元気', reading: 'げんき', meaning: 'gesund / munter', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-hayai', japanese: '早い', reading: 'はやい', meaning: 'früh / schnell', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-osoi', japanese: '遅い', reading: 'おそい', meaning: 'langsam / spät', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-atarashii', japanese: '新しい', reading: 'あたらしい', meaning: 'neu', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-furui', japanese: '古い', reading: 'ふるい', meaning: 'alt (Sachen)', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-muzukashii', japanese: '難しい', reading: 'むずかしい', meaning: 'schwierig', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-yasashii', japanese: '易しい', reading: 'やさしい', meaning: 'leicht / einfach', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-ii', japanese: 'いい', reading: 'いい', meaning: 'gut', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-warui', japanese: '悪い', reading: 'わるい', meaning: 'schlecht', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+
+  // Numbers
+  { id: 'v-ichi', japanese: '一', reading: 'いち', meaning: 'eins', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-ni', japanese: '二', reading: 'に', meaning: 'zwei', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-san', japanese: '三', reading: 'さん', meaning: 'drei', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-yon', japanese: '四', reading: 'よん', meaning: 'vier', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-go', japanese: '五', reading: 'ご', meaning: 'fünf', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-roku', japanese: '六', reading: 'ろく', meaning: 'sechs', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-nana', japanese: '七', reading: 'なな', meaning: 'sieben', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-hachi', japanese: '八', reading: 'はち', meaning: 'acht', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-kyuu', japanese: '九', reading: 'きゅう', meaning: 'neun', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-juu', japanese: '十', reading: 'じゅう', meaning: 'zehn', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-hyaku', japanese: '百', reading: 'ひゃく', meaning: 'hundert', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+  { id: 'v-sen', japanese: '千', reading: 'せん', meaning: 'tausend', jlpt: 'N5', category: 'Zahlen', partOfSpeech: 'Zahl' },
+
+  // Colors
+  { id: 'v-aka', japanese: '赤', reading: 'あか', meaning: 'rot', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-ao', japanese: '青', reading: 'あお', meaning: 'blau', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-shiro', japanese: '白', reading: 'しろ', meaning: 'weiß', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-kuro', japanese: '黒', reading: 'くろ', meaning: 'schwarz', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-midori', japanese: '緑', reading: 'みどり', meaning: 'grün', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-kiiro', japanese: '黄色', reading: 'きいろ', meaning: 'gelb', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-chairo', japanese: '茶色', reading: 'ちゃいろ', meaning: 'braun', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+
+  // Body
+  { id: 'v-atama', japanese: '頭', reading: 'あたま', meaning: 'Kopf', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-me', japanese: '目', reading: 'め', meaning: 'Auge', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-mimi', japanese: '耳', reading: 'みみ', meaning: 'Ohr', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-kuchi', japanese: '口', reading: 'くち', meaning: 'Mund', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-hana-body', japanese: '鼻', reading: 'はな', meaning: 'Nase', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-te', japanese: '手', reading: 'て', meaning: 'Hand', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-ashi', japanese: '足', reading: 'あし', meaning: 'Fuß / Bein', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+
+  // Nature & weather
+  { id: 'v-sora', japanese: '空', reading: 'そら', meaning: 'Himmel', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-yama', japanese: '山', reading: 'やま', meaning: 'Berg', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-kawa', japanese: '川', reading: 'かわ', meaning: 'Fluss', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-umi', japanese: '海', reading: 'うみ', meaning: 'Meer', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-ame', japanese: '雨', reading: 'あめ', meaning: 'Regen', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-yuki', japanese: '雪', reading: 'ゆき', meaning: 'Schnee', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-kaze', japanese: '風', reading: 'かぜ', meaning: 'Wind', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-hana-flower', japanese: '花', reading: 'はな', meaning: 'Blume', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-ki', japanese: '木', reading: 'き', meaning: 'Baum', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+
+  // More verbs
+  { id: 'v-suru', japanese: 'する', reading: 'する', meaning: 'machen / tun', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-aru', japanese: 'ある', reading: 'ある', meaning: 'existieren (Sachen)', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-iru', japanese: 'いる', reading: 'いる', meaning: 'existieren (Lebewesen)', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-wakaru', japanese: '分かる', reading: 'わかる', meaning: 'verstehen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-hairu', japanese: '入る', reading: 'はいる', meaning: 'hineingehen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-deru', japanese: '出る', reading: 'でる', meaning: 'hinausgehen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-matsu', japanese: '待つ', reading: 'まつ', meaning: 'warten', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-au', japanese: '会う', reading: 'あう', meaning: 'treffen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-asobu', japanese: '遊ぶ', reading: 'あそぶ', meaning: 'spielen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-hataraku', japanese: '働く', reading: 'はたらく', meaning: 'arbeiten', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
 ]
 
 export const vocabCategories = [...new Set(vocabularyData.map(v => v.category))]
