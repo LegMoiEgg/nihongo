@@ -5,7 +5,7 @@ import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
 import { vocabularyData } from '../data/vocabulary'
-import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
+import { generateDynamicSentences, translateBlock, type SentenceChallenge } from '../data/sentence-generator'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 
@@ -26,6 +26,29 @@ const sessionXp = ref(0)
 const sessionComplete = ref(false)
 const difficulty = ref<'easy' | 'medium' | 'hard'>('easy')
 const challenges = ref<SentenceChallenge[]>([])
+
+// Tap-to-translate (like Duolingo): when active, tapping a word block shows
+// its German meaning instead of selecting/moving it.
+const translateMode = ref(false)
+const translatePopover = ref<{ block: string; text: string } | null>(null)
+
+function showBlockTranslation(block: string) {
+  const text = translateBlock(block)
+  translatePopover.value = { block, text: text ?? 'Keine Übersetzung verfügbar' }
+}
+
+/**
+ * Handles a tap on an available block. In translate mode we reveal the
+ * meaning; otherwise we place the block into the answer as usual.
+ */
+function onAvailableBlockTap(index: number, block: string) {
+  if (isChecked.value) return
+  if (translateMode.value) {
+    showBlockTranslation(block)
+  } else {
+    blocks.selectBlock(index)
+  }
+}
 
 const currentChallenge = computed(() => challenges.value[currentChallengeIndex.value])
 
@@ -59,6 +82,8 @@ function loadChallenge() {
   isChecked.value = false
   isCorrect.value = false
   showHint.value = false
+  translatePopover.value = null
+  translateMode.value = false
 }
 
 function checkAnswer() {
@@ -185,16 +210,35 @@ onMounted(() => {
       </div>
 
       <!-- Available blocks -->
-      <div class="available-area">
+      <div class="available-area" :class="{ 'translate-mode': translateMode }">
         <button
           v-for="(block, i) in blocks.availableBlocks.value"
           :key="'avail-' + i"
           class="word-block available jp"
           :class="{ disabled: isChecked }"
-          @click="blocks.selectBlock(i)"
+          @click="onAvailableBlockTap(i, block)"
         >
           {{ block }}
         </button>
+      </div>
+
+      <!-- Tap-to-translate toggle + popover -->
+      <div v-if="!isChecked" class="translate-row">
+        <button
+          class="btn-ghost translate-toggle"
+          :class="{ active: translateMode }"
+          @click="translateMode = !translateMode; translatePopover = null"
+        >
+          {{ translateMode ? '✓ Tippe ein Wort zum Übersetzen' : '🔤 Wort übersetzen' }}
+        </button>
+      </div>
+
+      <!-- Translation popover -->
+      <div v-if="translatePopover" class="translate-popover animate-slide-up">
+        <span class="translate-word jp">{{ translatePopover.block }}</span>
+        <span class="translate-arrow">→</span>
+        <span class="translate-meaning">{{ translatePopover.text }}</span>
+        <button class="translate-close" @click="translatePopover = null" aria-label="Schließen">×</button>
       </div>
 
       <!-- Feedback -->
@@ -386,6 +430,70 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
+}
+
+/* In translate mode, hint that blocks are tappable for meaning */
+.available-area.translate-mode .word-block {
+  border-style: dashed;
+  border-color: var(--accent-primary);
+}
+
+/* Tap-to-translate toggle */
+.translate-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.translate-toggle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.translate-toggle.active {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* Translation popover */
+.translate-popover {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px auto 0;
+  max-width: 90%;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  position: relative;
+}
+
+.translate-word {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.translate-arrow {
+  color: var(--text-muted);
+}
+
+.translate-meaning {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.translate-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
 }
 
 /* Feedback */

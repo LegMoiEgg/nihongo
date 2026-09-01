@@ -150,6 +150,68 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
   },
 ]
 
+/**
+ * German translation / explanation for individual sentence blocks.
+ * Used for the tap-to-translate feature (like Duolingo): tapping a single
+ * word block reveals just that word's meaning, not the whole sentence.
+ */
+const BLOCK_TRANSLATIONS: Record<string, string> = {
+  // Particles
+  'は': 'Themen-Partikel (wa)',
+  'を': 'Objekt-Partikel (o)',
+  'に': 'Richtungs-/Zielpartikel (ni)',
+  'で': 'Ortspartikel – wo etwas passiert (de)',
+  'が': 'Subjekt-Partikel (ga)',
+  'の': 'Besitz-Partikel (no)',
+  'も': 'auch (mo)',
+  'と': 'und / mit (to)',
+  'へ': 'Richtungspartikel (e)',
+  'から': 'von / weil (kara)',
+  // Copula / verbs
+  'です': 'ist / sein (höflich)',
+  'たべます': 'essen (höflich)',
+  'のみます': 'trinken (höflich)',
+  'いきます': 'gehen (höflich)',
+  'きます': 'kommen (höflich)',
+  'よみます': 'lesen (höflich)',
+  'かきます': 'schreiben (höflich)',
+  'みます': 'sehen (höflich)',
+  'べんきょうします': 'lernen / studieren (höflich)',
+  // Nouns / pronouns
+  'わたし': 'ich',
+  'あなた': 'du / Sie',
+  'これ': 'dies (hier)',
+  'それ': 'das (dort)',
+  'ほん': 'Buch',
+  'みず': 'Wasser',
+  'おちゃ': 'Tee',
+  'ごはん': 'Reis / Mahlzeit',
+  'がくせい': 'Student',
+  'せんせい': 'Lehrer',
+  'がっこう': 'Schule',
+  'えき': 'Bahnhof',
+  'にほんご': 'Japanisch (Sprache)',
+  'えいご': 'Englisch (Sprache)',
+  'たべもの': 'Essen',
+  // Time words
+  'あさ': 'Morgen (Tageszeit)',
+  'よる': 'Nacht',
+  'きょう': 'heute',
+  'あした': 'morgen (Tag)',
+  // Adjectives
+  'つめたい': 'kalt (Getränk/Objekt)',
+  'あつい': 'heiß',
+  'さむい': 'kalt (Wetter)',
+  'おいしい': 'lecker',
+  'たかい': 'teuer / hoch',
+  'やすい': 'günstig',
+}
+
+/** Returns a German translation for a single sentence block, if known. */
+export function translateBlock(block: string): string | null {
+  return BLOCK_TRANSLATIONS[block] ?? null
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {

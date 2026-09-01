@@ -45,6 +45,86 @@ function getVocabPoolSize(level: number): number {
   return VOCAB_POOL_SIZE_BY_LEVEL[level] ?? Math.min(8 + (level - 1) * 3, 200)
 }
 
+/**
+ * Row-by-row learning curriculum for kana.
+ * Instead of quizzing characters cross-wise, beginners learn one row at a
+ * time, then mix rows together, then move on to the next rows.
+ *
+ * Each lesson lists the `group` names (matching the `group` field in the
+ * kana data) that it covers. A lesson with multiple rows is a "mix" lesson.
+ * `newGroups` marks rows introduced for the first time in this lesson —
+ * these are the rows that must be mastered to progress.
+ */
+export interface KanaLesson {
+  groups: string[]      // all rows practiced in this lesson
+  newGroups: string[]   // rows newly introduced (drives progression)
+  isMix: boolean        // true = review/mix of already-seen rows
+}
+
+export const KANA_CURRICULUM: KanaLesson[] = [
+  // ── Basic syllables, one row at a time, then mixed ──
+  { groups: ['Vokale'], newGroups: ['Vokale'], isMix: false },
+  { groups: ['K-Reihe'], newGroups: ['K-Reihe'], isMix: false },
+  { groups: ['S-Reihe'], newGroups: ['S-Reihe'], isMix: false },
+  { groups: ['Vokale', 'K-Reihe', 'S-Reihe'], newGroups: [], isMix: true },
+
+  { groups: ['T-Reihe'], newGroups: ['T-Reihe'], isMix: false },
+  { groups: ['N-Reihe'], newGroups: ['N-Reihe'], isMix: false },
+  { groups: ['T-Reihe', 'N-Reihe'], newGroups: [], isMix: true },
+
+  { groups: ['H-Reihe'], newGroups: ['H-Reihe'], isMix: false },
+  { groups: ['M-Reihe'], newGroups: ['M-Reihe'], isMix: false },
+  { groups: ['H-Reihe', 'M-Reihe'], newGroups: [], isMix: true },
+
+  { groups: ['Y-Reihe'], newGroups: ['Y-Reihe'], isMix: false },
+  { groups: ['R-Reihe'], newGroups: ['R-Reihe'], isMix: false },
+  { groups: ['W-Reihe'], newGroups: ['W-Reihe'], isMix: false },
+  { groups: ['Y-Reihe', 'R-Reihe', 'W-Reihe'], newGroups: [], isMix: true },
+
+  // Big review of all basic syllables
+  {
+    groups: [
+      'Vokale', 'K-Reihe', 'S-Reihe', 'T-Reihe', 'N-Reihe',
+      'H-Reihe', 'M-Reihe', 'Y-Reihe', 'R-Reihe', 'W-Reihe',
+    ],
+    newGroups: [],
+    isMix: true,
+  },
+
+  // ── Dakuten ──
+  { groups: ['G-Reihe (濁)'], newGroups: ['G-Reihe (濁)'], isMix: false },
+  { groups: ['Z-Reihe (濁)'], newGroups: ['Z-Reihe (濁)'], isMix: false },
+  { groups: ['D-Reihe (濁)'], newGroups: ['D-Reihe (濁)'], isMix: false },
+  { groups: ['B-Reihe (濁)'], newGroups: ['B-Reihe (濁)'], isMix: false },
+  {
+    groups: ['G-Reihe (濁)', 'Z-Reihe (濁)', 'D-Reihe (濁)', 'B-Reihe (濁)'],
+    newGroups: [],
+    isMix: true,
+  },
+
+  // ── Handakuten + Sokuon ──
+  { groups: ['P-Reihe (半濁)'], newGroups: ['P-Reihe (半濁)'], isMix: false },
+  { groups: ['Sokuon'], newGroups: ['Sokuon'], isMix: false },
+
+  // ── Combination syllables (yōon) ──
+  { groups: ['K-Kombi'], newGroups: ['K-Kombi'], isMix: false },
+  { groups: ['S-Kombi'], newGroups: ['S-Kombi'], isMix: false },
+  { groups: ['T-Kombi'], newGroups: ['T-Kombi'], isMix: false },
+  { groups: ['N-Kombi'], newGroups: ['N-Kombi'], isMix: false },
+  { groups: ['H-Kombi'], newGroups: ['H-Kombi'], isMix: false },
+  { groups: ['M-Kombi'], newGroups: ['M-Kombi'], isMix: false },
+  { groups: ['R-Kombi'], newGroups: ['R-Kombi'], isMix: false },
+  {
+    groups: ['K-Kombi', 'S-Kombi', 'T-Kombi', 'N-Kombi', 'H-Kombi', 'M-Kombi', 'R-Kombi'],
+    newGroups: [],
+    isMix: true,
+  },
+  { groups: ['G-Kombi'], newGroups: ['G-Kombi'], isMix: false },
+  { groups: ['Z-Kombi'], newGroups: ['Z-Kombi'], isMix: false },
+  { groups: ['B-Kombi'], newGroups: ['B-Kombi'], isMix: false },
+  { groups: ['P-Kombi'], newGroups: ['P-Kombi'], isMix: false },
+]
+
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const stored = localStorage.getItem(key)
@@ -304,6 +384,50 @@ export const useLearningStore = defineStore('learning', () => {
     return due.slice(0, limit)
   }
 
+  /**
+   * Determine which curriculum lesson the learner should do next for a kana
+   * category. A lesson's newly-introduced rows count as "done" once every
+   * character in those rows has been answered correctly at least twice.
+   *
+   * @param allCards  all kana cards for the category (need id + group)
+   * @returns the index into KANA_CURRICULUM to study next
+   */
+  function getCurrentKanaLessonIndex(allCards: { id: string; group: string }[]): number {
+    const ADVANCE_STREAK = 2 // correct answers per char to advance past a row
+
+    function rowLearned(group: string): boolean {
+      const cardsInRow = allCards.filter(c => c.group === group)
+      if (cardsInRow.length === 0) return true // row not in data → skip
+      return cardsInRow.every(c => {
+        const p = cardProgress.value.find(cp => cp.id === c.id)
+        return p && p.consecutiveCorrect >= ADVANCE_STREAK
+      })
+    }
+
+    for (let i = 0; i < KANA_CURRICULUM.length; i++) {
+      const lesson = KANA_CURRICULUM[i]
+      // A single-row lesson is complete when its new row is learned.
+      // A mix lesson is complete once all its rows are learned too.
+      const groupsToCheck = lesson.newGroups.length > 0 ? lesson.newGroups : lesson.groups
+      const complete = groupsToCheck.every(g => rowLearned(g))
+      if (!complete) return i
+    }
+    // All lessons done → keep offering the last big review
+    return KANA_CURRICULUM.length - 1
+  }
+
+  /**
+   * Returns the kana card IDs to include in the next session, following the
+   * row-by-row curriculum. Includes the current lesson's rows plus, for mix
+   * lessons, a light review of previously-learned rows.
+   */
+  function getCurriculumCardIds(allCards: { id: string; group: string }[]): string[] {
+    const idx = getCurrentKanaLessonIndex(allCards)
+    const lesson = KANA_CURRICULUM[idx]
+    const groups = new Set(lesson.groups)
+    return allCards.filter(c => groups.has(c.group)).map(c => c.id)
+  }
+
   function getCategoryStats(category: CardCategory) {
     const cards = cardProgress.value.filter(c => c.category === category)
     const total = cards.length
@@ -335,5 +459,7 @@ export const useLearningStore = defineStore('learning', () => {
     getConsecutiveCorrect,
     getDueCardsForCategory,
     getCategoryStats,
+    getCurrentKanaLessonIndex,
+    getCurriculumCardIds,
   }
 })

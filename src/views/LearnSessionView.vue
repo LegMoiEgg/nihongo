@@ -22,22 +22,6 @@ learningStore.initialize()
 
 const isKanaMode = computed(() => props.category === 'hiragana' || props.category === 'katakana')
 
-/** Show romaji hints next to kana for beginners (level 1-2) */
-const showRomajiHints = computed(() => userStore.currentLevel.level <= 2 && isKanaMode.value)
-
-/** For level 1-2: reversed MC — show romaji, pick the kana character */
-const reversedMcOptions = ref<string[]>([])
-
-function generateReversedMcOptions(correctCard: KanaCard): string[] {
-  const allKana = getAllKanaForCategory()
-  const wrong = allKana
-    .filter(k => k.character !== correctCard.character)
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 3)
-    .map(k => k.character)
-  return [...wrong, correctCard.character].sort(() => Math.random() - 0.5)
-}
-
 // Session state
 const currentIndex = ref(0)
 const isFlipped = ref(false)
@@ -63,6 +47,7 @@ const sessionXp = ref(0)
 const mcOptions = ref<string[]>([])
 const selectedOption = ref<string | null>(null)
 const showExample = ref(false)
+const kanaHintShown = ref(false) // tap-to-reveal romaji hint when stuck
 
 // Combo reading state (interleaved for kana sessions)
 const isComboQuestion = ref(false)
@@ -136,17 +121,6 @@ function generateMcOptions(correctCard: KanaCard): string[] {
 
   const options = [correctCard.romaji, ...wrongOptions]
   return options.sort(() => Math.random() - 0.5)
-}
-
-/** Learned single-character kana (for building combos) */
-function getLearnedSingleKana(): KanaCard[] {
-  const all = getAllKanaForCategory()
-  return all.filter(c => {
-    if (c.character.length > 1) return false
-    if (c.group === 'Sokuon') return false
-    const p = learningStore.cardProgress.find(cp => cp.id === c.id)
-    return p && p.status !== 'new'
-  })
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -225,26 +199,50 @@ function initSession() {
     learningStore.getOrCreateProgress(card.id, props.category)
   }
 
-  const dueCards = learningStore.getDueCardsForCategory(props.category, 20)
-  const dueIds = new Set(dueCards.map(c => c.id))
+  let selected: (KanaCard | KanjiCard | VocabCard)[]
 
-  let selected = allCards.filter(c => dueIds.has(c.id))
+  if (isKanaMode.value) {
+    // ── Row-by-row curriculum: only practise the current lesson's rows ──
+    const kanaCards = allCards.filter(isKanaCard)
+    const lessonIds = new Set(
+      learningStore.getCurriculumCardIds(
+        kanaCards.map(c => ({ id: c.id, group: c.group }))
+      )
+    )
+    selected = kanaCards.filter(c => lessonIds.has(c.id))
+    // Shuffle within the lesson so the order varies each session
+    selected = selected.sort(() => Math.random() - 0.5)
+  } else {
+    // ── Kanji / Vocabulary: keep SRS due-card selection ──
+    const dueCards = learningStore.getDueCardsForCategory(props.category, 20)
+    const dueIds = new Set(dueCards.map(c => c.id))
 
-  if (selected.length < 10) {
-    const newCards = allCards.filter(c => !dueIds.has(c.id))
-    const shuffled = newCards.sort(() => Math.random() - 0.5)
-    selected = [...selected, ...shuffled.slice(0, 10 - selected.length)]
+    selected = allCards.filter(c => dueIds.has(c.id))
+
+    if (selected.length < 10) {
+      const newCards = allCards.filter(c => !dueIds.has(c.id))
+      const shuffled = newCards.sort(() => Math.random() - 0.5)
+      selected = [...selected, ...shuffled.slice(0, 10 - selected.length)]
+    }
+
+    selected = selected.sort(() => Math.random() - 0.5)
   }
 
-  selected = selected.sort(() => Math.random() - 0.5)
   sessionCards.value = selected
 
   // Build session items: kana cards + interleaved combos for kana mode
   const items: SessionItem[] = []
 
   if (isKanaMode.value) {
-    const learned = getLearnedSingleKana()
-    const canDoCombo = learned.length >= 5
+    // Combos are built ONLY from the single characters in this lesson,
+    // so reading practice stays within the rows currently being learned.
+    const lessonSingles = selected.filter(
+      (c): c is KanaCard =>
+        isKanaCard(c) && c.character.length === 1 && c.group !== 'Sokuon'
+    )
+    // Only offer combos once the learner has a few characters in this lesson
+    // (i.e. mixed/review lessons), so single-row intro lessons stay pure.
+    const canDoCombo = lessonSingles.length >= 5
 
     for (let i = 0; i < selected.length; i++) {
       const card = selected[i]
@@ -253,14 +251,14 @@ function initSession() {
       }
       // After every 3 kana cards, insert a combo question if possible
       if (canDoCombo && (i + 1) % 3 === 0) {
-        items.push(generateComboItem(learned))
+        items.push(generateComboItem(lessonSingles))
       }
     }
-    // Add a few more combos at the end if we have enough learned
+    // Add a few more combos at the end if we have enough characters
     if (canDoCombo) {
-      const extraCombos = Math.min(3, Math.floor(learned.length / 5))
+      const extraCombos = Math.min(3, Math.floor(lessonSingles.length / 5))
       for (let i = 0; i < extraCombos; i++) {
-        items.push(generateComboItem(learned))
+        items.push(generateComboItem(lessonSingles))
       }
     }
   } else {
@@ -358,11 +356,9 @@ function loadCurrentItem() {
     isComboQuestion.value = false
     selectedOption.value = null
     showExample.value = false
+    kanaHintShown.value = false
     if (item.card && isKanaCard(item.card)) {
       mcOptions.value = generateMcOptions(item.card)
-      if (showRomajiHints.value) {
-        reversedMcOptions.value = generateReversedMcOptions(item.card)
-      }
     }
     if (item.card && isKanjiCard(item.card)) {
       loadKanjiQuiz()
@@ -399,11 +395,8 @@ function selectKanaOption(option: string) {
 
   selectedOption.value = option
 
-  // In reversed mode (level 1-2): option is a kana character, compare to card's character
-  // In normal mode: option is romaji, compare to card's romaji
-  const correct = showRomajiHints.value
-    ? option === item.card.character
-    : option === item.card.romaji
+  // Kana is always shown on top; the learner picks the correct romaji.
+  const correct = option === item.card.romaji
 
   learningStore.recordAnswer(item.card.id, props.category, correct)
 
@@ -664,57 +657,40 @@ onMounted(() => {
 
     <!-- ==================== KANA: Multiple Choice Mode ==================== -->
     <div v-else-if="currentCard && isKanaMode && isKanaCard(currentCard)" class="kana-mc-container">
-      <!-- Character Display -->
+      <!-- Character Display: kana on top, learner picks the romaji -->
       <div class="kana-display" :class="answerFeedback ? `feedback-${answerFeedback}` : ''">
-        <!-- Level 1-2: show romaji, ask for kana -->
-        <template v-if="showRomajiHints">
-          <span class="kana-romaji-prompt">{{ currentCard.romaji }}</span>
-          <p v-if="!selectedOption" class="kana-prompt">Welches Zeichen ist das?</p>
-        </template>
-        <!-- Level 3+: show kana, ask for romaji -->
-        <template v-else>
-          <span class="kana-character jp">{{ currentCard.character }}</span>
-          <p v-if="!selectedOption" class="kana-prompt">Was ist die Lesung?</p>
-        </template>
+        <span class="kana-character jp">{{ currentCard.character }}</span>
+        <!-- Tap-to-reveal hint (like Duolingo) when you're stuck -->
+        <span v-if="kanaHintShown" class="kana-hint-romaji">{{ currentCard.romaji }}</span>
+        <p v-if="!selectedOption" class="kana-prompt">Was ist die Lesung?</p>
       </div>
 
-      <!-- Answer Options -->
+      <!-- Answer Options: romaji -->
       <div v-if="!showExample" class="mc-options">
-        <!-- Level 1-2: kana character options -->
-        <template v-if="showRomajiHints">
-          <button
-            v-for="option in reversedMcOptions"
-            :key="option"
-            class="mc-option mc-option-kana jp"
-            :class="{
-              selected: selectedOption === option,
-              correct: selectedOption !== null && option === currentCard.character,
-              wrong: selectedOption === option && option !== currentCard.character,
-            }"
-            :disabled="selectedOption !== null"
-            @click="selectKanaOption(option)"
-          >
-            {{ option }}
-          </button>
-        </template>
-        <!-- Level 3+: romaji options -->
-        <template v-else>
-          <button
-            v-for="option in mcOptions"
-            :key="option"
-            class="mc-option"
-            :class="{
-              selected: selectedOption === option,
-              correct: selectedOption !== null && option === currentCard.romaji,
-              wrong: selectedOption === option && option !== currentCard.romaji,
-            }"
-            :disabled="selectedOption !== null"
-            @click="selectKanaOption(option)"
-          >
-            {{ option }}
-          </button>
-        </template>
+        <button
+          v-for="option in mcOptions"
+          :key="option"
+          class="mc-option"
+          :class="{
+            selected: selectedOption === option,
+            correct: selectedOption !== null && option === currentCard.romaji,
+            wrong: selectedOption === option && option !== currentCard.romaji,
+          }"
+          :disabled="selectedOption !== null"
+          @click="selectKanaOption(option)"
+        >
+          {{ option }}
+        </button>
       </div>
+
+      <!-- "Ich weiß nicht weiter" — reveals the reading without penalty -->
+      <button
+        v-if="!showExample && !selectedOption && !kanaHintShown"
+        class="btn-ghost kana-hint-btn"
+        @click="kanaHintShown = true"
+      >
+        💡 Ich weiß nicht weiter
+      </button>
 
       <!-- Example Word (shown after answering) -->
       <div v-if="showExample" class="kana-example animate-slide-up">
@@ -1068,22 +1044,23 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-.kana-romaji-prompt {
-  font-size: 3.5rem;
-  font-weight: 700;
-  color: var(--accent-primary);
-  letter-spacing: 0.05em;
-}
-
-.mc-option-kana {
-  font-size: 1.8rem !important;
-  text-align: center !important;
-  padding: 14px 20px !important;
-}
-
 .combo-badge {
   align-self: flex-start;
   margin-bottom: -8px;
+}
+
+/* Tap-to-reveal hint */
+.kana-hint-romaji {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  margin-top: 4px;
+}
+
+.kana-hint-btn {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 /* MC Options */
