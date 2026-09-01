@@ -67,7 +67,7 @@ const categories = computed(() => [
     mastered: learningStore.progressByCategory.vocabulary?.mastered || 0,
     due: learningStore.dueByCategory.vocabulary,
     color: '#00c853',
-    route: '/learn/vocabulary',
+    route: '/learn/vocabulary/overview',
     locked: false,
     lockLabel: '',
   },

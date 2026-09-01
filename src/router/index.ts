@@ -81,6 +81,11 @@ const router = createRouter({
       props: { category: 'vocabulary' }
     },
     {
+      path: '/learn/vocabulary/overview',
+      name: 'overview-vocabulary',
+      component: () => import('../views/VocabOverviewView.vue'),
+    },
+    {
       path: '/social',
       name: 'social',
       component: () => import('../views/SocialView.vue'),
