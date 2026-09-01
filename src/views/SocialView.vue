@@ -178,10 +178,13 @@ async function refreshGroup() {
           <h2>🏆 Rangliste</h2>
           <button
             class="btn-ghost refresh-btn"
+            :class="{ spinning: socialStore.loading }"
             :disabled="socialStore.loading"
+            aria-label="Aktualisieren"
+            title="Aktualisieren"
             @click="refreshGroup"
           >
-            {{ socialStore.loading ? '…' : '🔄 Aktualisieren' }}
+            🔄
           </button>
         </div>
         <div class="leaderboard-list">
@@ -600,9 +603,25 @@ async function refreshGroup() {
 }
 
 .refresh-btn {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   margin-bottom: 12px;
+}
+
+.refresh-btn.spinning {
+  animation: refresh-spin 0.8s linear infinite;
+}
+
+@keyframes refresh-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .leaderboard-list {
