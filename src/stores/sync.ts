@@ -201,15 +201,15 @@ export function scheduleSave() {
  * go to the background so the Cloud Function reads up-to-date dailyLog data
  * (fixes: notifications despite reaching the daily goal).
  */
-export function flushSave() {
+export function flushSave(): Promise<void> {
   const authStore = useAuthStore()
-  if (!authStore.isLoggedIn) return
+  if (!authStore.isLoggedIn) return Promise.resolve()
 
   if (saveTimeout) {
     clearTimeout(saveTimeout)
     saveTimeout = null
   }
-  saveToCloud()
+  return saveToCloud()
 }
 
 let flushHandlerRegistered = false

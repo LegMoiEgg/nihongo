@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuthStore } from './auth'
+import { levelForXp } from './user'
 
 export interface GroupMember {
   uid: string
@@ -183,7 +184,7 @@ export const useSocialStore = defineStore('social', () => {
               avatarDataUrl: data.avatarDataUrl || '',
               totalXp: data.totalXp || 0,
               currentStreak: data.currentStreak || 0,
-              level: computeLevel(data.totalXp || 0),
+              level: levelForXp(data.totalXp || 0),
             })
           }
         } catch {
@@ -221,17 +222,4 @@ export const useSocialStore = defineStore('social', () => {
   }
 })
 
-/** Simple level computation (mirrors user store logic) */
-function computeLevel(xp: number): number {
-  const thresholds = [
-    0, 200, 500, 900, 1400, 2000, 2800, 3800, 5000, 6500,
-    8200, 10000, 12000, 14500, 17000, 20000, 23500, 27000, 31000, 35500,
-    40000, 45000, 50500, 56000, 62000, 68500, 75000, 82000, 90000, 100000,
-  ]
-  let level = 1
-  for (let i = 0; i < thresholds.length; i++) {
-    if (xp >= thresholds[i]) level = i + 1
-    else break
-  }
-  return level
-}
+

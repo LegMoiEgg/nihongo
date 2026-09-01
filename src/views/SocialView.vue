@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useSocialStore } from '../stores/social'
+import { flushSave } from '../stores/sync'
 
 const authStore = useAuthStore()
 const socialStore = useSocialStore()
@@ -15,16 +16,29 @@ const joinGroupPassword = ref('')
 const creating = ref(false)
 const joining = ref(false)
 
-onMounted(() => {
+const OPEN_GROUP_KEY = 'nihongo_open_group'
+
+// Restore the group the user last had open, so a page refresh keeps them
+// inside the group instead of bouncing back to the group overview.
+async function restoreOpenGroup() {
+  const savedId = localStorage.getItem(OPEN_GROUP_KEY)
+  if (savedId) {
+    await socialStore.loadGroupDetails(savedId)
+  }
+}
+
+onMounted(async () => {
   if (authStore.isLoggedIn) {
-    socialStore.loadMyGroups()
+    await socialStore.loadMyGroups()
+    await restoreOpenGroup()
   }
 })
 
 // Also reload when auth state changes (e.g. after page refresh)
-watch(() => authStore.isLoggedIn, (loggedIn) => {
+watch(() => authStore.isLoggedIn, async (loggedIn) => {
   if (loggedIn) {
-    socialStore.loadMyGroups()
+    await socialStore.loadMyGroups()
+    await restoreOpenGroup()
   }
 })
 
@@ -57,11 +71,31 @@ async function joinGroup() {
 }
 
 async function openGroup(groupId: string) {
+  // Remember which group is open so a refresh keeps the user inside it.
+  localStorage.setItem(OPEN_GROUP_KEY, groupId)
+  // Push our own latest XP/streak to Firestore first so the leaderboard
+  // shows fresh data for the current user (not a stale synced value).
+  await flushSave()
   await socialStore.loadGroupDetails(groupId)
 }
 
 function closeGroup() {
+  localStorage.removeItem(OPEN_GROUP_KEY)
   socialStore.currentGroup = null
+}
+
+async function leaveCurrentGroup() {
+  const g = socialStore.currentGroup
+  if (!g) return
+  localStorage.removeItem(OPEN_GROUP_KEY)
+  await socialStore.leaveGroup(g.id)
+}
+
+async function refreshGroup() {
+  const g = socialStore.currentGroup
+  if (!g) return
+  await flushSave()
+  await socialStore.loadGroupDetails(g.id)
 }
 </script>
 
@@ -95,7 +129,16 @@ function closeGroup() {
 
       <!-- Leaderboard -->
       <section class="leaderboard">
-        <h2>🏆 Rangliste</h2>
+        <div class="leaderboard-head">
+          <h2>🏆 Rangliste</h2>
+          <button
+            class="btn-ghost refresh-btn"
+            :disabled="socialStore.loading"
+            @click="refreshGroup"
+          >
+            {{ socialStore.loading ? '…' : '🔄 Aktualisieren' }}
+          </button>
+        </div>
         <div class="leaderboard-list">
           <div
             v-for="(member, index) in socialStore.currentGroup.members"
@@ -136,7 +179,7 @@ function closeGroup() {
       </section>
 
       <!-- Leave group -->
-      <button class="btn btn-ghost leave-btn" @click="socialStore.leaveGroup(socialStore.currentGroup!.id)">
+      <button class="btn btn-ghost leave-btn" @click="leaveCurrentGroup">
         Gruppe verlassen
       </button>
     </div>
@@ -418,6 +461,18 @@ function closeGroup() {
 .leaderboard h2 {
   font-size: 1rem;
   font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.leaderboard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.refresh-btn {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
   margin-bottom: 12px;
 }
 

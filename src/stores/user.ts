@@ -8,7 +8,7 @@ export interface DailyLog {
   wordsLearned: number
 }
 
-const LEVEL_THRESHOLDS = [
+export const LEVEL_THRESHOLDS = [
   // ── N5: Levels 1–30 ──
   // At ~100 XP/day, each level takes roughly 3–7 days
   { level: 1, label: 'Anfänger', jlpt: 'N5', xpRequired: 0 },
@@ -344,3 +344,16 @@ export const useUserStore = defineStore('user', () => {
     setPlacementLevel,
   }
 })
+
+/**
+ * Returns the level number for a given total XP, using the same thresholds
+ * as the user store. Shared so other stores (e.g. social) show correct levels.
+ */
+export function levelForXp(xp: number): number {
+  let level = LEVEL_THRESHOLDS[0].level
+  for (const t of LEVEL_THRESHOLDS) {
+    if (xp >= t.xpRequired) level = t.level
+    else break
+  }
+  return level
+}
