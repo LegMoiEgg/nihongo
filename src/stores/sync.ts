@@ -20,6 +20,7 @@ interface CloudUserData {
   sessionsCompletedTotal: number
   displayName: string
   avatarDataUrl: string
+  placementLevel: number
   // learning store
   cardProgress: any[]
   // badges store
@@ -54,6 +55,7 @@ export async function saveToCloud(): Promise<void> {
     sessionsCompletedTotal: userStore.sessionsCompletedTotal,
     displayName: userStore.displayName,
     avatarDataUrl: userStore.avatarDataUrl,
+    placementLevel: userStore.placementLevel,
     cardProgress: learningStore.cardProgress,
     earnedBadges: badgesStore.earnedBadges,
     lastSyncedAt: new Date().toISOString(),
@@ -132,6 +134,10 @@ function mergeCloudData(cloud: CloudUserData) {
   if (cloud.avatarDataUrl && !userStore.avatarDataUrl) {
     userStore.avatarDataUrl = cloud.avatarDataUrl
     localStorage.setItem('nihongo_avatar', JSON.stringify(cloud.avatarDataUrl))
+  }
+  // Placement level: keep the higher one (from the placement test)
+  if ((cloud.placementLevel ?? 0) > userStore.placementLevel) {
+    userStore.setPlacementLevel(cloud.placementLevel)
   }
   if (cloud.lastActiveDate > userStore.lastActiveDate) {
     userStore.lastActiveDate = cloud.lastActiveDate

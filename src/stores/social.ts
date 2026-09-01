@@ -242,13 +242,17 @@ export const useSocialStore = defineStore('social', () => {
             const dailyLog: { date: string; xpEarned: number }[] = data.dailyLog || []
             const todayEntry = dailyLog.find(d => d.date === today)
             const todayXp = todayEntry ? todayEntry.xpEarned : 0
+            // The level is the higher of the XP-based level and any level set
+            // by the placement test (which grants a level without XP).
+            const xpLevel = levelForXp(data.totalXp || 0)
+            const placement = data.placementLevel || 0
             members.push({
               uid,
               displayName: data.displayName || 'Anonym',
               avatarDataUrl: data.avatarDataUrl || '',
               totalXp: data.totalXp || 0,
               currentStreak: data.currentStreak || 0,
-              level: levelForXp(data.totalXp || 0),
+              level: Math.max(xpLevel, placement),
               goalReachedToday: todayXp >= DAILY_XP_GOAL,
               canBeNudged: !!data.fcmToken,
             })
