@@ -53,7 +53,7 @@ exports.streakReminder = functions
 
       const body = messages[Math.floor(Math.random() * messages.length)];
 
-      const appUrl = "https://nihongo-5d259.web.app";
+      const appUrl = "https://nihongo-learn-gg.vercel.app";
 
       const response = await admin.messaging().sendEachForMulticast({
         notification: {

@@ -22,7 +22,7 @@ firebase.messaging()
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const urlToOpen = event.notification.data?.FCM_MSG?.notification?.click_action
-    || 'https://nihongo-5d259.web.app'
+    || 'https://nihongo-learn-gg.vercel.app'
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
