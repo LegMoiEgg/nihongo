@@ -202,16 +202,32 @@ function initSession() {
   let selected: (KanaCard | KanjiCard | VocabCard)[]
 
   if (isKanaMode.value) {
-    // ── Row-by-row curriculum: only practise the current lesson's rows ──
+    // ── Row-by-row curriculum: practise the current lesson's rows ──
     const kanaCards = allCards.filter(isKanaCard)
     const lessonIds = new Set(
       learningStore.getCurriculumCardIds(
         kanaCards.map(c => ({ id: c.id, group: c.group }))
       )
     )
-    selected = kanaCards.filter(c => lessonIds.has(c.id))
-    // Shuffle within the lesson so the order varies each session
-    selected = selected.sort(() => Math.random() - 0.5)
+    let lessonCards = kanaCards.filter(c => lessonIds.has(c.id))
+
+    // A single row can be very short (e.g. Y-row = 3 chars). To keep sessions
+    // substantial, top up with a review of already-learned kana from earlier
+    // rows until we reach at least MIN_SESSION cards.
+    const MIN_SESSION = 12
+    if (lessonCards.length < MIN_SESSION) {
+      const alreadyLearned = kanaCards.filter(c => {
+        if (lessonIds.has(c.id)) return false
+        const p = learningStore.cardProgress.find(cp => cp.id === c.id)
+        return p && p.status !== 'new' // only cards the learner has seen
+      })
+      const review = alreadyLearned
+        .sort(() => Math.random() - 0.5)
+        .slice(0, MIN_SESSION - lessonCards.length)
+      lessonCards = [...lessonCards, ...review]
+    }
+
+    selected = lessonCards.sort(() => Math.random() - 0.5)
   } else {
     // ── Kanji / Vocabulary: keep SRS due-card selection ──
     const dueCards = learningStore.getDueCardsForCategory(props.category, 20)

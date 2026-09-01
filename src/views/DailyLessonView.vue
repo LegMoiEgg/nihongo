@@ -127,13 +127,23 @@ function generateExercises(): Exercise[] {
       learningStore.getOrCreateProgress(card.id, 'hiragana')
     }
 
-    // Each character is asked once (kana → romaji). Small rows repeat so the
-    // daily lesson isn't over in 3 questions.
+    // Short rows (e.g. Y-row = 3 chars) are topped up with a review of
+    // already-learned kana so the daily lesson isn't over in 3 questions.
+    const MIN_KANA = 10
     let pool = shuffle(lessonCards)
-    while (pool.length < 8 && lessonCards.length > 0) {
+    if (pool.length < MIN_KANA) {
+      const learned = allHira.filter(c => {
+        if (lessonIds.has(c.id)) return false
+        const p = learningStore.cardProgress.find(cp => cp.id === c.id)
+        return p && p.status !== 'new'
+      })
+      pool = [...pool, ...shuffle(learned).slice(0, MIN_KANA - pool.length)]
+    }
+    // If still under the minimum (brand-new learner with almost nothing seen),
+    // repeat the current row so the lesson has a bit of substance.
+    while (pool.length < 6 && lessonCards.length > 0) {
       pool = [...pool, ...shuffle(lessonCards)]
     }
-    pool = pool.slice(0, Math.max(8, lessonCards.length))
 
     for (const card of pool) {
       const wrong = shuffle(allHira.filter(h => h.romaji !== card.romaji))
