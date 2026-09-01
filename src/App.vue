@@ -5,7 +5,7 @@ import BottomNav from './components/BottomNav.vue'
 import { useUserStore } from './stores/user'
 import { useAuthStore } from './stores/auth'
 import { useBadgesStore } from './stores/badges'
-import { loadFromCloud, saveToCloud } from './stores/sync'
+import { loadFromCloud, registerFlushOnHide } from './stores/sync'
 import { useNotificationsStore } from './stores/notifications'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase'
@@ -22,6 +22,10 @@ authStore.initAuth()
 badgesStore.initialize()
 badgesStore.checkAllBadges()
 notifStore.initialize()
+
+// Flush pending saves to Firestore when the app is hidden, so the
+// server-side streak-reminder Cloud Function reads fresh dailyLog data.
+registerFlushOnHide()
 
 // Check for remote reset trigger from Firestore
 async function checkRemoteReset() {

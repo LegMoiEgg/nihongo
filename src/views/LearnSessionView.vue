@@ -42,6 +42,17 @@ function generateReversedMcOptions(correctCard: KanaCard): string[] {
 const currentIndex = ref(0)
 const isFlipped = ref(false)
 const sessionCards = ref<(KanaCard | KanjiCard | VocabCard)[]>([])
+
+// ── Study phase (beginner kana flashcards shown BEFORE the quiz) ──
+// The tester wanted to first SEE the character + romaji + example words
+// instead of having to guess ("durch testen müssen").
+const studyPhase = ref(false)
+const studyCards = ref<KanaCard[]>([])
+const studyIndex = ref(0)
+const studyCard = computed<KanaCard | null>(() => studyCards.value[studyIndex.value] ?? null)
+const studyProgress = computed(() =>
+  studyCards.value.length > 0 ? Math.round((studyIndex.value / studyCards.value.length) * 100) : 0
+)
 const sessionCorrect = ref(0)
 const sessionIncorrect = ref(0)
 const sessionComplete = ref(false)
@@ -269,6 +280,65 @@ function initSession() {
   showExample.value = false
   isComboQuestion.value = false
 
+  // ── Decide whether to show a study phase first ──
+  // For kana mode, gather the "new" cards (never answered before) in this
+  // session and let the learner view them as flashcards before quizzing.
+  if (isKanaMode.value) {
+    const newKana = selected.filter((c): c is KanaCard => {
+      if (!isKanaCard(c)) return false
+      const p = learningStore.cardProgress.find(cp => cp.id === c.id)
+      return !p || p.status === 'new'
+    })
+    if (newKana.length > 0) {
+      studyCards.value = newKana
+      studyIndex.value = 0
+      studyPhase.value = true
+    } else {
+      studyPhase.value = false
+    }
+  } else {
+    studyPhase.value = false
+  }
+
+  loadCurrentItem()
+}
+
+/** Example words starting with this kana's syllable (for the study card) */
+function getStudyExamples(card: KanaCard): { word: string; meaning: string }[] {
+  const examples: { word: string; meaning: string }[] = []
+  if (card.example && card.exampleMeaning) {
+    examples.push({ word: card.example, meaning: card.exampleMeaning })
+  }
+  // Find additional example words from other kana that start with this character
+  const all = getAllKanaForCategory()
+  for (const k of all) {
+    if (examples.length >= 3) break
+    if (k.id === card.id) continue
+    if (k.example && k.exampleMeaning && k.example.startsWith(card.character)) {
+      if (!examples.some(e => e.word === k.example)) {
+        examples.push({ word: k.example, meaning: k.exampleMeaning })
+      }
+    }
+  }
+  return examples
+}
+
+function nextStudyCard() {
+  if (studyIndex.value < studyCards.value.length - 1) {
+    studyIndex.value++
+  } else {
+    // Study phase done → start the quiz
+    studyPhase.value = false
+    loadCurrentItem()
+  }
+}
+
+function prevStudyCard() {
+  if (studyIndex.value > 0) studyIndex.value--
+}
+
+function skipStudy() {
+  studyPhase.value = false
   loadCurrentItem()
 }
 
@@ -510,16 +580,63 @@ onMounted(() => {
     <header class="session-header">
       <button class="btn-ghost back-btn" @click="goBack" aria-label="Zurück">‹</button>
       <h1>{{ categoryTitle }}</h1>
-      <span class="card-counter">{{ currentIndex + 1 }} / {{ sessionItems.length }}</span>
+      <span class="card-counter">
+        {{ studyPhase ? `${studyIndex + 1} / ${studyCards.length}` : `${currentIndex + 1} / ${sessionItems.length}` }}
+      </span>
     </header>
 
     <!-- Progress Bar -->
     <div class="progress-bar" style="margin: 0 16px 16px;">
-      <div class="progress-bar-fill" :style="{ width: progress + '%', background: 'var(--gradient-xp)' }" />
+      <div
+        class="progress-bar-fill"
+        :style="{ width: (studyPhase ? studyProgress : progress) + '%', background: 'var(--gradient-xp)' }"
+      />
+    </div>
+
+    <!-- ==================== STUDY PHASE (beginner flashcards) ==================== -->
+    <div v-if="studyPhase && studyCard" class="study-phase animate-fade-in">
+      <div class="study-intro">
+        <span class="study-badge">Lernen</span>
+        <p class="study-hint">Schau dir das Zeichen an. Danach wird abgefragt.</p>
+      </div>
+
+      <div class="study-card">
+        <span class="study-character jp">{{ studyCard.character }}</span>
+        <span class="study-romaji">{{ studyCard.romaji }}</span>
+
+        <div v-if="getStudyExamples(studyCard).length > 0" class="study-examples">
+          <p class="study-examples-title">Beispielwörter</p>
+          <div
+            v-for="ex in getStudyExamples(studyCard)"
+            :key="ex.word"
+            class="study-example"
+          >
+            <span class="study-example-word jp">{{ ex.word }}</span>
+            <span class="study-example-meaning">{{ ex.meaning }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="study-counter">{{ studyIndex + 1 }} / {{ studyCards.length }}</div>
+
+      <div class="study-actions">
+        <button
+          class="btn btn-secondary"
+          :disabled="studyIndex === 0"
+          @click="prevStudyCard"
+        >
+          Zurück
+        </button>
+        <button class="btn btn-primary" @click="nextStudyCard">
+          {{ studyIndex < studyCards.length - 1 ? 'Weiter' : 'Los geht\'s!' }}
+        </button>
+      </div>
+
+      <button class="btn-ghost study-skip" @click="skipStudy">Überspringen</button>
     </div>
 
     <!-- Session Complete -->
-    <div v-if="sessionComplete" class="session-complete animate-fade-in">
+    <div v-if="!studyPhase && sessionComplete" class="session-complete animate-fade-in">
       <div class="complete-icon">🎉</div>
       <h2>Session abgeschlossen!</h2>
       <div class="complete-stats">
@@ -791,6 +908,123 @@ onMounted(() => {
 }
 
 /* ===================== Kana Multiple Choice ===================== */
+/* ===================== Study Phase (beginner flashcards) ===================== */
+.study-phase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+}
+
+.study-intro {
+  text-align: center;
+}
+
+.study-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--gradient-xp);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.study-hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.study-card {
+  width: 100%;
+  max-width: 350px;
+  padding: 32px 24px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.study-character {
+  font-size: 6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.study-romaji {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-bottom: 8px;
+}
+
+.study-examples {
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.study-examples-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.study-example {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.study-example-word {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.study-example-meaning {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.study-counter {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.study-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 350px;
+}
+
+.study-actions .btn {
+  flex: 1;
+}
+
+.study-skip {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
 .kana-mc-container {
   flex: 1;
   display: flex;

@@ -193,5 +193,39 @@ export function scheduleSave() {
   saveTimeout = setTimeout(() => {
     saveToCloud()
     saveTimeout = null
-  }, 30000) // 30 second debounce
+  }, 5000) // 5 second debounce — keeps Firestore fresh for the Cloud Function
+}
+
+/**
+ * Immediately flush any pending save. Call this when the app is about to
+ * go to the background so the Cloud Function reads up-to-date dailyLog data
+ * (fixes: notifications despite reaching the daily goal).
+ */
+export function flushSave() {
+  const authStore = useAuthStore()
+  if (!authStore.isLoggedIn) return
+
+  if (saveTimeout) {
+    clearTimeout(saveTimeout)
+    saveTimeout = null
+  }
+  saveToCloud()
+}
+
+let flushHandlerRegistered = false
+
+/**
+ * Registers a visibilitychange handler that flushes pending saves when the
+ * app is hidden (tab switch, app minimized, screen lock). Idempotent.
+ */
+export function registerFlushOnHide() {
+  if (flushHandlerRegistered) return
+  if (typeof document === 'undefined') return
+  flushHandlerRegistered = true
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && saveTimeout) {
+      flushSave()
+    }
+  })
 }

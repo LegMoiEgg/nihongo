@@ -53,10 +53,24 @@ exports.streakReminder = functions
 
       const body = messages[Math.floor(Math.random() * messages.length)];
 
+      const appUrl = "https://nihongo-5d259.web.app";
+
       const response = await admin.messaging().sendEachForMulticast({
         notification: {
           title: "NihonGo",
           body: body,
+        },
+        webpush: {
+          notification: {
+            title: "NihonGo",
+            body: body,
+            icon: "/favicon.svg",
+            badge: "/favicon.svg",
+            tag: "streak-reminder",  // replaces previous, prevents duplicates
+          },
+          fcmOptions: {
+            link: appUrl,  // makes notification clickable → opens app
+          },
         },
         tokens: tokensToNotify,
       });

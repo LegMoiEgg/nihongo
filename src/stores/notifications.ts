@@ -24,10 +24,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
     supported.value = true
     permission.value = Notification.permission
 
-    // If already granted, get token and start reminder
+    // If already granted, get token.
+    // Streak reminders are handled server-side by a Cloud Function,
+    // so no local timer is needed (avoids duplicate notifications).
     if (permission.value === 'granted') {
       await fetchToken()
-      startStreakReminderTimer()
     }
 
     // Listen for foreground messages
@@ -58,7 +59,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
       if (result === 'granted') {
         await fetchToken()
-        startStreakReminderTimer()
         return true
       }
       return false
@@ -104,14 +104,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
-  function startStreakReminder() {
-    startStreakReminderTimer()
-  }
-
-  function stopStreakReminder() {
-    stopStreakReminderTimer()
-  }
-
   return {
     permission,
     token,
@@ -121,73 +113,5 @@ export const useNotificationsStore = defineStore('notifications', () => {
     canAsk,
     initialize,
     requestPermission,
-    startStreakReminder,
-    stopStreakReminder,
   }
 })
-
-// ── Streak reminder: local notifications from 20:00–23:00 if daily goal not met ──
-let reminderInterval: ReturnType<typeof setInterval> | null = null
-let lastReminderHour = -1
-
-function startStreakReminderTimer() {
-  if (reminderInterval) return
-
-  // Check immediately, then every 15 minutes
-  checkAndRemind()
-  reminderInterval = setInterval(checkAndRemind, 15 * 60 * 1000)
-}
-
-function stopStreakReminderTimer() {
-  if (reminderInterval) {
-    clearInterval(reminderInterval)
-    reminderInterval = null
-  }
-  lastReminderHour = -1
-}
-
-function checkAndRemind() {
-  if (Notification.permission !== 'granted') return
-
-  const now = new Date()
-  const hour = now.getHours()
-
-  // Only remind between 20:00 and 23:00 (4 hours before midnight)
-  if (hour < 20 || hour > 23) {
-    lastReminderHour = -1
-    return
-  }
-
-  // Only one notification per hour
-  if (hour === lastReminderHour) return
-
-  // Check if daily goal is already met
-  const today = now.toISOString().split('T')[0]
-  const dailyLogRaw = localStorage.getItem('nihongo_daily_log')
-  if (dailyLogRaw) {
-    try {
-      const log = JSON.parse(dailyLogRaw) as { date: string; xpEarned: number }[]
-      const todayEntry = log.find(d => d.date === today)
-      if (todayEntry && todayEntry.xpEarned >= 100) {
-        // Goal already met, no reminder needed
-        return
-      }
-    } catch { /* ignore parse errors */ }
-  }
-
-  // Send local notification
-  lastReminderHour = hour
-  const messages = [
-    'Dein Streak wartet auf dich! 🔥',
-    'Noch eine kurze Lektion? Du schaffst das! 💪',
-    'Vergiss nicht deine tägliche Lektion! 📚',
-    'Dein Japanisch wartet auf dich! 🇯🇵',
-  ]
-  const body = messages[Math.floor(Math.random() * messages.length)]
-
-  new Notification('NihonGo', {
-    body,
-    icon: '/favicon.svg',
-    tag: 'streak-reminder', // replaces previous reminder
-  })
-}

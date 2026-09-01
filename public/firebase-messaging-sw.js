@@ -11,15 +11,27 @@ firebase.initializeApp({
   appId: '1:967576095197:web:2923ab67cff0fbabca0e34',
 })
 
-const messaging = firebase.messaging()
+firebase.messaging()
 
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'NihonGo'
-  const options = {
-    body: payload.notification?.body || 'Zeit zum Lernen!',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
-  }
-  self.registration.showNotification(title, options)
+// NOTE: We intentionally do NOT implement onBackgroundMessage here.
+// The Cloud Function sends a `webpush.notification` payload, which the
+// browser displays automatically. Adding onBackgroundMessage would show
+// a SECOND notification (the duplicate the tester saw).
+
+// Handle notification clicks — open or focus the app
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const urlToOpen = event.notification.data?.FCM_MSG?.notification?.click_action
+    || 'https://nihongo-5d259.web.app'
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus an already-open window if there is one
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus()
+      }
+      // Otherwise open a new window
+      if (clients.openWindow) return clients.openWindow(urlToOpen)
+    })
+  )
 })
