@@ -13,8 +13,10 @@ learningStore.initialize()
 // Category display order (matches the grouping in vocabulary.ts)
 const groupOrder = [
   'Begrüßung', 'Pronomen', 'Familie', 'Essen',
-  'Orte', 'Zeit', 'Zahlen', 'Farben', 'Körper',
-  'Natur', 'Verben', 'Adjektive',
+  'Orte', 'Zuhause', 'Transport', 'Schule',
+  'Zeit', 'Wochentage', 'Zahlen', 'Farben',
+  'Körper', 'Natur', 'Tiere', 'Kleidung',
+  'Fragewörter', 'Adverbien', 'Verben', 'Adjektive',
 ]
 
 // Vocabulary unlocks with the user's level (10 new words per level).
