@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useSocialStore } from '../stores/social'
 import { flushSave } from '../stores/sync'
@@ -8,13 +8,28 @@ const authStore = useAuthStore()
 const socialStore = useSocialStore()
 
 const showCreateModal = ref(false)
-const showJoinModal = ref(false)
 const newGroupName = ref('')
 const newGroupPassword = ref('')
-const joinGroupId = ref('')
-const joinGroupPassword = ref('')
 const creating = ref(false)
+
+// Join flow
 const joining = ref(false)
+const showPasswordModal = ref(false)
+const passwordInput = ref('')
+const pendingJoinGroupId = ref('')
+
+/** Is the current user already a member of the group being viewed? */
+const isMemberOfCurrent = computed(() => {
+  const g = socialStore.currentGroup
+  if (!g || !authStore.uid) return false
+  return g.memberUids.includes(authStore.uid)
+})
+
+/** All groups the user is NOT already a member of (for the directory). */
+const otherGroups = computed(() => {
+  const myIds = new Set(socialStore.myGroups.map(g => g.id))
+  return socialStore.allGroups.filter(g => !myIds.has(g.id))
+})
 
 const OPEN_GROUP_KEY = 'nihongo_open_group'
 
@@ -27,25 +42,25 @@ async function restoreOpenGroup() {
   }
 }
 
-onMounted(async () => {
-  if (authStore.isLoggedIn) {
-    await socialStore.loadMyGroups()
-    await restoreOpenGroup()
-  }
+async function loadEverything() {
+  await socialStore.loadMyGroups()
+  await socialStore.loadAllGroups()
+  await restoreOpenGroup()
+}
+
+onMounted(() => {
+  if (authStore.isLoggedIn) loadEverything()
 })
 
 // Also reload when auth state changes (e.g. after page refresh)
-watch(() => authStore.isLoggedIn, async (loggedIn) => {
-  if (loggedIn) {
-    await socialStore.loadMyGroups()
-    await restoreOpenGroup()
-  }
+watch(() => authStore.isLoggedIn, (loggedIn) => {
+  if (loggedIn) loadEverything()
 })
 
 async function createGroup() {
   if (!newGroupName.value.trim()) return
   creating.value = true
-  await socialStore.createGroup(
+  const id = await socialStore.createGroup(
     newGroupName.value.trim(),
     newGroupPassword.value.trim() || undefined
   )
@@ -53,21 +68,45 @@ async function createGroup() {
   newGroupName.value = ''
   newGroupPassword.value = ''
   showCreateModal.value = false
+  await socialStore.loadAllGroups()
+  if (id) await openGroup(id)
 }
 
-async function joinGroup() {
-  if (!joinGroupId.value.trim()) return
-  joining.value = true
-  await socialStore.joinGroup(
-    joinGroupId.value.trim(),
-    joinGroupPassword.value.trim() || undefined
-  )
-  joining.value = false
-  if (!socialStore.error) {
-    joinGroupId.value = ''
-    joinGroupPassword.value = ''
-    showJoinModal.value = false
+/** Join the currently-viewed group. Prompts for a password if protected. */
+async function joinCurrentGroup() {
+  const g = socialStore.currentGroup
+  if (!g) return
+  socialStore.clearError()
+
+  if (g.password) {
+    // Protected → ask for password
+    pendingJoinGroupId.value = g.id
+    passwordInput.value = ''
+    showPasswordModal.value = true
+    return
   }
+
+  await doJoin(g.id)
+}
+
+/** Submit the password modal and attempt to join. */
+async function submitPasswordJoin() {
+  await doJoin(pendingJoinGroupId.value, passwordInput.value.trim())
+}
+
+async function doJoin(groupId: string, password?: string) {
+  joining.value = true
+  const ok = await socialStore.joinGroup(groupId, password)
+  joining.value = false
+  if (ok) {
+    showPasswordModal.value = false
+    passwordInput.value = ''
+    localStorage.setItem(OPEN_GROUP_KEY, groupId)
+    await flushSave()
+    await socialStore.loadGroupDetails(groupId)
+    await socialStore.loadAllGroups()
+  }
+  // On failure, socialStore.error is shown in the modal / detail view
 }
 
 async function openGroup(groupId: string) {
@@ -120,11 +159,17 @@ async function refreshGroup() {
         <span class="member-count">{{ socialStore.currentGroup.memberUids.length }} 👥</span>
       </header>
 
-      <!-- Group ID for sharing -->
-      <div class="group-id-card card-flat">
+      <!-- Group ID for sharing (members only) -->
+      <div v-if="isMemberOfCurrent" class="group-id-card card-flat">
         <span class="group-id-label">Gruppen-ID zum Teilen:</span>
         <code class="group-id-value">{{ socialStore.currentGroup.id }}</code>
         <span v-if="socialStore.currentGroup.password" class="group-protected">🔒 Passwortgeschützt</span>
+      </div>
+
+      <!-- Preview banner for non-members -->
+      <div v-else class="group-preview-banner card-flat">
+        <span>{{ socialStore.currentGroup.password ? '🔒 Passwortgeschützte Gruppe' : '🌐 Öffentliche Gruppe' }}</span>
+        <span class="preview-hint">Schau dir die Mitglieder an und tritt bei.</span>
       </div>
 
       <!-- Leaderboard -->
@@ -178,10 +223,20 @@ async function refreshGroup() {
         </div>
       </section>
 
-      <!-- Leave group -->
-      <button class="btn btn-ghost leave-btn" @click="leaveCurrentGroup">
+      <!-- Leave group (members only) -->
+      <button v-if="isMemberOfCurrent" class="btn btn-ghost leave-btn" @click="leaveCurrentGroup">
         Gruppe verlassen
       </button>
+
+      <!-- Spacer so content isn't hidden behind the sticky join bar -->
+      <div v-if="!isMemberOfCurrent" class="bottom-spacer" />
+
+      <!-- Sticky join bar for non-members -->
+      <div v-if="!isMemberOfCurrent" class="sticky-join-bar">
+        <button class="btn btn-primary sticky-join-btn" :disabled="joining" @click="joinCurrentGroup">
+          {{ joining ? '...' : socialStore.currentGroup.password ? '🔒 Beitreten' : 'Beitreten' }}
+        </button>
+      </div>
     </div>
 
     <!-- Groups List -->
@@ -190,10 +245,9 @@ async function refreshGroup() {
         <h1>👥 Social</h1>
       </header>
 
-      <!-- Action buttons -->
+      <!-- Action button -->
       <div class="social-actions">
         <button class="btn btn-primary" @click="showCreateModal = true">+ Gruppe erstellen</button>
-        <button class="btn btn-secondary" @click="showJoinModal = true">Gruppe beitreten</button>
       </div>
 
       <!-- Loading -->
@@ -215,17 +269,38 @@ async function refreshGroup() {
             @click="openGroup(group.id)"
           >
             <div class="group-card-info">
-              <span class="group-card-name">{{ group.name }}</span>
-              <span class="group-card-members">{{ group.memberUids.length }} Mitglieder</span>
+              <span class="group-card-name">
+                <span v-if="group.password" class="group-lock">🔒</span>{{ group.name }}
+              </span>
             </div>
-            <span class="group-card-arrow">→</span>
+            <span class="group-card-count">{{ group.memberUids.length }} 👥</span>
           </div>
         </div>
       </section>
 
-      <div v-else-if="!socialStore.loading" class="no-groups">
-        <p>Du bist noch keiner Gruppe beigetreten.</p>
-        <p class="no-groups-hint">Erstelle eine Gruppe oder tritt einer bei!</p>
+      <!-- All groups directory -->
+      <section v-if="otherGroups.length > 0" class="all-groups">
+        <h2>Alle Gruppen</h2>
+        <div class="groups-list">
+          <div
+            v-for="group in otherGroups"
+            :key="group.id"
+            class="group-card card"
+            @click="openGroup(group.id)"
+          >
+            <div class="group-card-info">
+              <span class="group-card-name">
+                <span v-if="group.password" class="group-lock">🔒</span>{{ group.name }}
+              </span>
+            </div>
+            <span class="group-card-count">{{ group.memberUids.length }} 👥</span>
+          </div>
+        </div>
+      </section>
+
+      <div v-else-if="!socialStore.loading && socialStore.myGroups.length === 0" class="no-groups">
+        <p>Es gibt noch keine Gruppen.</p>
+        <p class="no-groups-hint">Erstelle die erste Gruppe!</p>
       </div>
     </div>
 
@@ -253,21 +328,17 @@ async function refreshGroup() {
     </div>
 
     <!-- Join Group Modal -->
-    <div v-if="showJoinModal" class="modal-overlay" @click.self="showJoinModal = false">
+    <div v-if="showPasswordModal" class="modal-overlay" @click.self="showPasswordModal = false; socialStore.clearError()">
       <div class="modal card">
-        <h2>Gruppe beitreten</h2>
-        <form @submit.prevent="joinGroup">
+        <h2>🔒 Passwort erforderlich</h2>
+        <form @submit.prevent="submitPasswordJoin">
           <div class="form-group">
-            <label>Gruppen-ID</label>
-            <input v-model="joinGroupId" placeholder="Gruppen-ID einfügen" required />
-          </div>
-          <div class="form-group">
-            <label>Passwort (falls nötig)</label>
-            <input v-model="joinGroupPassword" type="password" placeholder="Leer wenn keine Passwort nötig" />
+            <label>Gruppenpasswort</label>
+            <input v-model="passwordInput" type="password" placeholder="Passwort eingeben" autofocus />
           </div>
           <p v-if="socialStore.error" class="modal-error">{{ socialStore.error }}</p>
           <div class="modal-actions">
-            <button type="button" class="btn btn-ghost" @click="showJoinModal = false; socialStore.clearError()">Abbrechen</button>
+            <button type="button" class="btn btn-ghost" @click="showPasswordModal = false; socialStore.clearError()">Abbrechen</button>
             <button type="submit" class="btn btn-primary" :disabled="joining">
               {{ joining ? '...' : 'Beitreten' }}
             </button>
@@ -392,22 +463,38 @@ async function refreshGroup() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   cursor: pointer;
+}
+
+.group-card-info {
+  min-width: 0;
+  flex: 1;
 }
 
 .group-card-name {
   font-weight: 600;
   font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.group-card-members {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+.group-lock {
+  font-size: 0.85rem;
 }
 
-.group-card-arrow {
-  color: var(--text-muted);
-  font-size: 1.2rem;
+/* Member count on the right — number + 👥 symbol, like the group header */
+.group-card-count {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.all-groups {
+  margin-top: 8px;
 }
 
 .no-groups {
@@ -429,6 +516,48 @@ async function refreshGroup() {
   gap: 6px;
   margin-bottom: 20px;
   padding: 14px;
+}
+
+.group-preview-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 14px;
+  font-weight: 600;
+}
+
+.preview-hint {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Sticky join bar (mirrors the Kana "Lernen starten" button) */
+.sticky-join-bar {
+  position: fixed;
+  bottom: var(--nav-height);
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: linear-gradient(to top, var(--bg-primary) 60%, transparent);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+}
+
+.sticky-join-btn {
+  width: 100%;
+  max-width: 568px;
+  padding: 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  box-shadow: 0 -2px 20px rgba(233, 69, 96, 0.3);
+}
+
+.bottom-spacer {
+  height: 80px;
 }
 
 .group-id-label {

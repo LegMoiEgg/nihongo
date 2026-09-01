@@ -37,9 +37,38 @@ export interface SocialGroup {
 
 export const useSocialStore = defineStore('social', () => {
   const myGroups = ref<SocialGroup[]>([])
+  const allGroups = ref<SocialGroup[]>([])
   const currentGroup = ref<SocialGroup | null>(null)
   const loading = ref(false)
   const error = ref('')
+
+  /** Load ALL groups (public directory). Password-protected groups are shown
+   *  too, but require a password to join. */
+  async function loadAllGroups() {
+    loading.value = true
+    error.value = ''
+    try {
+      const snapshot = await getDocs(collection(db, 'groups'))
+      allGroups.value = snapshot.docs.map(d => {
+        const data = d.data() as SocialGroup
+        // Don't expose the actual password to the directory — only whether
+        // the group is protected. The real check happens server-side-ish in
+        // joinGroup (which re-reads the single doc).
+        return {
+          ...data,
+          id: d.id,
+          password: data.password ? '__protected__' : undefined,
+        }
+      }) as SocialGroup[]
+      // Sort: most members first
+      allGroups.value.sort((a, b) => (b.memberUids?.length || 0) - (a.memberUids?.length || 0))
+    } catch (e: any) {
+      error.value = 'Gruppen konnten nicht geladen werden.'
+      console.error(e)
+    } finally {
+      loading.value = false
+    }
+  }
 
   /** Load all groups the current user is a member of */
   async function loadMyGroups() {
@@ -210,10 +239,12 @@ export const useSocialStore = defineStore('social', () => {
 
   return {
     myGroups,
+    allGroups,
     currentGroup,
     loading,
     error,
     loadMyGroups,
+    loadAllGroups,
     createGroup,
     joinGroup,
     leaveGroup,
