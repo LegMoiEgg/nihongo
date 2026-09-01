@@ -1,4 +1,5 @@
-const functions = require("firebase-functions");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { logger } = require("firebase-functions");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -8,12 +9,16 @@ const db = admin.firestore();
  * Streak Reminder — runs every hour from 20:00–23:00 CET.
  * Checks all users with FCM tokens who haven't reached their daily XP goal,
  * and sends them a push notification.
+ *
+ * Uses the v2 scheduler API (firebase-functions v5).
  */
-exports.streakReminder = functions
-  .region("europe-west1")
-  .pubsub.schedule("0 20,21,22,23 * * *")
-  .timeZone("Europe/Berlin")
-  .onRun(async () => {
+exports.streakReminder = onSchedule(
+  {
+    schedule: "0 20,21,22,23 * * *",
+    timeZone: "Europe/Berlin",
+    region: "europe-west1",
+  },
+  async () => {
     const today = new Date().toISOString().split("T")[0];
     const DAILY_XP_GOAL = 100;
 
@@ -47,8 +52,8 @@ exports.streakReminder = functions
       }
 
       if (tokensToNotify.length === 0) {
-        console.log("No users to notify.");
-        return null;
+        logger.info("No users to notify.");
+        return;
       }
 
       const body = messages[Math.floor(Math.random() * messages.length)];
@@ -66,35 +71,42 @@ exports.streakReminder = functions
             body: body,
             icon: "/favicon.svg",
             badge: "/favicon.svg",
-            tag: "streak-reminder",  // replaces previous, prevents duplicates
+            tag: "streak-reminder", // replaces previous, prevents duplicates
           },
           fcmOptions: {
-            link: appUrl,  // makes notification clickable → opens app
+            link: appUrl, // makes notification clickable → opens app
           },
         },
         tokens: tokensToNotify,
       });
 
-      console.log(
+      logger.info(
         `Sent ${response.successCount} notifications, ${response.failureCount} failures`
       );
 
       // Clean up invalid tokens
       if (response.failureCount > 0) {
-        response.responses.forEach(async (resp, idx) => {
+        const cleanups = [];
+        response.responses.forEach((resp, idx) => {
           if (!resp.success) {
             const token = tokensToNotify[idx];
-            const snap = await db
-              .collection("users")
-              .where("fcmToken", "==", token)
-              .get();
-            snap.docs.forEach((doc) => doc.ref.update({ fcmToken: null }));
+            cleanups.push(
+              db
+                .collection("users")
+                .where("fcmToken", "==", token)
+                .get()
+                .then((snap) =>
+                  Promise.all(
+                    snap.docs.map((doc) => doc.ref.update({ fcmToken: null }))
+                  )
+                )
+            );
           }
         });
+        await Promise.all(cleanups);
       }
     } catch (error) {
-      console.error("Streak reminder error:", error);
+      logger.error("Streak reminder error:", error);
     }
-
-    return null;
-  });
+  }
+);
