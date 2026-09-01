@@ -1,9 +1,12 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { logger } = require("firebase-functions");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 const db = admin.firestore();
+
+const APP_URL = "https://nihongo-learn-gg.vercel.app";
 
 /**
  * Streak Reminder — runs every hour from 20:00–23:00 CET.
@@ -58,7 +61,7 @@ exports.streakReminder = onSchedule(
 
       const body = messages[Math.floor(Math.random() * messages.length)];
 
-      const appUrl = "https://nihongo-learn-gg.vercel.app";
+      const appUrl = APP_URL;
 
       const response = await admin.messaging().sendEachForMulticast({
         notification: {
@@ -107,6 +110,67 @@ exports.streakReminder = onSchedule(
       }
     } catch (error) {
       logger.error("Streak reminder error:", error);
+    }
+  }
+);
+
+/**
+ * Nudge / reminder — when a group member writes a nudge request document,
+ * send a one-time push notification to the target user.
+ *
+ * Nudge doc shape (written by the client in social.ts):
+ *   nudges/{targetUid}_{fromUid}_{date}
+ *   { targetUid, fromUid, fromName, groupName, date, sent }
+ *
+ * Deterministic doc id (target_from_date) means the same person can only
+ * nudge the same target once per day — repeated writes reuse the same doc.
+ */
+exports.sendNudge = onDocumentCreated(
+  { document: "nudges/{nudgeId}", region: "europe-west1" },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const nudge = snap.data();
+    if (!nudge || nudge.sent) return;
+
+    try {
+      const targetSnap = await db.collection("users").doc(nudge.targetUid).get();
+      if (!targetSnap.exists) {
+        logger.info("Nudge target not found:", nudge.targetUid);
+        return;
+      }
+      const token = targetSnap.data().fcmToken;
+      if (!token) {
+        logger.info("Nudge target has no FCM token:", nudge.targetUid);
+        return;
+      }
+
+      const fromName = nudge.fromName || "Ein Freund";
+      const groupName = nudge.groupName
+        ? ` aus \"${nudge.groupName}\"`
+        : "";
+      const body = `${fromName}${groupName} erinnert dich an deine tägliche Lektion! 🔔`;
+
+      await admin.messaging().send({
+        token,
+        notification: { title: "NihonGo", body },
+        webpush: {
+          notification: {
+            title: "NihonGo",
+            body,
+            icon: "/favicon.svg",
+            badge: "/favicon.svg",
+            tag: "nudge",
+          },
+          fcmOptions: { link: APP_URL },
+        },
+      });
+
+      // Mark as sent so it can't fire twice
+      await snap.ref.update({ sent: true, sentAt: admin.firestore.FieldValue.serverTimestamp() });
+      logger.info(`Nudge sent to ${nudge.targetUid} from ${nudge.fromUid}`);
+    } catch (error) {
+      logger.error("Nudge send error:", error);
     }
   }
 );

@@ -11,6 +11,7 @@ import {
   arrayRemove,
   query,
   where,
+  serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuthStore } from './auth'
@@ -23,7 +24,11 @@ export interface GroupMember {
   totalXp: number
   currentStreak: number
   level: number
+  goalReachedToday: boolean  // has this member reached their daily XP goal today?
+  canBeNudged: boolean       // has an FCM token → can receive a reminder push
 }
+
+const DAILY_XP_GOAL = 100
 
 export interface SocialGroup {
   id: string
@@ -207,6 +212,10 @@ export const useSocialStore = defineStore('social', () => {
           const userSnap = await getDoc(doc(db, 'users', uid))
           if (userSnap.exists()) {
             const data = userSnap.data()
+            const today = new Date().toISOString().split('T')[0]
+            const dailyLog: { date: string; xpEarned: number }[] = data.dailyLog || []
+            const todayEntry = dailyLog.find(d => d.date === today)
+            const todayXp = todayEntry ? todayEntry.xpEarned : 0
             members.push({
               uid,
               displayName: data.displayName || 'Anonym',
@@ -214,6 +223,8 @@ export const useSocialStore = defineStore('social', () => {
               totalXp: data.totalXp || 0,
               currentStreak: data.currentStreak || 0,
               level: levelForXp(data.totalXp || 0),
+              goalReachedToday: todayXp >= DAILY_XP_GOAL,
+              canBeNudged: !!data.fcmToken,
             })
           }
         } catch {
@@ -233,6 +244,66 @@ export const useSocialStore = defineStore('social', () => {
     }
   }
 
+  // Track who the current user has nudged today (so the bell disables).
+  const nudgedUids = ref<Set<string>>(new Set())
+
+  function loadNudgedToday() {
+    const today = new Date().toISOString().split('T')[0]
+    const raw = localStorage.getItem('nihongo_nudged')
+    try {
+      const parsed = raw ? JSON.parse(raw) as { date: string; uids: string[] } : null
+      if (parsed && parsed.date === today) {
+        nudgedUids.value = new Set(parsed.uids)
+        return
+      }
+    } catch { /* ignore */ }
+    // New day → reset
+    nudgedUids.value = new Set()
+    localStorage.setItem('nihongo_nudged', JSON.stringify({ date: today, uids: [] }))
+  }
+
+  function hasNudged(uid: string): boolean {
+    return nudgedUids.value.has(uid)
+  }
+
+  /**
+   * Nudge a group member who hasn't reached their daily goal.
+   * Writes a nudge request to Firestore; a Cloud Function sends the push.
+   * Limited to once per target per day (client-side + deterministic doc id).
+   */
+  async function nudge(targetUid: string, fromName: string, groupName: string): Promise<boolean> {
+    const authStore = useAuthStore()
+    if (!authStore.isLoggedIn || !authStore.uid) return false
+    if (targetUid === authStore.uid) return false
+
+    const today = new Date().toISOString().split('T')[0]
+    const nudgeId = `${targetUid}_${authStore.uid}_${today}`
+
+    try {
+      await setDoc(doc(db, 'nudges', nudgeId), {
+        targetUid,
+        fromUid: authStore.uid,
+        fromName: fromName || 'Ein Freund',
+        groupName: groupName || '',
+        date: today,
+        createdAt: serverTimestamp(),
+        sent: false,  // Cloud Function flips this to true after sending
+      })
+
+      // Remember locally so the bell disables immediately
+      nudgedUids.value.add(targetUid)
+      localStorage.setItem(
+        'nihongo_nudged',
+        JSON.stringify({ date: today, uids: [...nudgedUids.value] })
+      )
+      return true
+    } catch (e) {
+      console.error('Nudge failed:', e)
+      error.value = 'Erinnerung konnte nicht gesendet werden.'
+      return false
+    }
+  }
+
   function clearError() {
     error.value = ''
   }
@@ -249,6 +320,9 @@ export const useSocialStore = defineStore('social', () => {
     joinGroup,
     leaveGroup,
     loadGroupDetails,
+    nudge,
+    hasNudged,
+    loadNudgedToday,
     clearError,
   }
 })

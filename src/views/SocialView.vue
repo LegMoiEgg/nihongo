@@ -2,13 +2,16 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useSocialStore } from '../stores/social'
+import { useUserStore } from '../stores/user'
 import { flushSave } from '../stores/sync'
 
 const authStore = useAuthStore()
 const socialStore = useSocialStore()
+const userStore = useUserStore()
 
 const showCreateModal = ref(false)
 const newGroupName = ref('')
+const nudgeToast = ref('')
 const newGroupPassword = ref('')
 const creating = ref(false)
 
@@ -43,6 +46,7 @@ async function restoreOpenGroup() {
 }
 
 async function loadEverything() {
+  socialStore.loadNudgedToday()
   await socialStore.loadMyGroups()
   await socialStore.loadAllGroups()
   await restoreOpenGroup()
@@ -136,6 +140,17 @@ async function refreshGroup() {
   await flushSave()
   await socialStore.loadGroupDetails(g.id)
 }
+
+async function nudgeMember(member: { uid: string; displayName: string }) {
+  const g = socialStore.currentGroup
+  if (!g) return
+  const myName = userStore.displayName || authStore.displayName || 'Ein Freund'
+  const ok = await socialStore.nudge(member.uid, myName, g.name)
+  if (ok) {
+    nudgeToast.value = `${member.displayName} wurde erinnert! 🔔`
+    setTimeout(() => { nudgeToast.value = '' }, 2500)
+  }
+}
 </script>
 
 <template>
@@ -219,12 +234,36 @@ async function refreshGroup() {
             </div>
             <div class="member-info">
               <span class="member-name">{{ member.displayName }}</span>
-              <span class="member-meta">Lv. {{ member.level }} · 🔥 {{ member.currentStreak }}</span>
+              <span class="member-meta">
+                Lv. {{ member.level }} · 🔥 {{ member.currentStreak }}
+                <span v-if="member.goalReachedToday" class="goal-done" title="Tagesziel erreicht">✓</span>
+              </span>
             </div>
             <span class="member-xp">{{ member.totalXp }} XP</span>
+
+            <!-- Nudge bell: only for OTHER members who haven't reached the goal -->
+            <button
+              v-if="member.uid !== authStore.uid && !member.goalReachedToday"
+              class="nudge-btn"
+              :class="{ nudged: socialStore.hasNudged(member.uid) }"
+              :disabled="socialStore.hasNudged(member.uid) || !member.canBeNudged"
+              :title="!member.canBeNudged
+                ? 'Kann nicht erinnert werden (keine Benachrichtigungen aktiv)'
+                : socialStore.hasNudged(member.uid)
+                  ? 'Heute schon erinnert'
+                  : 'Erinnern'"
+              @click="nudgeMember(member)"
+            >
+              {{ socialStore.hasNudged(member.uid) ? '🔕' : '🔔' }}
+            </button>
           </div>
         </div>
       </section>
+
+      <!-- Nudge confirmation toast -->
+      <transition name="fade">
+        <div v-if="nudgeToast" class="nudge-toast">{{ nudgeToast }}</div>
+      </transition>
 
       <!-- Leave group (members only) -->
       <button v-if="isMemberOfCurrent" class="btn btn-ghost leave-btn" @click="leaveCurrentGroup">
@@ -712,6 +751,62 @@ async function refreshGroup() {
   font-size: 0.9rem;
   color: var(--accent-primary);
   flex-shrink: 0;
+}
+
+/* Nudge (reminder) bell button */
+.nudge-btn {
+  flex-shrink: 0;
+  background: var(--bg-accent);
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.nudge-btn:hover:not(:disabled) {
+  background: var(--accent-primary);
+  transform: scale(1.1);
+}
+
+.nudge-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.goal-done {
+  color: var(--accent-success);
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* Nudge confirmation toast */
+.nudge-toast {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-success);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--radius-xl);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-elevated);
+  z-index: 60;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .leave-btn {
