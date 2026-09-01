@@ -8,7 +8,6 @@ import { scheduleSave } from '../stores/sync'
 import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
-import { katakanaData } from '../data/katakana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
@@ -66,6 +65,7 @@ const newWordsInSession = ref(0)
 const selectedMcAnswer = ref<string | null>(null)
 const mcChecked = ref(false)
 const mcCorrect = ref(false)
+const kanaHintShown = ref(false) // tap-to-reveal romaji hint when stuck
 
 // Sentence state
 const sentenceBlocks = useSentenceBlocks()
@@ -105,60 +105,42 @@ function generateExercises(): Exercise[] {
   const result: Exercise[] = []
   const lvl = level.value
 
-  // ── Level 1-4: KANA ONLY ──
+  // ── Level 1-4: KANA ONLY, row-by-row curriculum ──
+  // Beginners practise the SAME rows as their current Hiragana lesson, in the
+  // curriculum order (A, K, S, mixed, …) — never cross-wise across all kana.
+  // Always kana-on-top → pick romaji, matching the learn sessions.
   if (lvl <= 4) {
     const allHira = hiraganaData.filter(h => h.group !== 'Sokuon')
-    const allKata = katakanaData.filter(k => k.group !== 'Sokuon')
 
-    // Pick kana to practice — prioritize due/learning, then add new
-    const hiraPool = shuffle(allHira).slice(0, lvl <= 2 ? 8 : 12)
-    const kataPool = lvl >= 3 ? shuffle(allKata).slice(0, 6) : []
+    // Which rows is the learner currently on? Use the curriculum.
+    const lessonIds = new Set(
+      learningStore.getCurriculumCardIds(
+        allHira.map(c => ({ id: c.id, group: c.group }))
+      )
+    )
+    let lessonCards = allHira.filter(c => lessonIds.has(c.id))
 
     // Initialize progress for these kana
-    for (const card of [...hiraPool, ...kataPool]) {
-      learningStore.getOrCreateProgress(card.id, card.id.startsWith('h-') ? 'hiragana' : 'katakana')
+    for (const card of lessonCards) {
+      learningStore.getOrCreateProgress(card.id, 'hiragana')
     }
 
-    // For level 1-2: show romaji, pick kana character
-    if (lvl <= 2) {
-      for (const card of hiraPool) {
-        const wrong = shuffle(allHira.filter(h => h.character !== card.character && h.character.length === 1))
-          .slice(0, 3).map(h => h.character)
-        result.push({
-          type: 'kana-char',
-          kana: card,
-          kanaOptions: shuffle([card.character, ...wrong]),
-        })
-      }
-    } else {
-      // Level 3-4: mix of romaji→kana and kana→romaji
-      for (const card of hiraPool.slice(0, 6)) {
-        const wrong = shuffle(allHira.filter(h => h.romaji !== card.romaji))
-          .slice(0, 3).map(h => h.romaji)
-        result.push({
-          type: 'kana-romaji',
-          kana: card,
-          kanaOptions: shuffle([card.romaji, ...wrong]),
-        })
-      }
-      for (const card of hiraPool.slice(6)) {
-        const wrong = shuffle(allHira.filter(h => h.character !== card.character))
-          .slice(0, 3).map(h => h.character)
-        result.push({
-          type: 'kana-char',
-          kana: card,
-          kanaOptions: shuffle([card.character, ...wrong]),
-        })
-      }
-      for (const card of kataPool) {
-        const wrong = shuffle(allKata.filter(k => k.romaji !== card.romaji))
-          .slice(0, 3).map(k => k.romaji)
-        result.push({
-          type: 'kana-romaji',
-          kana: card,
-          kanaOptions: shuffle([card.romaji, ...wrong]),
-        })
-      }
+    // Each character is asked once (kana → romaji). Small rows repeat so the
+    // daily lesson isn't over in 3 questions.
+    let pool = shuffle(lessonCards)
+    while (pool.length < 8 && lessonCards.length > 0) {
+      pool = [...pool, ...shuffle(lessonCards)]
+    }
+    pool = pool.slice(0, Math.max(8, lessonCards.length))
+
+    for (const card of pool) {
+      const wrong = shuffle(allHira.filter(h => h.romaji !== card.romaji))
+        .slice(0, 3).map(h => h.romaji)
+      result.push({
+        type: 'kana-romaji',
+        kana: card,
+        kanaOptions: shuffle([card.romaji, ...wrong]),
+      })
     }
 
     return shuffle(result)
@@ -266,6 +248,7 @@ function resetCurrentState() {
   selectedMcAnswer.value = null
   mcChecked.value = false
   mcCorrect.value = false
+  kanaHintShown.value = false
   sentenceChecked.value = false
   sentenceCorrect.value = false
   showHint.value = false
@@ -463,6 +446,7 @@ onMounted(() => {
         <div class="prompt-card card-flat">
           <p class="prompt-label">Wie liest man das?</p>
           <p class="prompt-text jp-large">{{ currentExercise.kana.character }}</p>
+          <p v-if="kanaHintShown" class="prompt-hint-romaji">{{ currentExercise.kana.romaji }}</p>
         </div>
         <div class="mc-grid">
           <button
@@ -472,6 +456,11 @@ onMounted(() => {
             :disabled="mcChecked" @click="selectMcOption(option)"
           >{{ option }}</button>
         </div>
+        <button
+          v-if="!mcChecked && !kanaHintShown"
+          class="btn-ghost kana-hint-btn"
+          @click="kanaHintShown = true"
+        >💡 Ich weiß nicht weiter</button>
         <div v-if="mcChecked" class="feedback animate-slide-up">
           <p :class="mcCorrect ? 'fb-correct' : 'fb-wrong'">{{ mcCorrect ? '✅ Richtig!' : '❌ Falsch' }}</p>
           <div v-if="currentExercise.kana.example" class="fb-example">
@@ -820,6 +809,20 @@ onMounted(() => {
   font-weight: 700;
   color: var(--accent-primary);
   letter-spacing: 0.05em;
+}
+
+.prompt-hint-romaji {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  margin-top: 6px;
+}
+
+.kana-hint-btn {
+  display: block;
+  margin: 12px auto 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .mc-option-kana {
