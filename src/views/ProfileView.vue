@@ -5,7 +5,7 @@ import { useLearningStore } from '../stores/learning'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
 import { useBadgesStore, ALL_BADGES, type BadgeDefinition } from '../stores/badges'
-import { saveToCloud, scheduleSave } from '../stores/sync'
+import { saveToCloud, scheduleSave, flushSave } from '../stores/sync'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
@@ -47,6 +47,35 @@ function saveName() {
 
 function cancelEditName() {
   isEditingName.value = false
+}
+
+/**
+ * Log out and fully reset the local state. All progress is saved to the
+ * cloud first (so it isn't lost — it comes back on next login), then the
+ * local progress is cleared so the next account starts fresh at onboarding.
+ */
+async function handleLogout() {
+  // 1. Save current progress to the cloud so nothing is lost.
+  try {
+    await flushSave()
+  } catch { /* offline — proceed with logout anyway */ }
+
+  // 2. Sign out of Firebase.
+  await authStore.logout()
+
+  // 3. Clear all local progress so the next account doesn't inherit it.
+  const keysToClear = [
+    'nihongo_xp', 'nihongo_streak', 'nihongo_longest_streak', 'nihongo_last_active',
+    'nihongo_daily_log', 'nihongo_words_total', 'nihongo_sessions_total',
+    'nihongo_display_name', 'nihongo_avatar', 'nihongo_placement_level',
+    'nihongo_card_progress', 'nihongo_badges', 'nihongo_nudged',
+    'nihongo_onboarding_done', 'nihongo_placement_done', 'nihongo_open_group',
+  ]
+  for (const key of keysToClear) localStorage.removeItem(key)
+
+  // 4. Hard reload to '/', re-initializing every store from clean storage.
+  // The router guard then sends the fresh user to onboarding.
+  window.location.href = '/'
 }
 
 function triggerAvatarUpload() {
@@ -227,7 +256,7 @@ const maxWeeklyXp = computed(() =>
           <span class="account-email">{{ authStore.email }}</span>
           <span class="account-status">✅ Angemeldet</span>
         </div>
-        <button class="btn btn-ghost" @click="authStore.logout()">Abmelden</button>
+        <button class="btn btn-ghost" @click="handleLogout">Abmelden</button>
       </div>
       <div v-else class="account-logged-out">
         <p class="account-hint">Melde dich an um deinen Fortschritt zu sichern und mit Freunden zu vergleichen.</p>
