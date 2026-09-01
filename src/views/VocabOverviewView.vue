@@ -2,10 +2,12 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLearningStore } from '../stores/learning'
+import { useUserStore } from '../stores/user'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 
 const router = useRouter()
 const learningStore = useLearningStore()
+const userStore = useUserStore()
 learningStore.initialize()
 
 // Category display order (matches the grouping in vocabulary.ts)
@@ -13,6 +15,17 @@ const groupOrder = [
   'Begrüßung', 'Pronomen', 'Familie', 'Essen',
   'Orte', 'Zeit', 'Verben', 'Adjektive',
 ]
+
+// Vocabulary unlocks with the user's level (10 new words per level).
+// The overview only shows unlocked words; the rest is still locked.
+const allVocabIds = vocabularyData.map(v => v.id)
+const unlockedIds = computed(() =>
+  new Set(learningStore.getUnlockedVocabIds(allVocabIds, userStore.currentLevel.level))
+)
+const unlockedVocab = computed(() =>
+  vocabularyData.filter(v => unlockedIds.value.has(v.id))
+)
+const lockedCount = computed(() => vocabularyData.length - unlockedVocab.value.length)
 
 interface VocabWithProgress extends VocabCard {
   consecutiveCorrect: number
@@ -33,15 +46,15 @@ function hasFurigana(card: VocabCard): boolean {
   return card.japanese !== card.reading
 }
 
-const totalCards = computed(() => vocabularyData.length)
+const totalCards = computed(() => unlockedVocab.value.length)
 const masteredCount = computed(() =>
-  vocabularyData.filter(c => {
+  unlockedVocab.value.filter(c => {
     const p = learningStore.cardProgress.find(cp => cp.id === c.id)
     return p && (p.consecutiveCorrect ?? 0) >= learningStore.MASTERY_STREAK
   }).length
 )
 const learningCount = computed(() =>
-  vocabularyData.filter(c => {
+  unlockedVocab.value.filter(c => {
     const p = learningStore.cardProgress.find(cp => cp.id === c.id)
     return p && p.status !== 'new' && (p.consecutiveCorrect ?? 0) < learningStore.MASTERY_STREAK
   }).length
@@ -50,9 +63,9 @@ const progressPercent = computed(() =>
   totalCards.value > 0 ? Math.round((masteredCount.value / totalCards.value) * 100) : 0
 )
 
-// Only show groups that actually have cards
+// Only show groups that have at least one UNLOCKED word
 const visibleGroups = computed(() =>
-  groupOrder.filter(g => vocabularyData.some(v => v.category === g))
+  groupOrder.filter(g => unlockedVocab.value.some(v => v.category === g))
 )
 
 function startLearning() {
@@ -101,12 +114,18 @@ function goBack() {
       <span class="legend-item"><span class="legend-dot dot-mastered" /> Gemeistert</span>
     </div>
 
-    <!-- Vocab list by category -->
+    <!-- Empty state (brand-new learner with nothing unlocked yet) -->
+    <div v-if="unlockedVocab.length === 0" class="vocab-empty">
+      <p>Noch keine Vokabeln freigeschaltet.</p>
+      <p class="vocab-empty-hint">Steige im Level auf, um deine ersten Wörter zu lernen!</p>
+    </div>
+
+    <!-- Vocab list by category (only unlocked words) -->
     <div v-for="group in visibleGroups" :key="group" class="section">
       <h2 class="section-title">{{ group }}</h2>
       <div class="vocab-list">
         <div
-          v-for="card in vocabularyData.filter(v => v.category === group).map(getCardProgress)"
+          v-for="card in unlockedVocab.filter(v => v.category === group).map(getCardProgress)"
           :key="card.id"
           class="vocab-cell"
           :class="{
@@ -130,6 +149,11 @@ function goBack() {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Locked words hint -->
+    <div v-if="lockedCount > 0" class="locked-hint">
+      🔒 {{ lockedCount }} weitere {{ lockedCount === 1 ? 'Wort' : 'Wörter' }} schaltest du mit dem nächsten Level frei
     </div>
 
     <!-- Bottom spacer -->
@@ -337,6 +361,28 @@ function goBack() {
 
 .mini-dot.filled {
   background: var(--accent-success);
+}
+
+/* Empty state */
+.vocab-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text-secondary);
+}
+
+.vocab-empty-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* Locked words hint */
+.locked-hint {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: 12px 16px;
+  margin-top: 4px;
 }
 
 /* Bottom spacer */

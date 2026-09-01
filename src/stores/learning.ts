@@ -25,24 +25,14 @@ const MASTERY_STREAK = 5
  * At level 1 the first 8 vocab are available, at level 2 the first 16, etc.
  * This controls the "don't overwhelm the learner" flow.
  */
-const VOCAB_POOL_SIZE_BY_LEVEL: Record<number, number> = {
-  1: 8,
-  2: 10,
-  3: 12,
-  4: 14,
-  5: 16,
-  6: 18,
-  7: 20,
-  8: 24,
-  9: 28,
-  10: 32,
-}
+/** New vocabulary unlocked per level. The pool grows by this many words
+ *  with every level-up (Level 1 → 10 words, Level 2 → 20, Level 5 → 50 …). */
+const VOCAB_PER_LEVEL = 10
 
 function getVocabPoolSize(level: number): number {
-  if (level <= 0) return 8
-  if (level >= 20) return Infinity // all unlocked after solid N5 progress
-  if (level > 10) return Math.min(32 + (level - 10) * 4, 200)
-  return VOCAB_POOL_SIZE_BY_LEVEL[level] ?? Math.min(8 + (level - 1) * 3, 200)
+  const lvl = Math.max(1, level)
+  // 10 words per level, growing with each level-up.
+  return lvl * VOCAB_PER_LEVEL
 }
 
 /**
@@ -279,32 +269,28 @@ export const useLearningStore = defineStore('learning', () => {
     const poolSize = getVocabPoolSize(userLevel)
     const candidateIds = allVocabIds.slice(0, poolSize)
 
-    // Count how many of the current pool are NOT yet mastered
-    const unmasteredCount = candidateIds.filter(id => {
+    // Split the level pool into words the learner has already seen and
+    // brand-new (never-answered) words.
+    const seenIds: string[] = []
+    const unseenIds: string[] = []
+    for (const id of candidateIds) {
+      const p = cardProgress.value.find(c => c.id === id)
+      if (p && p.status !== 'new') seenIds.push(id)
+      else unseenIds.push(id)
+    }
+
+    // How many of the seen words are still not mastered (need more practice)?
+    const activeUnmastered = seenIds.filter(id => {
       const p = cardProgress.value.find(c => c.id === id)
       return !p || p.consecutiveCorrect < MASTERY_STREAK
     }).length
 
-    // Only unlock new words if the learner has fewer than 6 unmastered words
-    // This prevents flooding with new vocab
-    const MAX_ACTIVE_NEW = 6
+    // Keep a healthy queue of new words flowing, but don't flood the learner:
+    // allow up to MAX_ACTIVE_NEW unmastered words in rotation at once.
+    const MAX_ACTIVE_NEW = 10
+    const roomForNew = Math.max(0, MAX_ACTIVE_NEW - activeUnmastered)
 
-    if (unmasteredCount <= MAX_ACTIVE_NEW) {
-      // Unlock up to pool size
-      return candidateIds
-    }
-
-    // Otherwise, only return words they've already seen + a small number of new ones
-    const seenIds = candidateIds.filter(id =>
-      cardProgress.value.some(c => c.id === id && c.status !== 'new')
-    )
-    const unseenIds = candidateIds.filter(id => !seenIds.includes(id))
-    const newToAdd = Math.max(0, MAX_ACTIVE_NEW - (seenIds.length - seenIds.filter(id => {
-      const p = cardProgress.value.find(c => c.id === id)
-      return p && p.consecutiveCorrect >= MASTERY_STREAK
-    }).length))
-
-    return [...seenIds, ...unseenIds.slice(0, newToAdd)]
+    return [...seenIds, ...unseenIds.slice(0, roomForNew)]
   }
 
   /**
