@@ -89,6 +89,17 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
+  /**
+   * Ensure the FCM token is saved to Firestore for the current user.
+   * Call this on login: if notifications were enabled before the user was
+   * fully authenticated, the token may not have been written yet — this
+   * fixes the "can't be nudged" case for freshly-registered users.
+   */
+  async function syncTokenIfEnabled() {
+    if (permission.value !== 'granted') return
+    await fetchToken() // re-fetches and saves the token to Firestore
+  }
+
   async function saveTokenToFirestore(fcmToken: string) {
     const authStore = useAuthStore()
     if (!authStore.isLoggedIn || !authStore.uid) return
@@ -113,5 +124,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     canAsk,
     initialize,
     requestPermission,
+    syncTokenIfEnabled,
   }
 })

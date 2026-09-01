@@ -50,6 +50,9 @@ checkRemoteReset()
 // When user logs in/out, sync with cloud
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
   if (loggedIn) {
+    // Ensure the FCM token is written now that we have a uid (fixes the
+    // race where notifications were enabled before login completed).
+    notifStore.syncTokenIfEnabled()
     const loaded = await loadFromCloud()
     // If cloud had data and we're on onboarding, redirect to home
     if (loaded && localStorage.getItem('nihongo_onboarding_done') === 'true') {
