@@ -44,6 +44,7 @@ type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-de-jp' | 'vocab-jp-de' 
 interface Exercise {
   type: ExerciseType
   isNewWord?: boolean
+  isRetry?: boolean  // requeued after a wrong answer — no XP on retries
   vocab?: VocabCard
   vocabOptions?: string[]
   kanji?: KanjiCard
@@ -60,6 +61,7 @@ const score = ref(0)
 const totalXp = ref(0)
 const sessionComplete = ref(false)
 const newWordsInSession = ref(0)
+const originalCount = ref(0) // exercise count before any retries were requeued
 
 // MC state
 const selectedMcAnswer = ref<string | null>(null)
@@ -237,6 +239,7 @@ function generateExercises(): Exercise[] {
 // ── Session lifecycle ──
 function initSession() {
   exercises.value = generateExercises()
+  originalCount.value = exercises.value.length
   currentIndex.value = 0
   score.value = 0
   totalXp.value = 0
@@ -282,11 +285,14 @@ function selectMcOption(option: string) {
 
   const ex = currentExercise.value!
   if (correct) {
-    score.value++
-    // Kana exercises always 1 XP, vocab/kanji use dynamic XP
-    const xp = (ex.type === 'kana-char' || ex.type === 'kana-romaji') ? 1 : userStore.xpPerCorrect
-    totalXp.value += xp
-    userStore.addXp(xp, ex.type.startsWith('kana') ? 0 : 1)
+    // Retries (requeued after a wrong answer) don't grant XP or score again
+    if (!ex.isRetry) {
+      score.value++
+      // Kana exercises always 1 XP, vocab/kanji use dynamic XP
+      const xp = (ex.type === 'kana-char' || ex.type === 'kana-romaji') ? 1 : userStore.xpPerCorrect
+      totalXp.value += xp
+      userStore.addXp(xp, ex.type.startsWith('kana') ? 0 : 1)
+    }
     playCorrectSound()
   } else {
     playWrongSound()
@@ -310,10 +316,12 @@ function checkSentence() {
     sentenceBlocks.selectedBlocks.value.every((b, i) => b === correct[i])
 
   if (sentenceCorrect.value) {
-    score.value++
-    const xp = userStore.xpPerCorrect
-    totalXp.value += xp
-    userStore.addXp(xp)
+    if (!ex.isRetry) {
+      score.value++
+      const xp = userStore.xpPerCorrect
+      totalXp.value += xp
+      userStore.addXp(xp)
+    }
     playCorrectSound()
   } else {
     playWrongSound()
@@ -328,6 +336,14 @@ function showSentenceAnswer() {
 
 // ── Navigation ──
 function nextExercise() {
+  const ex = currentExercise.value
+  // If the current exercise was answered wrong, requeue it at the very end
+  // so it comes back later — the learner must eventually get it right.
+  const wasWrong = ex && (ex.type === 'sentence' ? !sentenceCorrect.value : !mcCorrect.value)
+  if (ex && wasWrong) {
+    exercises.value.push({ ...ex, isRetry: true })
+  }
+
   if (currentIndex.value < exercises.value.length - 1) {
     currentIndex.value++
     resetCurrentState()
@@ -363,7 +379,7 @@ onMounted(() => {
 
     <!-- ==================== SESSION COMPLETE ==================== -->
     <div v-if="sessionComplete" class="session-complete animate-fade-in">
-      <div class="complete-icon">{{ score >= exercises.length * 0.8 ? '🌟' : score >= exercises.length * 0.5 ? '👏' : '💪' }}</div>
+      <div class="complete-icon">{{ score >= originalCount * 0.8 ? '🌟' : score >= originalCount * 0.5 ? '👏' : '💪' }}</div>
       <h2>Lektion geschafft!</h2>
       <div class="complete-stats">
         <div class="complete-stat">
@@ -371,7 +387,7 @@ onMounted(() => {
           <span>Richtig</span>
         </div>
         <div class="complete-stat">
-          <span class="stat-number incorrect">{{ exercises.length - score }}</span>
+          <span class="stat-number incorrect">{{ Math.max(0, originalCount - score) }}</span>
           <span>Falsch</span>
         </div>
         <div class="complete-stat">
@@ -380,7 +396,7 @@ onMounted(() => {
         </div>
       </div>
       <div class="complete-accuracy">
-        Genauigkeit: {{ exercises.length > 0 ? Math.round((score / exercises.length) * 100) : 0 }}%
+        Genauigkeit: {{ originalCount > 0 ? Math.round((score / originalCount) * 100) : 0 }}%
       </div>
       <p v-if="newWordsInSession > 0" class="new-words-info">
         🆕 {{ newWordsInSession }} neue Wörter in dieser Lektion
@@ -404,6 +420,7 @@ onMounted(() => {
         <span v-else-if="currentExercise.type === 'kanji-reading'" class="badge badge-level">漢字 Lesung</span>
         <span v-else-if="currentExercise.type === 'sentence'" class="badge badge-streak">🧩 Satz bauen</span>
         <span v-if="currentExercise.isNewWord" class="badge badge-new">🆕 Neues Wort</span>
+        <span v-if="currentExercise.isRetry" class="badge badge-streak">🔁 Wiederholung</span>
       </div>
 
       <!-- Mastery dots for vocab -->
