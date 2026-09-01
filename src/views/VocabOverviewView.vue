@@ -23,7 +23,7 @@ const groupOrder = [
 // The overview only shows unlocked words; the rest is still locked.
 const allVocabIds = vocabularyData.map(v => v.id)
 const unlockedIds = computed(() =>
-  new Set(learningStore.getUnlockedVocabIds(allVocabIds, userStore.currentLevel.level))
+  new Set(learningStore.getLevelVocabIds(allVocabIds, userStore.currentLevel.level))
 )
 const unlockedVocab = computed(() =>
   vocabularyData.filter(v => unlockedIds.value.has(v.id))

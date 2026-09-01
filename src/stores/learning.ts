@@ -265,6 +265,15 @@ export const useLearningStore = defineStore('learning', () => {
    * Vocab is released in order (first items in the vocabulary array first).
    * New words are only added once existing unmastered ones are under control.
    */
+  /**
+   * The full set of vocab available at the given level (level × 10), without
+   * the "don't flood me" throttle. Used by the overview to show everything
+   * the learner has access to at their level.
+   */
+  function getLevelVocabIds(allVocabIds: string[], userLevel: number): string[] {
+    return allVocabIds.slice(0, getVocabPoolSize(userLevel))
+  }
+
   function getUnlockedVocabIds(allVocabIds: string[], userLevel: number): string[] {
     const poolSize = getVocabPoolSize(userLevel)
     const candidateIds = allVocabIds.slice(0, poolSize)
@@ -440,6 +449,7 @@ export const useLearningStore = defineStore('learning', () => {
     getOrCreateProgress,
     recordAnswer,
     getUnlockedVocabIds,
+    getLevelVocabIds,
     getVocabForDailyLesson,
     isCardMastered,
     getConsecutiveCorrect,
