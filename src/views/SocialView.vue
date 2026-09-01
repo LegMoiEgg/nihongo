@@ -76,26 +76,47 @@ async function createGroup() {
   if (id) await openGroup(id)
 }
 
-/** Join the currently-viewed group. Prompts for a password if protected. */
+// Password the user already entered to view a protected group this session,
+// so joining afterwards doesn't ask for it again.
+const unlockedPassword = ref('')
+
+/**
+ * Join the currently-viewed group. If it's protected, the user has already
+ * entered the password to view it, so we reuse it.
+ */
 async function joinCurrentGroup() {
   const g = socialStore.currentGroup
   if (!g) return
   socialStore.clearError()
 
-  if (g.password) {
-    // Protected → ask for password
+  // Protected group but no password remembered (e.g. after a page refresh)
+  // → ask for it again before joining.
+  if (g.password && !unlockedPassword.value) {
     pendingJoinGroupId.value = g.id
     passwordInput.value = ''
     showPasswordModal.value = true
     return
   }
 
-  await doJoin(g.id)
+  await doJoin(g.id, g.password ? unlockedPassword.value : undefined)
 }
 
-/** Submit the password modal and attempt to join. */
+/**
+ * Submit the password modal: verify the password, then OPEN the group's
+ * details so the user can view the members before deciding to join.
+ */
 async function submitPasswordJoin() {
-  await doJoin(pendingJoinGroupId.value, passwordInput.value.trim())
+  const pw = passwordInput.value.trim()
+  joining.value = true
+  const ok = await socialStore.verifyGroupPassword(pendingJoinGroupId.value, pw)
+  joining.value = false
+  if (ok) {
+    unlockedPassword.value = pw
+    showPasswordModal.value = false
+    passwordInput.value = ''
+    await openGroup(pendingJoinGroupId.value)
+  }
+  // On failure, socialStore.error is shown in the modal
 }
 
 async function doJoin(groupId: string, password?: string) {
@@ -103,14 +124,31 @@ async function doJoin(groupId: string, password?: string) {
   const ok = await socialStore.joinGroup(groupId, password)
   joining.value = false
   if (ok) {
-    showPasswordModal.value = false
-    passwordInput.value = ''
     localStorage.setItem(OPEN_GROUP_KEY, groupId)
     await flushSave()
     await socialStore.loadGroupDetails(groupId)
     await socialStore.loadAllGroups()
   }
-  // On failure, socialStore.error is shown in the modal / detail view
+  // On failure, socialStore.error is shown in the detail view
+}
+
+/**
+ * Open a group from the list. Protected groups the user is NOT a member of
+ * require the password BEFORE the members/leaderboard can be viewed.
+ */
+async function openGroupFromList(group: { id: string; password?: string; memberUids: string[] }) {
+  const isMember = authStore.uid ? group.memberUids.includes(authStore.uid) : false
+
+  if (group.password && !isMember) {
+    // Protected & not a member → ask for the password first.
+    socialStore.clearError()
+    pendingJoinGroupId.value = group.id
+    passwordInput.value = ''
+    showPasswordModal.value = true
+    return
+  }
+
+  await openGroup(group.id)
 }
 
 async function openGroup(groupId: string) {
@@ -328,7 +366,7 @@ async function nudgeMember(member: { uid: string; displayName: string }) {
             v-for="group in otherGroups"
             :key="group.id"
             class="group-card card"
-            @click="openGroup(group.id)"
+            @click="openGroupFromList(group)"
           >
             <div class="group-card-info">
               <span class="group-card-name">

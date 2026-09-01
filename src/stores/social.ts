@@ -130,6 +130,32 @@ export const useSocialStore = defineStore('social', () => {
     }
   }
 
+  /**
+   * Verify a group's password WITHOUT joining. Used to gate viewing the
+   * members of a protected group before deciding to join.
+   */
+  async function verifyGroupPassword(groupId: string, password: string): Promise<boolean> {
+    error.value = ''
+    try {
+      const snapshot = await getDoc(doc(db, 'groups', groupId))
+      if (!snapshot.exists()) {
+        error.value = 'Gruppe nicht gefunden.'
+        return false
+      }
+      const groupData = snapshot.data() as SocialGroup
+      if (!groupData.password) return true // not protected → always ok
+      if (password !== groupData.password) {
+        error.value = 'Falsches Passwort.'
+        return false
+      }
+      return true
+    } catch (e: any) {
+      error.value = 'Passwort konnte nicht geprüft werden.'
+      console.error(e)
+      return false
+    }
+  }
+
   /** Join a group by ID */
   async function joinGroup(groupId: string, password?: string): Promise<boolean> {
     const authStore = useAuthStore()
@@ -317,6 +343,7 @@ export const useSocialStore = defineStore('social', () => {
     loadMyGroups,
     loadAllGroups,
     createGroup,
+    verifyGroupPassword,
     joinGroup,
     leaveGroup,
     loadGroupDetails,
