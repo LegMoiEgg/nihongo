@@ -644,8 +644,11 @@ onMounted(() => {
       <button class="btn-ghost study-skip" @click="skipStudy">Überspringen</button>
     </div>
 
+    <!-- ============ QUIZ SECTION — only after the study phase is done ============ -->
+    <template v-if="!studyPhase">
+
     <!-- Session Complete -->
-    <div v-if="!studyPhase && sessionComplete" class="session-complete animate-fade-in">
+    <div v-if="sessionComplete" class="session-complete animate-fade-in">
       <div class="complete-icon">🎉</div>
       <h2>Session abgeschlossen!</h2>
       <div class="complete-stats">
@@ -672,7 +675,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== KANA: Multiple Choice Mode ==================== -->
-    <div v-else-if="!studyPhase && currentCard && isKanaMode && isKanaCard(currentCard)" class="kana-mc-container">
+    <div v-else-if="currentCard && isKanaMode && isKanaCard(currentCard)" class="kana-mc-container">
       <!-- Character Display: kana on top, learner picks the romaji -->
       <div class="kana-display" :class="answerFeedback ? `feedback-${answerFeedback}` : ''">
         <span class="kana-character jp">{{ currentCard.character }}</span>
@@ -729,7 +732,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== COMBO: Reading Combination ==================== -->
-    <div v-else-if="!studyPhase && isComboQuestion && isKanaMode" class="kana-mc-container">
+    <div v-else-if="isComboQuestion && isKanaMode" class="kana-mc-container">
       <div class="combo-badge badge badge-streak">🔗 Lese-Kombi</div>
       <div class="kana-display">
         <span class="kana-character jp">{{ comboKana }}</span>
@@ -765,7 +768,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== Kanji: Multi-Select Meaning Quiz ==================== -->
-    <div v-else-if="!studyPhase && currentCard && isKanjiCard(currentCard)" class="kanji-quiz-container">
+    <div v-else-if="currentCard && isKanjiCard(currentCard)" class="kanji-quiz-container">
       <div class="kanji-quiz-display" :class="answerFeedback ? `feedback-${answerFeedback}` : ''">
         <span class="kanji-quiz-char jp">{{ currentCard.character }}</span>
         <p class="kanji-quiz-meta">{{ currentCard.strokes }} Striche</p>
@@ -813,7 +816,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== Flashcard Mode (Vocabulary only) ==================== -->
-    <div v-else-if="!studyPhase && currentCard" class="flashcard-container">
+    <div v-else-if="currentCard" class="flashcard-container">
       <div
         class="flashcard"
         :class="[
@@ -854,10 +857,13 @@ onMounted(() => {
     </div>
 
     <!-- Empty State -->
-    <div v-else class="empty-state">
+    <div v-else-if="sessionItems.length === 0" class="empty-state">
       <p>Keine Karten für diese Kategorie verfügbar.</p>
       <button class="btn btn-primary" @click="goBack">Zurück</button>
     </div>
+
+    </template>
+    <!-- ============ END QUIZ SECTION ============ -->
   </div>
 </template>
 
