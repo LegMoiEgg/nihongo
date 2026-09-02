@@ -54,6 +54,16 @@ notifStore.initialize()
 // Wait for Firebase to restore the auth session, then load cloud data BEFORE
 // the router decides onboarding vs. home. This prevents a returning user from
 // being sent to onboarding just because localStorage was empty after a reload.
+// Set to true once the initial auth state has been fully processed by the
+// IIFE below. The isLoggedIn watcher uses this to know when it is safe to
+// react to login/register that happens DURING the session (e.g. from the
+// onboarding screen). We must NOT rely on "skip the first watcher fire",
+// because when nobody is logged in at startup the watcher never fires for
+// the initial state — the first fire is then the register/login itself,
+// which must be handled (otherwise loadFromCloud never runs → no cloud doc
+// with displayName → "Anonym" in groups).
+let initialAuthHandled = false
+
 ;(async () => {
   await authStore.initAuth() // resolves once onAuthStateChanged first fires
   if (authStore.isLoggedIn) {
@@ -68,6 +78,8 @@ notifStore.initialize()
       }
     }
   }
+  // Initial state processed → future watcher fires are real session changes.
+  initialAuthHandled = true
   // Unblock the router guard now that auth + initial load are done.
   resolveAuthSettled()
 })()
@@ -97,12 +109,13 @@ async function checkRemoteReset() {
 checkRemoteReset()
 
 // Handle login/logout that happens DURING the session (after initial load),
-// e.g. logging in from the onboarding screen. The initial restore is handled
-// by the IIFE above.
-let initialAuthHandled = false
+// e.g. logging in or registering from the onboarding screen. The initial
+// restore is handled by the IIFE above; we only act once that has completed.
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
-  // Skip the very first fire — the IIFE already handled the initial state.
-  if (!initialAuthHandled) { initialAuthHandled = true; return }
+  // Wait until the IIFE finished processing the initial auth state. Until
+  // then, ignore fires so we don't double-load. (When nobody is logged in at
+  // startup the watcher's first fire IS the register/login and must run.)
+  if (!initialAuthHandled) return
   if (loggedIn) {
     notifStore.syncTokenIfEnabled()
     const isReturningUser = await loadFromCloud()

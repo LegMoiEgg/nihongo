@@ -32,6 +32,10 @@ async function handleAuth() {
   try {
     if (mode.value === 'register') {
       await authStore.register(email.value, password.value, name.value)
+      // Explicitly create the cloud document now (with the entered name), so
+      // it never depends on the App.vue auth-watcher timing. This writes
+      // users/{uid} with displayName → groups show the real name, not "Anonym".
+      await loadFromCloud()
       // A new registration always continues the onboarding steps.
       step.value = 2
     } else {
