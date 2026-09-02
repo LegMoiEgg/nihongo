@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useSocialStore } from '../stores/social'
 import { useUserStore } from '../stores/user'
 import { flushSave } from '../stores/sync'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const socialStore = useSocialStore()
 const userStore = useUserStore()
@@ -215,6 +217,12 @@ async function nudgeMember(member: NudgeMember) {
     setTimeout(() => { nudgeToast.value = '' }, 2500)
   }
 }
+
+/** Open a member's profile — own profile for yourself, public profile otherwise. */
+function openMemberProfile(uid: string) {
+  if (uid === authStore.uid) router.push('/profile')
+  else router.push(`/profile/${uid}`)
+}
 </script>
 
 <template>
@@ -270,13 +278,14 @@ async function nudgeMember(member: NudgeMember) {
           <div
             v-for="(member, index) in socialStore.currentGroup.members"
             :key="member.uid"
-            class="leaderboard-row"
+            class="leaderboard-row clickable"
             :class="{
               'is-me': member.uid === authStore.uid,
               'top-1': index === 0,
               'top-2': index === 1,
               'top-3': index === 2,
             }"
+            @click="openMemberProfile(member.uid)"
           >
             <span class="rank">
               <template v-if="index === 0">🥇</template>
@@ -313,7 +322,7 @@ async function nudgeMember(member: NudgeMember) {
               :class="{ nudged: !canNudge(member) }"
               :disabled="!canNudge(member)"
               :title="nudgeTitle(member)"
-              @click="nudgeMember(member)"
+              @click.stop="nudgeMember(member)"
             >
               {{ canNudge(member) ? '🔔' : '🔕' }}
             </button>
@@ -739,6 +748,15 @@ async function nudgeMember(member: NudgeMember) {
   border-radius: var(--radius-md);
   border: 2px solid transparent;
   transition: all var(--transition-fast);
+}
+
+.leaderboard-row.clickable {
+  cursor: pointer;
+}
+
+.leaderboard-row.clickable:hover {
+  border-color: var(--bg-accent);
+  background: var(--bg-card-hover);
 }
 
 .leaderboard-row.is-me {

@@ -111,6 +111,13 @@ const router = createRouter({
       meta: { title: 'Profil', icon: 'profile' }
     },
     {
+      path: '/profile/:uid',
+      name: 'public-profile',
+      component: () => import('../views/PublicProfileView.vue'),
+      props: true,
+      meta: { title: 'Profil' }
+    },
+    {
       path: '/badges',
       name: 'badges',
       component: () => import('../views/BadgesView.vue'),

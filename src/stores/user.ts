@@ -358,3 +358,48 @@ export function levelForXp(xp: number): number {
   }
   return level
 }
+
+export interface LevelInfo {
+  current: { level: number; label: string; jlpt: string; xpRequired: number }
+  next: { level: number; label: string; jlpt: string; xpRequired: number } | null
+  progress: number       // 0-100 within the current level
+  xpToNext: number       // XP remaining to the next level
+}
+
+/**
+ * Full level info for an arbitrary user (used e.g. for public profiles),
+ * mirroring the user store's currentLevel/nextLevel/levelProgress/xpForNextLevel
+ * — including the placement-test special case.
+ */
+export function levelInfoForXp(totalXp: number, placementLevel = 0): LevelInfo {
+  let current = LEVEL_THRESHOLDS[0]
+  for (const t of LEVEL_THRESHOLDS) {
+    if (totalXp >= t.xpRequired) current = t
+    else break
+  }
+  if (placementLevel > current.level) {
+    const p = LEVEL_THRESHOLDS.find(t => t.level === placementLevel)
+    if (p) current = p
+  }
+
+  const idx = LEVEL_THRESHOLDS.findIndex(t => t.level === current.level)
+  const next = idx < LEVEL_THRESHOLDS.length - 1 ? LEVEL_THRESHOLDS[idx + 1] : null
+
+  let progress = 100
+  let xpToNext = 0
+  if (next) {
+    const range = next.xpRequired - current.xpRequired
+    if (range > 0) {
+      if (placementLevel > 0 && totalXp < current.xpRequired) {
+        progress = Math.min(100, Math.max(0, Math.round((totalXp / range) * 100)))
+        xpToNext = Math.max(0, range - totalXp)
+      } else {
+        const into = Math.max(0, totalXp - current.xpRequired)
+        progress = Math.min(100, Math.max(0, Math.round((into / range) * 100)))
+        xpToNext = Math.max(0, range - into)
+      }
+    }
+  }
+
+  return { current, next, progress, xpToNext }
+}

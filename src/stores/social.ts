@@ -30,6 +30,20 @@ export interface GroupMember {
 
 const DAILY_XP_GOAL = 100
 
+/** Public, non-sensitive profile data of another user (for group profiles). */
+export interface PublicProfile {
+  uid: string
+  displayName: string
+  avatarDataUrl: string
+  totalXp: number
+  placementLevel: number
+  currentStreak: number   // effective (validated against today/yesterday)
+  longestStreak: number
+  earnedBadges: { id: string; earnedAt: string }[]
+  cardProgress: any[]
+  dailyLog: { date: string; xpEarned: number }[]
+}
+
 export interface SocialGroup {
   id: string
   name: string
@@ -286,6 +300,52 @@ export const useSocialStore = defineStore('social', () => {
     }
   }
 
+  // ── Public profile of another group member ──
+  const publicProfile = ref<PublicProfile | null>(null)
+
+  async function loadPublicProfile(uid: string): Promise<void> {
+    loading.value = true
+    error.value = ''
+    publicProfile.value = null
+    try {
+      const snap = await getDoc(doc(db, 'users', uid))
+      if (!snap.exists()) {
+        error.value = 'Profil nicht gefunden.'
+        return
+      }
+      const data = snap.data()
+
+      // Validate streak the same way the leaderboard does.
+      const today = new Date().toISOString().split('T')[0]
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      const lastActive = data.lastActiveDate || ''
+      const storedStreak = data.currentStreak || 0
+      const effectiveStreak =
+        lastActive === today || lastActive === yesterdayStr ? storedStreak : 0
+
+      // Only copy public, non-sensitive fields (no email/fcmToken).
+      publicProfile.value = {
+        uid,
+        displayName: data.displayName || 'Anonym',
+        avatarDataUrl: data.avatarDataUrl || '',
+        totalXp: data.totalXp || 0,
+        placementLevel: data.placementLevel || 0,
+        currentStreak: effectiveStreak,
+        longestStreak: data.longestStreak || 0,
+        earnedBadges: data.earnedBadges || [],
+        cardProgress: data.cardProgress || [],
+        dailyLog: data.dailyLog || [],
+      }
+    } catch (e: any) {
+      error.value = 'Profil konnte nicht geladen werden.'
+      console.error(e)
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Track who the current user has nudged today (so the bell disables).
   const nudgedUids = ref<Set<string>>(new Set())
 
@@ -363,6 +423,8 @@ export const useSocialStore = defineStore('social', () => {
     joinGroup,
     leaveGroup,
     loadGroupDetails,
+    publicProfile,
+    loadPublicProfile,
     nudge,
     hasNudged,
     loadNudgedToday,
