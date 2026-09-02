@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
 import { useBadgesStore, ALL_BADGES, type BadgeDefinition } from '../stores/badges'
 import { saveToCloud, scheduleSave, flushSave } from '../stores/sync'
+import { DEV_TOOLS } from '../config'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
@@ -90,16 +91,9 @@ async function runTokenRefresh() {
   tokenResult.value = await notifStore.refreshTokenWithStatus()
 }
 
-// ── Hidden dev tools (tap the "Entwickler" title 5x to reveal) ──
-const showDev = ref(false)
-const devTapCount = ref(0)
+// ── Dev tools (shown only when DEV_TOOLS flag is on, see src/config.ts) ──
 const devLevel = ref(28)
 const devResult = ref('')
-
-function devTap() {
-  devTapCount.value++
-  if (devTapCount.value >= 5) showDev.value = true
-}
 
 function setDevLevel() {
   const lvl = Math.min(60, Math.max(1, Math.floor(devLevel.value || 1)))
@@ -296,10 +290,10 @@ const maxWeeklyXp = computed(() =>
       </div>
     </section>
 
-    <!-- Hidden dev tools: tap the section title below 5x to reveal -->
-    <section class="dev-section card">
-      <h2 @click="devTap">🛠️ Entwickler</h2>
-      <div v-if="showDev" class="dev-tools">
+    <!-- Dev tools: only shown when DEV_TOOLS flag is enabled (see src/config.ts) -->
+    <section v-if="DEV_TOOLS" class="dev-section card">
+      <h2>🛠️ Entwickler</h2>
+      <div class="dev-tools">
         <p class="dev-hint">Aktuelles Level: {{ userStore.currentLevel.level }} · {{ userStore.totalXp }} XP</p>
         <div class="dev-row">
           <input v-model.number="devLevel" type="number" min="1" max="60" class="dev-input" />
@@ -315,14 +309,17 @@ const maxWeeklyXp = computed(() =>
       <div v-if="notifStore.isEnabled" class="notif-enabled">
         <span class="notif-status">✅ Aktiviert</span>
         <p class="notif-hint">Du bekommst Erinnerungen zum Lernen.</p>
-        <button class="btn btn-ghost notif-test-btn" @click="runNotifTest">
-          Test-Benachrichtigung senden
-        </button>
-        <p v-if="notifTestResult" class="notif-test-result">{{ notifTestResult }}</p>
-        <button class="btn btn-ghost notif-test-btn" @click="runTokenRefresh">
-          Push-Token erneuern
-        </button>
-        <p v-if="tokenResult" class="notif-test-result">{{ tokenResult }}</p>
+        <!-- Diagnostic buttons: only with DEV_TOOLS enabled -->
+        <template v-if="DEV_TOOLS">
+          <button class="btn btn-ghost notif-test-btn" @click="runNotifTest">
+            Test-Benachrichtigung senden
+          </button>
+          <p v-if="notifTestResult" class="notif-test-result">{{ notifTestResult }}</p>
+          <button class="btn btn-ghost notif-test-btn" @click="runTokenRefresh">
+            Push-Token erneuern
+          </button>
+          <p v-if="tokenResult" class="notif-test-result">{{ tokenResult }}</p>
+        </template>
       </div>
       <div v-else-if="notifStore.canAsk" class="notif-ask">
         <p class="notif-hint">Aktiviere Benachrichtigungen um an deine tägliche Lektion erinnert zu werden.</p>
