@@ -141,6 +141,13 @@ export async function saveToCloud(): Promise<void> {
  * For arrays (cardProgress, badges, dailyLog): merge, keeping the better entry per item.
  */
 export function loadFromCloud(): Promise<boolean> {
+  // Not (yet) logged in → return false WITHOUT caching it. Caching a premature
+  // "false" (e.g. before authStore.uid is populated) would poison a following
+  // real load: a returning user would be wrongly treated as new and sent
+  // through onboarding again.
+  const authStore = useAuthStore()
+  if (!authStore.isLoggedIn || !authStore.uid) return Promise.resolve(false)
+
   // If a load is already running, return the same promise so concurrent
   // callers (auth listener + isLoggedIn watcher) never race into different
   // branches of the load logic.
