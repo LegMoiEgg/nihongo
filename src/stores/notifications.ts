@@ -100,6 +100,33 @@ export const useNotificationsStore = defineStore('notifications', () => {
     await fetchToken() // re-fetches and saves the token to Firestore
   }
 
+  /**
+   * Force-refresh the FCM token and write it to Firestore. Returns a status
+   * string (with the token tail) so the user can confirm on-device that a
+   * valid token was stored — used to diagnose the "nudge doesn't arrive" case.
+   */
+  async function refreshTokenWithStatus(): Promise<string> {
+    if (Notification.permission !== 'granted') {
+      return '❌ Benachrichtigungen nicht erlaubt'
+    }
+    try {
+      const messaging = await getMessagingInstance()
+      if (!messaging) return '❌ Messaging nicht verfügbar'
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      const fcmToken = await getToken(messaging, {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      })
+      if (!fcmToken) return '❌ Kein Token erhalten (Play Services / Berechtigung?)'
+      token.value = fcmToken
+      await saveTokenToFirestore(fcmToken)
+      return `✅ Token gespeichert (…${fcmToken.slice(-8)})`
+    } catch (e: any) {
+      console.error('refreshToken failed:', e)
+      return `❌ Fehler: ${e?.message || e}`
+    }
+  }
+
   async function saveTokenToFirestore(fcmToken: string) {
     const authStore = useAuthStore()
     if (!authStore.isLoggedIn || !authStore.uid) return
@@ -176,5 +203,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     requestPermission,
     syncTokenIfEnabled,
     sendTestNotification,
+    refreshTokenWithStatus,
   }
 })

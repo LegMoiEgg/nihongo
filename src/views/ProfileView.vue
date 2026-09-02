@@ -84,6 +84,12 @@ async function runNotifTest() {
   notifTestResult.value = await notifStore.sendTestNotification()
 }
 
+const tokenResult = ref('')
+async function runTokenRefresh() {
+  tokenResult.value = 'Erneuere…'
+  tokenResult.value = await notifStore.refreshTokenWithStatus()
+}
+
 // ── Hidden dev tools (tap the "Entwickler" title 5x to reveal) ──
 const showDev = ref(false)
 const devTapCount = ref(0)
@@ -313,6 +319,10 @@ const maxWeeklyXp = computed(() =>
           Test-Benachrichtigung senden
         </button>
         <p v-if="notifTestResult" class="notif-test-result">{{ notifTestResult }}</p>
+        <button class="btn btn-ghost notif-test-btn" @click="runTokenRefresh">
+          Push-Token erneuern
+        </button>
+        <p v-if="tokenResult" class="notif-test-result">{{ tokenResult }}</p>
       </div>
       <div v-else-if="notifStore.canAsk" class="notif-ask">
         <p class="notif-hint">Aktiviere Benachrichtigungen um an deine tägliche Lektion erinnert zu werden.</p>
