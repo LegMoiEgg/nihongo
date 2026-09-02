@@ -115,6 +115,37 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
+  /**
+   * Fire a LOCAL test notification via the service worker — no Cloud Function,
+   * no FCM token involved. Used to verify that the device can display
+   * notifications at all. Returns a short status string for the UI.
+   */
+  async function sendTestNotification(): Promise<string> {
+    if (typeof Notification === 'undefined') return 'Nicht unterstützt'
+    if (permission.value !== 'granted') return 'Benachrichtigungen sind nicht erlaubt'
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
+        || await navigator.serviceWorker.ready
+      if (reg) {
+        await reg.showNotification('NihonGo — Test', {
+          body: 'Wenn du das siehst, funktionieren Benachrichtigungen! 🎉',
+          icon: '/favicon.svg',
+          badge: '/favicon.svg',
+          tag: 'test',
+        })
+        return 'Test-Benachrichtigung gesendet'
+      }
+      // Fallback: direct Notification API
+      new Notification('NihonGo — Test', {
+        body: 'Wenn du das siehst, funktionieren Benachrichtigungen! 🎉',
+      })
+      return 'Test-Benachrichtigung gesendet'
+    } catch (e) {
+      console.error('Test notification failed:', e)
+      return 'Fehler beim Senden der Test-Benachrichtigung'
+    }
+  }
+
   return {
     permission,
     token,
@@ -125,5 +156,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     initialize,
     requestPermission,
     syncTokenIfEnabled,
+    sendTestNotification,
   }
 })

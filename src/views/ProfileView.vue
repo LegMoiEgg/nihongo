@@ -78,6 +78,12 @@ async function handleLogout() {
   window.location.href = '/'
 }
 
+const notifTestResult = ref('')
+async function runNotifTest() {
+  notifTestResult.value = 'Sende…'
+  notifTestResult.value = await notifStore.sendTestNotification()
+}
+
 function triggerAvatarUpload() {
   fileInput.value?.click()
 }
@@ -272,6 +278,10 @@ const maxWeeklyXp = computed(() =>
       <div v-if="notifStore.isEnabled" class="notif-enabled">
         <span class="notif-status">✅ Aktiviert</span>
         <p class="notif-hint">Du bekommst Erinnerungen zum Lernen.</p>
+        <button class="btn btn-ghost notif-test-btn" @click="runNotifTest">
+          Test-Benachrichtigung senden
+        </button>
+        <p v-if="notifTestResult" class="notif-test-result">{{ notifTestResult }}</p>
       </div>
       <div v-else-if="notifStore.canAsk" class="notif-ask">
         <p class="notif-hint">Aktiviere Benachrichtigungen um an deine tägliche Lektion erinnert zu werden.</p>
@@ -690,6 +700,17 @@ const maxWeeklyXp = computed(() =>
 .notif-hint {
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.notif-test-btn {
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+
+.notif-test-result {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .notif-ask {
