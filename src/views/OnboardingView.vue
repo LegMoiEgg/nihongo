@@ -3,11 +3,15 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
+import { useUserStore } from '../stores/user'
+import { useLearningStore } from '../stores/learning'
 import { loadFromCloud } from '../stores/sync'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const notifStore = useNotificationsStore()
+const userStore = useUserStore()
+const learningStore = useLearningStore()
 
 const step = ref(1) // 1 = login, 2 = notifications
 const email = ref('')
@@ -55,7 +59,14 @@ async function handleGoogle() {
  */
 async function continueForReturningUser() {
   const isReturning = await loadFromCloud()
-  if (isReturning) {
+  // Double-check the actual loaded state too — so a returning user is never
+  // sent through onboarding even if the return flag is momentarily off.
+  const hasProgress =
+    userStore.totalXp > 0 ||
+    userStore.placementLevel > 0 ||
+    learningStore.cardProgress.length > 0
+
+  if (isReturning || hasProgress) {
     localStorage.setItem('nihongo_onboarding_done', 'true')
     localStorage.setItem('nihongo_placement_done', 'true')
     router.replace('/')
