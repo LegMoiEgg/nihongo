@@ -21,8 +21,14 @@ const mode = ref<'login' | 'register'>('register')
 const submitting = ref(false)
 
 async function handleAuth() {
-  submitting.value = true
   authStore.clearError()
+  // Username is required for registration (catches whitespace-only input that
+  // the HTML `required` attribute lets through).
+  if (mode.value === 'register' && name.value.trim().length < 2) {
+    authStore.error = 'Bitte gib einen Namen mit mindestens 2 Zeichen ein.'
+    return
+  }
+  submitting.value = true
   try {
     if (mode.value === 'register') {
       await authStore.register(email.value, password.value, name.value)
@@ -130,7 +136,7 @@ function skipPlacement() {
 
         <form @submit.prevent="handleAuth">
           <div v-if="mode === 'register'" class="form-group">
-            <input v-model="name" type="text" placeholder="Dein Name" maxlength="20" autocomplete="name" />
+            <input v-model="name" type="text" placeholder="Dein Name" maxlength="20" minlength="2" autocomplete="name" required />
           </div>
           <div class="form-group">
             <input v-model="email" type="email" placeholder="E-Mail" required autocomplete="email" />
