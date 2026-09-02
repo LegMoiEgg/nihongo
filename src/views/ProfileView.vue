@@ -84,6 +84,24 @@ async function runNotifTest() {
   notifTestResult.value = await notifStore.sendTestNotification()
 }
 
+// ── Hidden dev tools (tap the "Entwickler" title 5x to reveal) ──
+const showDev = ref(false)
+const devTapCount = ref(0)
+const devLevel = ref(28)
+const devResult = ref('')
+
+function devTap() {
+  devTapCount.value++
+  if (devTapCount.value >= 5) showDev.value = true
+}
+
+function setDevLevel() {
+  const lvl = Math.min(60, Math.max(1, Math.floor(devLevel.value || 1)))
+  userStore.setPlacementLevel(lvl)
+  saveToCloud() // persist immediately
+  devResult.value = `Level auf ${lvl} gesetzt.`
+}
+
 function triggerAvatarUpload() {
   fileInput.value?.click()
 }
@@ -269,6 +287,19 @@ const maxWeeklyXp = computed(() =>
         <router-link to="/auth" class="btn btn-primary account-login-btn">
           Anmelden / Registrieren
         </router-link>
+      </div>
+    </section>
+
+    <!-- Hidden dev tools: tap the section title below 5x to reveal -->
+    <section class="dev-section card">
+      <h2 @click="devTap">🛠️ Entwickler</h2>
+      <div v-if="showDev" class="dev-tools">
+        <p class="dev-hint">Aktuelles Level: {{ userStore.currentLevel.level }} · {{ userStore.totalXp }} XP</p>
+        <div class="dev-row">
+          <input v-model.number="devLevel" type="number" min="1" max="60" class="dev-input" />
+          <button class="btn btn-secondary" @click="setDevLevel">Level setzen</button>
+        </div>
+        <p v-if="devResult" class="dev-result">{{ devResult }}</p>
       </div>
     </section>
 
@@ -646,6 +677,44 @@ const maxWeeklyXp = computed(() =>
   font-size: 0.9rem;
   color: var(--text-primary);
   font-weight: 500;
+}
+
+.dev-section h2 {
+  cursor: default;
+  user-select: none;
+}
+
+.dev-tools {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dev-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.dev-row {
+  display: flex;
+  gap: 8px;
+}
+
+.dev-input {
+  width: 80px;
+  background: var(--bg-card);
+  border: 2px solid var(--bg-accent);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.dev-result {
+  font-size: 0.85rem;
+  color: var(--accent-success);
 }
 
 .account-status {
