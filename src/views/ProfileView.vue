@@ -71,6 +71,7 @@ async function handleLogout() {
     'nihongo_display_name', 'nihongo_avatar', 'nihongo_placement_level',
     'nihongo_card_progress', 'nihongo_badges', 'nihongo_nudged',
     'nihongo_onboarding_done', 'nihongo_placement_done', 'nihongo_open_group',
+    'nihongo_pending_levelup',
   ]
   for (const key of keysToClear) localStorage.removeItem(key)
 

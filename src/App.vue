@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomNav from './components/BottomNav.vue'
+import LevelUpPopup from './components/LevelUpPopup.vue'
 import { useUserStore } from './stores/user'
 import { useAuthStore } from './stores/auth'
 import { useBadgesStore } from './stores/badges'
@@ -15,6 +16,34 @@ const authStore = useAuthStore()
 const badgesStore = useBadgesStore()
 const notifStore = useNotificationsStore()
 const router = useRouter()
+
+// ── Level-up popup ──
+// Routes where the user is actively in an exercise — don't interrupt those.
+const ACTIVE_SESSION_ROUTES = new Set([
+  'daily', 'learn-hiragana', 'learn-katakana', 'learn-kanji',
+  'learn-vocabulary', 'sentences', 'test', 'placement',
+])
+const levelUp = ref<{ level: number; label: string } | null>(null)
+
+const currentRouteName = computed(() => router.currentRoute.value.name as string | undefined)
+
+/** Show the pending level-up popup, but only once the user has left the
+ *  active exercise (so it doesn't pop up mid-session). */
+function maybeShowLevelUp() {
+  const pending = userStore.pendingLevelUp
+  if (!pending) return
+  if (ACTIVE_SESSION_ROUTES.has(currentRouteName.value || '')) return
+  levelUp.value = pending
+  userStore.clearLevelUp()
+}
+
+// Trigger when a level-up is recorded OR when the route changes away from a session.
+watch(() => userStore.pendingLevelUp, maybeShowLevelUp)
+watch(currentRouteName, maybeShowLevelUp)
+
+function closeLevelUp() {
+  levelUp.value = null
+}
 
 // Initialize on app start
 userStore.initializeUser()
@@ -95,6 +124,14 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
       </router-view>
     </main>
     <BottomNav v-if="$route.name !== 'onboarding' && $route.name !== 'placement'" />
+
+    <!-- Level-up celebration popup (shown outside active exercises) -->
+    <LevelUpPopup
+      v-if="levelUp"
+      :level="levelUp.level"
+      :label="levelUp.label"
+      @close="closeLevelUp"
+    />
   </div>
 </template>
 

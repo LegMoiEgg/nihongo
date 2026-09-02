@@ -114,6 +114,17 @@ export const useUserStore = defineStore('user', () => {
   const avatarDataUrl = ref('')
   const placementLevel = ref(0) // minimum level from placement test (0 = not taken) // base64 data URL from file upload
 
+  // Set when the user levels up (via addXp). App.vue watches this to show a
+  // congratulations popup, then clears it. Persisted so it survives a reload
+  // (e.g. if the app is closed right after a session).
+  const pendingLevelUp = ref<{ level: number; label: string } | null>(
+    loadFromStorage('nihongo_pending_levelup', null)
+  )
+  function clearLevelUp() {
+    pendingLevelUp.value = null
+    localStorage.removeItem('nihongo_pending_levelup')
+  }
+
   // Computed
   const currentLevel = computed(() => {
     let lvl = LEVEL_THRESHOLDS[0]
@@ -238,8 +249,17 @@ export const useUserStore = defineStore('user', () => {
   function addXp(amount: number, wordsLearned = 0) {
     const today = getToday()
 
+    // Detect a level-up: capture the level before and after adding XP.
+    const levelBefore = currentLevel.value.level
+
     totalXp.value += amount
     saveToStorage('nihongo_xp', totalXp.value)
+
+    const levelAfter = currentLevel.value.level
+    if (levelAfter > levelBefore) {
+      pendingLevelUp.value = { level: currentLevel.value.level, label: currentLevel.value.label }
+      saveToStorage('nihongo_pending_levelup', pendingLevelUp.value)
+    }
 
     // Update daily log
     let todayEntry = dailyLog.value.find(d => d.date === today)
@@ -335,6 +355,8 @@ export const useUserStore = defineStore('user', () => {
     dailyGoalReached,
     xpPerCorrect,
     weeklyXp,
+    pendingLevelUp,
+    clearLevelUp,
     // Actions
     initializeUser,
     updateStreak,
