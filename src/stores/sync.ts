@@ -201,10 +201,15 @@ function mergeCloudData(cloud: CloudUserData) {
     userStore.totalXp = cloud.totalXp
     localStorage.setItem('nihongo_xp', JSON.stringify(cloud.totalXp))
   }
-  if (cloud.currentStreak > userStore.currentStreak) {
+  // Streak belongs together with lastActiveDate: adopt the streak from
+  // whichever side was active more recently. Do NOT just take the higher
+  // streak, or a broken streak (missed day) would be revived by a stale
+  // cloud value. updateStreak() below then re-validates against today.
+  if ((cloud.lastActiveDate || '') > (userStore.lastActiveDate || '')) {
     userStore.currentStreak = cloud.currentStreak
     localStorage.setItem('nihongo_streak', JSON.stringify(cloud.currentStreak))
   }
+  // longestStreak is a lifetime record → higher always wins.
   if (cloud.longestStreak > userStore.longestStreak) {
     userStore.longestStreak = cloud.longestStreak
     localStorage.setItem('nihongo_longest_streak', JSON.stringify(cloud.longestStreak))
@@ -277,6 +282,11 @@ function mergeCloudData(cloud: CloudUserData) {
     }
     localStorage.setItem('nihongo_badges', JSON.stringify(badgesStore.earnedBadges))
   }
+
+  // Re-validate the streak against today: if the last active day is older
+  // than yesterday, this resets it to 0 — so a stale cloud streak that was
+  // just merged in cannot survive a missed day.
+  userStore.updateStreak()
 }
 
 /**

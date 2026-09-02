@@ -337,6 +337,7 @@ export const useUserStore = defineStore('user', () => {
     weeklyXp,
     // Actions
     initializeUser,
+    updateStreak,
     addXp,
     completeSession,
     setDisplayName,

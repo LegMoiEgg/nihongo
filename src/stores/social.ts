@@ -239,6 +239,10 @@ export const useSocialStore = defineStore('social', () => {
           if (userSnap.exists()) {
             const data = userSnap.data()
             const today = new Date().toISOString().split('T')[0]
+            const yesterday = new Date()
+            yesterday.setDate(yesterday.getDate() - 1)
+            const yesterdayStr = yesterday.toISOString().split('T')[0]
+
             const dailyLog: { date: string; xpEarned: number }[] = data.dailyLog || []
             const todayEntry = dailyLog.find(d => d.date === today)
             const todayXp = todayEntry ? todayEntry.xpEarned : 0
@@ -246,12 +250,20 @@ export const useSocialStore = defineStore('social', () => {
             // by the placement test (which grants a level without XP).
             const xpLevel = levelForXp(data.totalXp || 0)
             const placement = data.placementLevel || 0
+            // Effective streak: a stored streak is only still valid if the
+            // member was active today or yesterday. Otherwise it's broken —
+            // show 0 even if their doc hasn't been updated yet (they haven't
+            // opened the app since missing a day).
+            const lastActive = data.lastActiveDate || ''
+            const storedStreak = data.currentStreak || 0
+            const effectiveStreak =
+              lastActive === today || lastActive === yesterdayStr ? storedStreak : 0
             members.push({
               uid,
               displayName: data.displayName || 'Anonym',
               avatarDataUrl: data.avatarDataUrl || '',
               totalXp: data.totalXp || 0,
-              currentStreak: data.currentStreak || 0,
+              currentStreak: effectiveStreak,
               level: Math.max(xpLevel, placement),
               goalReachedToday: todayXp >= DAILY_XP_GOAL,
               canBeNudged: !!data.fcmToken,
