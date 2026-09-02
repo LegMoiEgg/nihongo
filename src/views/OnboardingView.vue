@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
+import { loadFromCloud } from '../stores/sync'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -21,10 +22,13 @@ async function handleAuth() {
   try {
     if (mode.value === 'register') {
       await authStore.register(email.value, password.value, name.value)
+      // A new registration always continues the onboarding steps.
+      step.value = 2
     } else {
       await authStore.login(email.value, password.value)
+      // Existing account → load their cloud data and skip onboarding.
+      await continueForReturningUser()
     }
-    step.value = 2
   } catch {
     // error shown from store
   } finally {
@@ -35,9 +39,28 @@ async function handleAuth() {
 async function handleGoogle() {
   try {
     await authStore.loginWithGoogle()
-    if (authStore.isLoggedIn) step.value = 2
+    if (authStore.isLoggedIn) {
+      // Google users may be new OR returning — decide based on cloud data.
+      await continueForReturningUser()
+    }
   } catch {
     // error shown from store
+  }
+}
+
+/**
+ * After logging into an existing account: load cloud progress. If the account
+ * already has data, go straight to the home screen (skip notifications +
+ * placement). Otherwise treat it as a new user and continue onboarding.
+ */
+async function continueForReturningUser() {
+  const isReturning = await loadFromCloud()
+  if (isReturning) {
+    localStorage.setItem('nihongo_onboarding_done', 'true')
+    localStorage.setItem('nihongo_placement_done', 'true')
+    router.replace('/')
+  } else {
+    step.value = 2
   }
 }
 
