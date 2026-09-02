@@ -35,14 +35,15 @@ export const useNotificationsStore = defineStore('notifications', () => {
     const messaging = await getMessagingInstance()
     if (messaging) {
       onMessage(messaging, (payload) => {
-        lastNotification.value = {
-          title: payload.notification?.title || 'NihonGo',
-          body: payload.notification?.body || '',
-        }
+        // Messages are now data-only, so read title/body from payload.data
+        // (fall back to notification.* for older cached payloads).
+        const title = payload.data?.title || payload.notification?.title || 'NihonGo'
+        const body = payload.data?.body || payload.notification?.body || ''
+        lastNotification.value = { title, body }
         // Show as browser notification even in foreground
         if (Notification.permission === 'granted') {
-          new Notification(payload.notification?.title || 'NihonGo', {
-            body: payload.notification?.body || '',
+          new Notification(title, {
+            body,
             icon: '/favicon.svg',
           })
         }

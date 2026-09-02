@@ -11,17 +11,34 @@ firebase.initializeApp({
   appId: '1:967576095197:web:2923ab67cff0fbabca0e34',
 })
 
-firebase.messaging()
+const messaging = firebase.messaging()
 
-// NOTE: We intentionally do NOT implement onBackgroundMessage here.
-// The Cloud Function sends a `webpush.notification` payload, which the
-// browser displays automatically. Adding onBackgroundMessage would show
-// a SECOND notification (the duplicate the tester saw).
+// Background message handler. The Cloud Functions now send DATA-ONLY messages
+// (no top-level `notification` / `webpush.notification`), so the browser does
+// NOT auto-display anything — this handler is the single place that shows the
+// notification. That guarantees exactly one notification and reliable delivery
+// on Android/Chrome when the app is closed or backgrounded.
+messaging.onBackgroundMessage((payload) => {
+  const data = payload.data || {}
+  const title = data.title || 'NihonGo'
+  const body = data.body || ''
+  const link = data.link || 'https://nihongo-learn-gg.vercel.app'
+
+  self.registration.showNotification(title, {
+    body,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: data.tag || 'nihongo',
+    data: { link },
+    requireInteraction: true,
+  })
+})
 
 // Handle notification clicks — open or focus the app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const urlToOpen = event.notification.data?.FCM_MSG?.notification?.click_action
+  const urlToOpen = event.notification.data?.link
+    || event.notification.data?.FCM_MSG?.notification?.click_action
     || 'https://nihongo-learn-gg.vercel.app'
 
   event.waitUntil(

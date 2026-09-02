@@ -63,19 +63,17 @@ exports.streakReminder = onSchedule(
 
       const appUrl = APP_URL;
 
+      // DATA-ONLY message (same reliable path as sendNudge): the service
+      // worker's onBackgroundMessage handler shows the notification.
       const response = await admin.messaging().sendEachForMulticast({
-        notification: {
+        data: {
           title: "NihonGo",
           body: body,
+          tag: "streak-reminder", // replaces previous, prevents duplicates
+          link: appUrl,
         },
         webpush: {
-          notification: {
-            title: "NihonGo",
-            body: body,
-            icon: "/favicon.svg",
-            badge: "/favicon.svg",
-            tag: "streak-reminder", // replaces previous, prevents duplicates
-          },
+          headers: { Urgency: "high" },
           fcmOptions: {
             link: appUrl, // makes notification clickable → opens app
           },
@@ -159,17 +157,20 @@ exports.sendNudge = onDocumentCreated(
       const body = `${fromName}${groupName} erinnert dich an deine tägliche Lektion! 🔔`;
 
       try {
+        // DATA-ONLY message: no `notification` block. The service worker's
+        // onBackgroundMessage handler builds and shows the notification. This
+        // is the reliable path on Android/Chrome — a top-level `notification`
+        // block gets handled by the OS and can silently drop for a PWA.
         await admin.messaging().send({
           token,
-          notification: { title: "NihonGo", body },
+          data: {
+            title: "NihonGo",
+            body,
+            tag: "nudge",
+            link: APP_URL,
+          },
           webpush: {
-            notification: {
-              title: "NihonGo",
-              body,
-              icon: "/favicon.svg",
-              badge: "/favicon.svg",
-              tag: "nudge",
-            },
+            headers: { Urgency: "high" },
             fcmOptions: { link: APP_URL },
           },
         });
