@@ -90,26 +90,30 @@ export async function saveToCloud(): Promise<void> {
     const cloudCards = cloud?.cardProgress?.length ?? 0
     const localCards = learningStore.cardProgress.length
 
-    // If the cloud clearly has more progress than our local state, this is a
-    // suspicious write (e.g. fired before load finished) — skip it entirely.
-    if (cloud && (cloudXp > userStore.totalXp || cloudCards > localCards)) {
-      console.warn('saveToCloud skipped: local state has less progress than cloud (guard).')
-      return
-    }
+    // Detect a suspicious write where our PROGRESS is behind the cloud (e.g.
+    // a save fired before the initial load finished). In that case we must
+    // not touch progress fields — but we STILL want to persist identity
+    // fields the user just changed (username, avatar). So instead of skipping
+    // the whole write, we keep progress at the cloud values via Math.max and
+    // only update the identity fields.
+    const progressBehind = !!cloud && (cloudXp > userStore.totalXp || cloudCards > localCards)
 
     const data: CloudUserData = {
       // Never write a lower value for monotonic progress fields.
       totalXp: Math.max(userStore.totalXp, cloudXp),
-      currentStreak: userStore.currentStreak,
+      currentStreak: Math.max(userStore.currentStreak, cloud?.currentStreak ?? 0),
       longestStreak: Math.max(userStore.longestStreak, cloud?.longestStreak ?? 0),
-      lastActiveDate: userStore.lastActiveDate,
-      dailyLog: userStore.dailyLog,
+      lastActiveDate: userStore.lastActiveDate || cloud?.lastActiveDate || '',
+      // If our progress is behind the cloud, keep the cloud's richer arrays.
+      dailyLog: progressBehind ? (cloud?.dailyLog ?? userStore.dailyLog) : userStore.dailyLog,
       wordsLearnedTotal: Math.max(userStore.wordsLearnedTotal, cloud?.wordsLearnedTotal ?? 0),
       sessionsCompletedTotal: Math.max(userStore.sessionsCompletedTotal, cloud?.sessionsCompletedTotal ?? 0),
-      displayName: userStore.displayName || cloud?.displayName || '',
-      avatarDataUrl: userStore.avatarDataUrl || cloud?.avatarDataUrl || '',
+      // Identity fields: always write what the user currently has locally.
+      // (An empty string is allowed — the user may clear their name.)
+      displayName: userStore.displayName,
+      avatarDataUrl: userStore.avatarDataUrl,
       placementLevel: Math.max(userStore.placementLevel, cloud?.placementLevel ?? 0),
-      cardProgress: learningStore.cardProgress,
+      cardProgress: progressBehind ? (cloud?.cardProgress ?? learningStore.cardProgress) : learningStore.cardProgress,
       earnedBadges: badgesStore.earnedBadges,
       lastSyncedAt: new Date().toISOString(),
     }
