@@ -349,9 +349,19 @@ export const useSocialStore = defineStore('social', () => {
   // Track who the current user has nudged today (so the bell disables).
   const nudgedUids = ref<Set<string>>(new Set())
 
+  // The nudge history is stored PER ACCOUNT (key includes the uid), not
+  // per device. Otherwise a second account logging in on the same device
+  // would inherit the first account's "already nudged" list and be wrongly
+  // blocked from nudging someone it never nudged.
+  function nudgedStorageKey(): string {
+    const authStore = useAuthStore()
+    return authStore.uid ? `nihongo_nudged_${authStore.uid}` : 'nihongo_nudged'
+  }
+
   function loadNudgedToday() {
     const today = new Date().toISOString().split('T')[0]
-    const raw = localStorage.getItem('nihongo_nudged')
+    const key = nudgedStorageKey()
+    const raw = localStorage.getItem(key)
     try {
       const parsed = raw ? JSON.parse(raw) as { date: string; uids: string[] } : null
       if (parsed && parsed.date === today) {
@@ -359,9 +369,9 @@ export const useSocialStore = defineStore('social', () => {
         return
       }
     } catch { /* ignore */ }
-    // New day → reset
+    // New day (or new account) → reset
     nudgedUids.value = new Set()
-    localStorage.setItem('nihongo_nudged', JSON.stringify({ date: today, uids: [] }))
+    localStorage.setItem(key, JSON.stringify({ date: today, uids: [] }))
   }
 
   function hasNudged(uid: string): boolean {
@@ -392,10 +402,10 @@ export const useSocialStore = defineStore('social', () => {
         sent: false,  // Cloud Function flips this to true after sending
       })
 
-      // Remember locally so the bell disables immediately
+      // Remember locally (per account) so the bell disables immediately
       nudgedUids.value.add(targetUid)
       localStorage.setItem(
-        'nihongo_nudged',
+        nudgedStorageKey(),
         JSON.stringify({ date: today, uids: [...nudgedUids.value] })
       )
       return true
