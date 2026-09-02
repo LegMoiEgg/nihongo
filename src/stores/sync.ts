@@ -61,23 +61,42 @@ export async function saveToCloud(): Promise<void> {
   const learningStore = useLearningStore()
   const badgesStore = useBadgesStore()
 
-  const data: CloudUserData = {
-    totalXp: userStore.totalXp,
-    currentStreak: userStore.currentStreak,
-    longestStreak: userStore.longestStreak,
-    lastActiveDate: userStore.lastActiveDate,
-    dailyLog: userStore.dailyLog,
-    wordsLearnedTotal: userStore.wordsLearnedTotal,
-    sessionsCompletedTotal: userStore.sessionsCompletedTotal,
-    displayName: userStore.displayName,
-    avatarDataUrl: userStore.avatarDataUrl,
-    placementLevel: userStore.placementLevel,
-    cardProgress: learningStore.cardProgress,
-    earnedBadges: badgesStore.earnedBadges,
-    lastSyncedAt: new Date().toISOString(),
-  }
-
   try {
+    // ── Safety: re-read the cloud doc right before writing. NEVER let a
+    //    write REDUCE progress (lower XP, fewer cards, lost placement level).
+    //    This makes it impossible for an empty/stale local state to wipe
+    //    real cloud data, regardless of any timing/race condition. ──
+    const existingSnap = await getDoc(getUserDocRef(authStore.uid))
+    const cloud = existingSnap.exists() ? (existingSnap.data() as Partial<CloudUserData>) : null
+
+    const cloudXp = cloud?.totalXp ?? 0
+    const cloudCards = cloud?.cardProgress?.length ?? 0
+    const localCards = learningStore.cardProgress.length
+
+    // If the cloud clearly has more progress than our local state, this is a
+    // suspicious write (e.g. fired before load finished) — skip it entirely.
+    if (cloud && (cloudXp > userStore.totalXp || cloudCards > localCards)) {
+      console.warn('saveToCloud skipped: local state has less progress than cloud (guard).')
+      return
+    }
+
+    const data: CloudUserData = {
+      // Never write a lower value for monotonic progress fields.
+      totalXp: Math.max(userStore.totalXp, cloudXp),
+      currentStreak: userStore.currentStreak,
+      longestStreak: Math.max(userStore.longestStreak, cloud?.longestStreak ?? 0),
+      lastActiveDate: userStore.lastActiveDate,
+      dailyLog: userStore.dailyLog,
+      wordsLearnedTotal: Math.max(userStore.wordsLearnedTotal, cloud?.wordsLearnedTotal ?? 0),
+      sessionsCompletedTotal: Math.max(userStore.sessionsCompletedTotal, cloud?.sessionsCompletedTotal ?? 0),
+      displayName: userStore.displayName || cloud?.displayName || '',
+      avatarDataUrl: userStore.avatarDataUrl || cloud?.avatarDataUrl || '',
+      placementLevel: Math.max(userStore.placementLevel, cloud?.placementLevel ?? 0),
+      cardProgress: learningStore.cardProgress,
+      earnedBadges: badgesStore.earnedBadges,
+      lastSyncedAt: new Date().toISOString(),
+    }
+
     await setDoc(getUserDocRef(authStore.uid), data, { merge: true })
   } catch (e) {
     console.error('Failed to save to cloud:', e)
