@@ -50,6 +50,17 @@ export function markCloudLoaded() {
 }
 
 /**
+ * Reentrancy guard for loadFromCloud. Both onAuthStateChanged (auth.ts) and
+ * the isLoggedIn watcher (App.vue) can fire loadFromCloud almost simultaneously
+ * right after login/register. Without a lock, the first run reaches the
+ * "brand-new account" branch and writes the doc, while a second overlapping run
+ * then reads an existing doc and takes the account-switch path (which clears
+ * the just-set displayName). Sharing one in-flight promise makes concurrent
+ * callers await the same result instead of racing into different branches.
+ */
+let inFlightLoad: Promise<boolean> | null = null
+
+/**
  * Resolves once auth state is known AND (if logged in) the initial cloud load
  * has finished. The router waits for this before deciding onboarding vs. home,
  * so a returning user is never sent to onboarding before their cloud data has
@@ -129,7 +140,18 @@ export async function saveToCloud(): Promise<void> {
  * Strategy: take the HIGHER value for XP, streaks, counts.
  * For arrays (cardProgress, badges, dailyLog): merge, keeping the better entry per item.
  */
-export async function loadFromCloud(): Promise<boolean> {
+export function loadFromCloud(): Promise<boolean> {
+  // If a load is already running, return the same promise so concurrent
+  // callers (auth listener + isLoggedIn watcher) never race into different
+  // branches of the load logic.
+  if (inFlightLoad) return inFlightLoad
+  inFlightLoad = loadFromCloudInner().finally(() => {
+    inFlightLoad = null
+  })
+  return inFlightLoad
+}
+
+async function loadFromCloudInner(): Promise<boolean> {
   const authStore = useAuthStore()
   if (!authStore.isLoggedIn || !authStore.uid) return false
 
@@ -149,20 +171,25 @@ export async function loadFromCloud(): Promise<boolean> {
       return false
     }
 
-    // Existing account → the suggested name is irrelevant, discard it so it
-    // can't leak into a later login.
-    authStore.consumeSuggestedName()
+    // A freshly registered account may already have a name set locally (and a
+    // pending suggested name). Don't treat it as a "switch" that clears it.
+    const suggestedName = authStore.consumeSuggestedName()
 
     // If a DIFFERENT account than last time is logging in (account switch in
     // the same session), clear the previous account's identity fields first
     // so they don't leak into this account before the merge overwrites them.
+    // BUT never clear when we have a suggested name (brand-new registration).
     const lastUid = localStorage.getItem('nihongo_last_uid')
-    if (lastUid && lastUid !== authStore.uid) {
-      const userStore = useUserStore()
-      userStore.setDisplayName('')
-      userStore.setAvatar('')
+    const userStoreEarly = useUserStore()
+    if (lastUid && lastUid !== authStore.uid && !suggestedName) {
+      userStoreEarly.setDisplayName('')
+      userStoreEarly.setAvatar('')
     }
     localStorage.setItem('nihongo_last_uid', authStore.uid)
+    // Apply a suggested registration name if this account has no name yet.
+    if (suggestedName && !userStoreEarly.displayName) {
+      userStoreEarly.setDisplayName(suggestedName)
+    }
 
     const cloud = snapshot.data() as CloudUserData
     mergeCloudData(cloud)
