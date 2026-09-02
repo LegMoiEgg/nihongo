@@ -96,7 +96,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
    * fixes the "can't be nudged" case for freshly-registered users.
    */
   async function syncTokenIfEnabled() {
-    if (permission.value !== 'granted') return
+    // Read the LIVE permission (not the cached ref, which may not be set yet
+    // due to init ordering) so the token is written reliably on login.
+    if (typeof Notification === 'undefined') return
+    if (Notification.permission !== 'granted') return
+    permission.value = 'granted'
     await fetchToken() // re-fetches and saves the token to Firestore
   }
 

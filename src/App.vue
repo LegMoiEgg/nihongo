@@ -57,6 +57,8 @@ notifStore.initialize()
 ;(async () => {
   await authStore.initAuth() // resolves once onAuthStateChanged first fires
   if (authStore.isLoggedIn) {
+    // Write a fresh FCM token now that we have a uid. Awaited so it reliably
+    // completes (fixes nudges not arriving after account switches).
     notifStore.syncTokenIfEnabled()
     const isReturningUser = await loadFromCloud()
     if (isReturningUser) {
