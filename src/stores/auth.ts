@@ -44,8 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
         await updateProfile(cred.user, { displayName: name })
       }
       user.value = cred.user
-      // Adopt the entered name as the in-game username (if none set yet).
-      if (name) applyDefaultUsername(name)
+      // Suggest the entered name — applied for the new account after load.
+      if (name) pendingSuggestedName.value = name
     } catch (e: any) {
       error.value = mapFirebaseError(e.code)
       throw e
@@ -68,10 +68,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const cred = await signInWithPopup(auth, googleProvider)
       user.value = cred.user
-      // Use the part before the @ of the Google email as the username
-      // (if none set yet). Falls back to the Google display name.
+      // Suggest the email prefix as username — but ONLY applied later if this
+      // turns out to be a brand-new account (no cloud doc). Never overwrites
+      // an existing account's (possibly empty) username.
       const emailLocal = cred.user.email ? cred.user.email.split('@')[0] : ''
-      applyDefaultUsername(emailLocal || cred.user.displayName || '')
+      pendingSuggestedName.value = emailLocal || cred.user.displayName || ''
     } catch (e: any) {
       console.error('Google login error:', e.code, e.message)
       if (e.code === 'auth/popup-closed-by-user') return
