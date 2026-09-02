@@ -143,10 +143,14 @@ exports.sendNudge = onDocumentCreated(
         return;
       }
       const token = targetSnap.data().fcmToken;
+      const tokenUpdatedAt = targetSnap.data().fcmTokenUpdatedAt || "unknown";
       if (!token) {
         logger.info("Nudge target has no FCM token:", nudge.targetUid);
         return;
       }
+      logger.info(
+        `Nudge → target ${nudge.targetUid}, token …${String(token).slice(-12)}, updated ${tokenUpdatedAt}`
+      );
 
       const fromName = nudge.fromName || "Ein Freund";
       const groupName = nudge.groupName
@@ -154,26 +158,41 @@ exports.sendNudge = onDocumentCreated(
         : "";
       const body = `${fromName}${groupName} erinnert dich an deine tägliche Lektion! 🔔`;
 
-      await admin.messaging().send({
-        token,
-        notification: { title: "NihonGo", body },
-        webpush: {
-          notification: {
-            title: "NihonGo",
-            body,
-            icon: "/favicon.svg",
-            badge: "/favicon.svg",
-            tag: "nudge",
+      try {
+        await admin.messaging().send({
+          token,
+          notification: { title: "NihonGo", body },
+          webpush: {
+            notification: {
+              title: "NihonGo",
+              body,
+              icon: "/favicon.svg",
+              badge: "/favicon.svg",
+              tag: "nudge",
+            },
+            fcmOptions: { link: APP_URL },
           },
-          fcmOptions: { link: APP_URL },
-        },
-      });
+        });
+        logger.info(`Nudge SENT OK to ${nudge.targetUid} from ${nudge.fromUid}`);
+      } catch (sendErr) {
+        // Token is invalid/expired → remove it so the user gets prompted to
+        // re-register on next app open. This is the common "sent but never
+        // arrives" cause.
+        logger.error(`Nudge send FAILED (${sendErr.code}) for ${nudge.targetUid}:`, sendErr.message);
+        if (
+          sendErr.code === "messaging/registration-token-not-registered" ||
+          sendErr.code === "messaging/invalid-registration-token" ||
+          sendErr.code === "messaging/invalid-argument"
+        ) {
+          await db.collection("users").doc(nudge.targetUid).update({ fcmToken: null });
+          logger.info(`Removed dead token for ${nudge.targetUid}`);
+        }
+      }
 
       // Mark as sent so it can't fire twice
       await snap.ref.update({ sent: true, sentAt: admin.firestore.FieldValue.serverTimestamp() });
-      logger.info(`Nudge sent to ${nudge.targetUid} from ${nudge.fromUid}`);
     } catch (error) {
-      logger.error("Nudge send error:", error);
+      logger.error("Nudge handler error:", error);
     }
   }
 );
