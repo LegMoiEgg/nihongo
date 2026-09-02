@@ -39,7 +39,7 @@ function vocabHasFurigana(v: VocabCard): boolean {
 }
 
 // ── Exercise types ──
-type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence'
+type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-study' | 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence'
 
 interface Exercise {
   type: ExerciseType
@@ -172,6 +172,12 @@ function generateExercises(): Exercise[] {
 
   // Every vocab word in BOTH directions
   for (const { card, isNew } of vocabCards) {
+    // For a brand-new word, show a flashcard first (word + reading + meaning)
+    // so it isn't quizzed cold — like the kana study cards.
+    if (isNew) {
+      result.push({ type: 'vocab-study', isNewWord: true, vocab: card })
+    }
+
     const wrongJp = shuffle(vocabularyData.filter(v => v.id !== card.id))
       .slice(0, 3).map(v => vocabDisplay(v))
     result.push({
@@ -230,15 +236,19 @@ function generateExercises(): Exercise[] {
     }
   }
 
-  // Shuffle but group: first all DE→JP, then JP→DE, then mixed (sentences/kanji)
-  // This way the learner sees the word DE→JP first, then later JP→DE
+  // Study cards for new words come FIRST (learn before quizzing), keeping
+  // their generated order. Then: DE→JP block, JP→DE block, mixed rest.
+  const study = result.filter(e => e.type === 'vocab-study')
   const deJp = shuffle(result.filter(e => e.type === 'vocab-de-jp'))
   const jpDe = shuffle(result.filter(e => e.type === 'vocab-jp-de'))
-  const rest = shuffle(result.filter(e => e.type !== 'vocab-de-jp' && e.type !== 'vocab-jp-de'))
+  const rest = shuffle(result.filter(e =>
+    e.type !== 'vocab-study' && e.type !== 'vocab-de-jp' && e.type !== 'vocab-jp-de'
+  ))
 
-  // Interleave: DE→JP block, then some rest, then JP→DE block, then remaining rest
+  // Interleave: study first, then DE→JP block, some rest, JP→DE block, remaining rest
   const restHalf = Math.ceil(rest.length / 2)
   return [
+    ...study,
     ...deJp,
     ...rest.slice(0, restHalf),
     ...jpDe,
@@ -249,7 +259,8 @@ function generateExercises(): Exercise[] {
 // ── Session lifecycle ──
 function initSession() {
   exercises.value = generateExercises()
-  originalCount.value = exercises.value.length
+  // Study cards aren't questions → don't count them in the accuracy total.
+  originalCount.value = exercises.value.filter(e => e.type !== 'vocab-study').length
   currentIndex.value = 0
   score.value = 0
   totalXp.value = 0
@@ -347,9 +358,12 @@ function showSentenceAnswer() {
 // ── Navigation ──
 function nextExercise() {
   const ex = currentExercise.value
-  // If the current exercise was answered wrong, requeue it at the very end
-  // so it comes back later — the learner must eventually get it right.
-  const wasWrong = ex && (ex.type === 'sentence' ? !sentenceCorrect.value : !mcCorrect.value)
+  // Study cards aren't answered → never requeue them.
+  // If a real exercise was answered wrong, requeue it at the very end so it
+  // comes back later — the learner must eventually get it right.
+  const wasWrong =
+    ex && ex.type !== 'vocab-study' &&
+    (ex.type === 'sentence' ? !sentenceCorrect.value : !mcCorrect.value)
   if (ex && wasWrong) {
     exercises.value.push({ ...ex, isRetry: true })
   }
@@ -429,12 +443,12 @@ onMounted(() => {
         <span v-else-if="currentExercise.type === 'kanji-meaning'" class="badge badge-level">漢字 Bedeutung</span>
         <span v-else-if="currentExercise.type === 'kanji-reading'" class="badge badge-level">漢字 Lesung</span>
         <span v-else-if="currentExercise.type === 'sentence'" class="badge badge-streak">🧩 Satz bauen</span>
-        <span v-if="currentExercise.isNewWord" class="badge badge-new">🆕 Neues Wort</span>
+        <span v-if="currentExercise.isNewWord && currentExercise.type !== 'vocab-study'" class="badge badge-new">🆕 Neues Wort</span>
         <span v-if="currentExercise.isRetry" class="badge badge-streak">🔁 Wiederholung</span>
       </div>
 
-      <!-- Mastery dots for vocab -->
-      <div v-if="currentExercise.vocab && !mcChecked" class="mastery-dots">
+      <!-- Mastery dots for vocab (not on the study flashcard) -->
+      <div v-if="currentExercise.vocab && currentExercise.type !== 'vocab-study' && !mcChecked" class="mastery-dots">
         <span
           v-for="i in learningStore.MASTERY_STREAK"
           :key="i"
@@ -496,6 +510,22 @@ onMounted(() => {
           </div>
           <button class="btn btn-primary next-btn" @click="nextExercise">Weiter →</button>
         </div>
+      </template>
+
+      <!-- ══════════ VOCAB STUDY (flashcard for new words) ══════════ -->
+      <template v-else-if="currentExercise.type === 'vocab-study' && currentExercise.vocab">
+        <div class="vocab-study-intro">
+          <span class="badge badge-new">🆕 Neues Wort</span>
+          <p class="vocab-study-hint">Schau es dir an. Danach wird es abgefragt.</p>
+        </div>
+        <div class="vocab-study-card card-flat">
+          <span class="vocab-study-word jp">{{ vocabDisplay(currentExercise.vocab) }}</span>
+          <span v-if="vocabHasFurigana(currentExercise.vocab)" class="vocab-study-reading">
+            {{ currentExercise.vocab.reading }}
+          </span>
+          <span class="vocab-study-meaning">{{ currentExercise.vocab.meaning }}</span>
+        </div>
+        <button class="btn btn-primary next-btn" @click="nextExercise">Verstanden →</button>
       </template>
 
       <!-- ══════════ VOCAB DE→JP ══════════ -->
@@ -843,6 +873,46 @@ onMounted(() => {
   font-weight: 700;
   color: var(--accent-primary);
   margin-top: 6px;
+}
+
+/* Vocab study flashcard (new word intro) */
+.vocab-study-intro {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.vocab-study-hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.vocab-study-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.vocab-study-word {
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.vocab-study-reading {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.vocab-study-meaning {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-top: 4px;
 }
 
 .kana-hint-btn {

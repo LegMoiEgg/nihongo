@@ -30,10 +30,16 @@ const sessionCards = ref<(KanaCard | KanjiCard | VocabCard)[]>([])
 // ── Study phase (beginner kana flashcards shown BEFORE the quiz) ──
 // The tester wanted to first SEE the character + romaji + example words
 // instead of having to guess ("durch testen müssen").
+// A normalized study card that works for both kana and vocabulary.
+interface StudyItem {
+  character: string                              // big display (kana char or vocab word)
+  romaji: string                                 // reading shown below
+  examples: { word: string; meaning: string }[] // example words / meaning
+}
 const studyPhase = ref(false)
-const studyCards = ref<KanaCard[]>([])
+const studyCards = ref<StudyItem[]>([])
 const studyIndex = ref(0)
-const studyCard = computed<KanaCard | null>(() => studyCards.value[studyIndex.value] ?? null)
+const studyCard = computed<StudyItem | null>(() => studyCards.value[studyIndex.value] ?? null)
 const studyProgress = computed(() =>
   studyCards.value.length > 0 ? Math.round((studyIndex.value / studyCards.value.length) * 100) : 0
 )
@@ -295,21 +301,42 @@ function initSession() {
   isComboQuestion.value = false
 
   // ── Decide whether to show a study phase first ──
-  // For kana mode, gather the "new" cards (never answered before) in this
-  // session and let the learner view them as flashcards before quizzing.
+  // Gather the "new" cards (never answered before) in this session and let
+  // the learner view them as flashcards before quizzing. Works for kana
+  // (character + romaji + example words) and vocabulary (word + reading +
+  // meaning).
+  function isNew(id: string): boolean {
+    const p = learningStore.cardProgress.find(cp => cp.id === id)
+    return !p || p.status === 'new'
+  }
+
+  const studyItems: StudyItem[] = []
   if (isKanaMode.value) {
-    const newKana = selected.filter((c): c is KanaCard => {
-      if (!isKanaCard(c)) return false
-      const p = learningStore.cardProgress.find(cp => cp.id === c.id)
-      return !p || p.status === 'new'
-    })
-    if (newKana.length > 0) {
-      studyCards.value = newKana
-      studyIndex.value = 0
-      studyPhase.value = true
-    } else {
-      studyPhase.value = false
+    for (const c of selected) {
+      if (isKanaCard(c) && isNew(c.id)) {
+        studyItems.push({
+          character: c.character,
+          romaji: c.romaji,
+          examples: getStudyExamples(c),
+        })
+      }
     }
+  } else if (props.category === 'vocabulary') {
+    for (const c of selected) {
+      if (isVocabCard(c) && isNew(c.id)) {
+        studyItems.push({
+          character: c.japanese,
+          romaji: c.reading,
+          examples: [{ word: '', meaning: c.meaning }],
+        })
+      }
+    }
+  }
+
+  if (studyItems.length > 0) {
+    studyCards.value = studyItems
+    studyIndex.value = 0
+    studyPhase.value = true
   } else {
     studyPhase.value = false
   }
@@ -606,21 +633,23 @@ onMounted(() => {
     <div v-if="studyPhase && studyCard" class="study-phase animate-fade-in">
       <div class="study-intro">
         <span class="study-badge">Lernen</span>
-        <p class="study-hint">Schau dir das Zeichen an. Danach wird abgefragt.</p>
+        <p class="study-hint">Schau es dir an. Danach wird abgefragt.</p>
       </div>
 
       <div class="study-card">
         <span class="study-character jp">{{ studyCard.character }}</span>
         <span class="study-romaji">{{ studyCard.romaji }}</span>
 
-        <div v-if="getStudyExamples(studyCard).length > 0" class="study-examples">
-          <p class="study-examples-title">Beispielwörter</p>
+        <div v-if="studyCard.examples.length > 0" class="study-examples">
+          <p class="study-examples-title">
+            {{ isKanaMode ? 'Beispielwörter' : 'Bedeutung' }}
+          </p>
           <div
-            v-for="ex in getStudyExamples(studyCard)"
-            :key="ex.word"
+            v-for="(ex, i) in studyCard.examples"
+            :key="i"
             class="study-example"
           >
-            <span class="study-example-word jp">{{ ex.word }}</span>
+            <span v-if="ex.word" class="study-example-word jp">{{ ex.word }}</span>
             <span class="study-example-meaning">{{ ex.meaning }}</span>
           </div>
         </div>
