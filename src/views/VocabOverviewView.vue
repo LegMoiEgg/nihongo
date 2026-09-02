@@ -16,7 +16,7 @@ const groupOrder = [
   'Orte', 'Zuhause', 'Transport', 'Schule',
   'Zeit', 'Wochentage', 'Zahlen', 'Farben',
   'Körper', 'Natur', 'Tiere', 'Kleidung',
-  'Fragewörter', 'Adverbien', 'Verben', 'Adjektive',
+  'Fragewörter', 'Adverbien', 'Verben', 'Adjektive', 'Namen',
 ]
 
 // Vocabulary unlocks with the user's level (10 new words per level).

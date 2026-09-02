@@ -308,6 +308,10 @@ export const vocabularyData: VocabCard[] = [
   { id: 'v-gogo', japanese: '午後', reading: 'ごご', meaning: 'Nachmittag', jlpt: 'N5', category: 'Zeit', partOfSpeech: 'Nomen' },
   { id: 'v-shuukan', japanese: '週間', reading: 'しゅうかん', meaning: 'Woche', jlpt: 'N5', category: 'Zeit', partOfSpeech: 'Nomen' },
   { id: 'v-toshi', japanese: '年', reading: 'とし', meaning: 'Jahr', jlpt: 'N5', category: 'Zeit', partOfSpeech: 'Nomen' },
+
+  // Names (Katakana)
+  { id: 'v-miku', japanese: 'ミク', reading: 'ミク', meaning: 'Miku (Name)', jlpt: 'N5', category: 'Namen', partOfSpeech: 'Name' },
+  { id: 'v-teto', japanese: 'テト', reading: 'テト', meaning: 'Teto (Name)', jlpt: 'N5', category: 'Namen', partOfSpeech: 'Name' },
 ]
 
 export const vocabCategories = [...new Set(vocabularyData.map(v => v.category))]
