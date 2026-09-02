@@ -765,7 +765,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== Kanji: Multi-Select Meaning Quiz ==================== -->
-    <div v-else-if="currentCard && isKanjiCard(currentCard)" class="kanji-quiz-container">
+    <div v-else-if="!studyPhase && currentCard && isKanjiCard(currentCard)" class="kanji-quiz-container">
       <div class="kanji-quiz-display" :class="answerFeedback ? `feedback-${answerFeedback}` : ''">
         <span class="kanji-quiz-char jp">{{ currentCard.character }}</span>
         <p class="kanji-quiz-meta">{{ currentCard.strokes }} Striche</p>
@@ -813,7 +813,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== Flashcard Mode (Vocabulary only) ==================== -->
-    <div v-else-if="currentCard" class="flashcard-container">
+    <div v-else-if="!studyPhase && currentCard" class="flashcard-container">
       <div
         class="flashcard"
         :class="[
