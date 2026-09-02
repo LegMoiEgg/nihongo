@@ -121,28 +121,47 @@ export const useNotificationsStore = defineStore('notifications', () => {
    * notifications at all. Returns a short status string for the UI.
    */
   async function sendTestNotification(): Promise<string> {
-    if (typeof Notification === 'undefined') return 'Nicht unterstützt'
-    if (permission.value !== 'granted') return 'Benachrichtigungen sind nicht erlaubt'
+    // Report the exact state so we can diagnose why nothing shows up.
+    if (typeof Notification === 'undefined') {
+      return '❌ Dieser Browser unterstützt keine Notifications'
+    }
+
+    const perm = Notification.permission // read live, not cached
+    if (perm !== 'granted') {
+      return `❌ Berechtigung: "${perm}" (nicht erlaubt). In den Chrome-Website-Einstellungen freigeben.`
+    }
+
+    if (!('serviceWorker' in navigator)) {
+      return '❌ Kein Service Worker verfügbar'
+    }
+
     try {
-      const reg = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
-        || await navigator.serviceWorker.ready
-      if (reg) {
-        await reg.showNotification('NihonGo — Test', {
-          body: 'Wenn du das siehst, funktionieren Benachrichtigungen! 🎉',
-          icon: '/favicon.svg',
-          badge: '/favicon.svg',
-          tag: 'test',
-        })
-        return 'Test-Benachrichtigung gesendet'
+      const reg =
+        (await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')) ||
+        (await navigator.serviceWorker.getRegistration()) ||
+        (await navigator.serviceWorker.ready)
+
+      if (!reg) {
+        return '❌ Service Worker nicht registriert'
       }
-      // Fallback: direct Notification API
-      new Notification('NihonGo — Test', {
-        body: 'Wenn du das siehst, funktionieren Benachrichtigungen! 🎉',
+
+      await reg.showNotification('NihonGo — Test 🔔', {
+        body: 'Wenn du das siehst, funktionieren Benachrichtigungen!',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: 'test',
+        requireInteraction: true, // stays until dismissed (helps on Android)
       })
-      return 'Test-Benachrichtigung gesendet'
-    } catch (e) {
+
+      // Verify the notification actually got created
+      const active = await reg.getNotifications({ tag: 'test' })
+      if (active.length === 0) {
+        return '⚠️ showNotification lief, aber das System zeigt nichts an → Android blockt die Anzeige (Systemeinstellungen prüfen)'
+      }
+      return '✅ Gesendet — wenn nichts erscheint, blockt Android die Anzeige'
+    } catch (e: any) {
       console.error('Test notification failed:', e)
-      return 'Fehler beim Senden der Test-Benachrichtigung'
+      return `❌ Fehler: ${e?.message || e}`
     }
   }
 
