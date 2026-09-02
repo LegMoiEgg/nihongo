@@ -49,6 +49,23 @@ export function markCloudLoaded() {
   cloudLoaded = true
 }
 
+/**
+ * Resolves once auth state is known AND (if logged in) the initial cloud load
+ * has finished. The router waits for this before deciding onboarding vs. home,
+ * so a returning user is never sent to onboarding before their cloud data has
+ * loaded. App.vue calls resolveAuthSettled() when the initial flow completes.
+ */
+let _resolveAuthSettled: (() => void) | null = null
+export const authSettled: Promise<void> = new Promise((resolve) => {
+  _resolveAuthSettled = resolve
+})
+export function resolveAuthSettled() {
+  if (_resolveAuthSettled) {
+    _resolveAuthSettled()
+    _resolveAuthSettled = null
+  }
+}
+
 export async function saveToCloud(): Promise<void> {
   const authStore = useAuthStore()
   if (!authStore.isLoggedIn || !authStore.uid) return
@@ -115,7 +132,8 @@ export async function loadFromCloud(): Promise<boolean> {
   try {
     const snapshot = await getDoc(getUserDocRef(authStore.uid))
     if (!snapshot.exists()) {
-      // Brand-new account: safe to save now, then allow future saves.
+      // Genuinely brand-new account (Firestore reachable, no doc exists):
+      // safe to save now, then allow future saves.
       markCloudLoaded()
       await saveToCloud()
       return false

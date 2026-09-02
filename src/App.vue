@@ -5,7 +5,7 @@ import BottomNav from './components/BottomNav.vue'
 import { useUserStore } from './stores/user'
 import { useAuthStore } from './stores/auth'
 import { useBadgesStore } from './stores/badges'
-import { loadFromCloud, registerFlushOnHide } from './stores/sync'
+import { loadFromCloud, registerFlushOnHide, resolveAuthSettled } from './stores/sync'
 import { useNotificationsStore } from './stores/notifications'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase'
@@ -18,10 +18,28 @@ const router = useRouter()
 
 // Initialize on app start
 userStore.initializeUser()
-authStore.initAuth()
 badgesStore.initialize()
 badgesStore.checkAllBadges()
 notifStore.initialize()
+
+// Wait for Firebase to restore the auth session, then load cloud data BEFORE
+// the router decides onboarding vs. home. This prevents a returning user from
+// being sent to onboarding just because localStorage was empty after a reload.
+;(async () => {
+  await authStore.initAuth() // resolves once onAuthStateChanged first fires
+  if (authStore.isLoggedIn) {
+    notifStore.syncTokenIfEnabled()
+    const isReturningUser = await loadFromCloud()
+    if (isReturningUser) {
+      const currentRoute = router.currentRoute.value.name
+      if (currentRoute === 'onboarding') {
+        router.replace('/')
+      }
+    }
+  }
+  // Unblock the router guard now that auth + initial load are done.
+  resolveAuthSettled()
+})()
 
 // Flush pending saves to Firestore when the app is hidden, so the
 // server-side streak-reminder Cloud Function reads fresh dailyLog data.
@@ -47,16 +65,16 @@ async function checkRemoteReset() {
 }
 checkRemoteReset()
 
-// When user logs in/out, sync with cloud
+// Handle login/logout that happens DURING the session (after initial load),
+// e.g. logging in from the onboarding screen. The initial restore is handled
+// by the IIFE above.
+let initialAuthHandled = false
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
+  // Skip the very first fire — the IIFE already handled the initial state.
+  if (!initialAuthHandled) { initialAuthHandled = true; return }
   if (loggedIn) {
-    // Ensure the FCM token is written now that we have a uid (fixes the
-    // race where notifications were enabled before login completed).
     notifStore.syncTokenIfEnabled()
     const isReturningUser = await loadFromCloud()
-    // Only a RETURNING user (with existing cloud progress) gets sent straight
-    // to the home screen. A newly registered account stays in the onboarding
-    // flow — and we never interrupt an in-progress placement test.
     if (isReturningUser) {
       const currentRoute = router.currentRoute.value.name
       if (currentRoute === 'onboarding') {

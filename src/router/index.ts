@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authSettled } from '../stores/sync'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -138,8 +139,17 @@ const router = createRouter({
 
 // Redirect to onboarding on first launch
 // Skip if user already has progress (e.g. logged in on another device)
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   if (to.meta.skipOnboardingCheck || to.name === 'onboarding') return
+
+  // Wait for auth restore + initial cloud load to finish before deciding.
+  // Otherwise, right after a logout-reload, localStorage is empty and we'd
+  // wrongly send a returning user to onboarding before their data loads.
+  // Guard against hanging forever if the network stalls.
+  await Promise.race([
+    authSettled,
+    new Promise<void>((resolve) => setTimeout(resolve, 8000)),
+  ])
 
   const onboardingDone = localStorage.getItem('nihongo_onboarding_done') === 'true'
   if (onboardingDone) return
