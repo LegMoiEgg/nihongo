@@ -53,11 +53,13 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
     // Ensure the FCM token is written now that we have a uid (fixes the
     // race where notifications were enabled before login completed).
     notifStore.syncTokenIfEnabled()
-    const loaded = await loadFromCloud()
-    // If cloud had data and we're on onboarding, redirect to home
-    if (loaded && localStorage.getItem('nihongo_onboarding_done') === 'true') {
+    const isReturningUser = await loadFromCloud()
+    // Only a RETURNING user (with existing cloud progress) gets sent straight
+    // to the home screen. A newly registered account stays in the onboarding
+    // flow — and we never interrupt an in-progress placement test.
+    if (isReturningUser) {
       const currentRoute = router.currentRoute.value.name
-      if (currentRoute === 'onboarding' || currentRoute === 'placement') {
+      if (currentRoute === 'onboarding') {
         router.replace('/')
       }
     }

@@ -80,21 +80,27 @@ export async function loadFromCloud(): Promise<boolean> {
   try {
     const snapshot = await getDoc(getUserDocRef(authStore.uid))
     if (!snapshot.exists()) {
-      // First time: upload local data to cloud
+      // Brand-new account: upload local data, but this is NOT a returning
+      // user — return false so the onboarding redirect doesn't fire.
       await saveToCloud()
-      return true
+      return false
     }
 
     const cloud = snapshot.data() as CloudUserData
     mergeCloudData(cloud)
 
-    // Mark onboarding as done if cloud has data (returning user on new device)
-    if (cloud.totalXp > 0 || cloud.cardProgress?.length > 0) {
+    // Returning user only if the cloud actually had meaningful progress.
+    const hadRealData = (cloud.totalXp > 0) ||
+      (cloud.cardProgress?.length > 0) ||
+      ((cloud.placementLevel ?? 0) > 0)
+
+    if (hadRealData) {
       localStorage.setItem('nihongo_onboarding_done', 'true')
       localStorage.setItem('nihongo_placement_done', 'true')
     }
 
-    return true
+    // Only signal "returning user" when there was real data to come back to.
+    return hadRealData
   } catch (e) {
     console.error('Failed to load from cloud:', e)
     return false
