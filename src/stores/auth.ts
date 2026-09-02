@@ -11,6 +11,7 @@ import {
   type User,
 } from 'firebase/auth'
 import { auth } from '../firebase'
+import { useUserStore } from './user'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -46,8 +47,14 @@ export const useAuthStore = defineStore('auth', () => {
         await updateProfile(cred.user, { displayName: name })
       }
       user.value = cred.user
-      // Suggest the entered name — applied for the new account after load.
-      if (name) pendingSuggestedName.value = name
+      // New account → set the entered name as the in-game username directly
+      // (no existing cloud data to conflict with). Also keep it as pending so
+      // loadFromCloud's new-account branch persists it to the cloud doc.
+      if (name) {
+        const clean = name.trim().slice(0, 20)
+        pendingSuggestedName.value = clean
+        useUserStore().setDisplayName(clean)
+      }
     } catch (e: any) {
       error.value = mapFirebaseError(e.code)
       throw e
