@@ -672,7 +672,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== KANA: Multiple Choice Mode ==================== -->
-    <div v-else-if="currentCard && isKanaMode && isKanaCard(currentCard)" class="kana-mc-container">
+    <div v-else-if="!studyPhase && currentCard && isKanaMode && isKanaCard(currentCard)" class="kana-mc-container">
       <!-- Character Display: kana on top, learner picks the romaji -->
       <div class="kana-display" :class="answerFeedback ? `feedback-${answerFeedback}` : ''">
         <span class="kana-character jp">{{ currentCard.character }}</span>
@@ -729,7 +729,7 @@ onMounted(() => {
     </div>
 
     <!-- ==================== COMBO: Reading Combination ==================== -->
-    <div v-else-if="isComboQuestion && isKanaMode" class="kana-mc-container">
+    <div v-else-if="!studyPhase && isComboQuestion && isKanaMode" class="kana-mc-container">
       <div class="combo-badge badge badge-streak">🔗 Lese-Kombi</div>
       <div class="kana-display">
         <span class="kana-character jp">{{ comboKana }}</span>
