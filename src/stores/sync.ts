@@ -133,7 +133,9 @@ function mergeCloudData(cloud: CloudUserData) {
     userStore.sessionsCompletedTotal = cloud.sessionsCompletedTotal
     localStorage.setItem('nihongo_sessions_total', JSON.stringify(cloud.sessionsCompletedTotal))
   }
-  if (cloud.displayName && !userStore.displayName) {
+  // The cloud name is the source of truth for a returning user — it overrides
+  // any default username applied locally at login (e.g. Google email part).
+  if (cloud.displayName) {
     userStore.displayName = cloud.displayName
     localStorage.setItem('nihongo_display_name', JSON.stringify(cloud.displayName))
   }

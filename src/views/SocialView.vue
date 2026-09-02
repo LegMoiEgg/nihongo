@@ -189,6 +189,7 @@ interface NudgeMember {
 /** Whether a reminder can be sent to this member right now. */
 function canNudge(member: NudgeMember): boolean {
   return (
+    isMemberOfCurrent.value &&      // only members can nudge
     member.canBeNudged &&
     !member.goalReachedToday &&
     !socialStore.hasNudged(member.uid)
@@ -307,7 +308,7 @@ async function nudgeMember(member: NudgeMember) {
                  Active (🔔) only when a reminder makes sense; otherwise
                  disabled (🔕) = goal reached / notifications off / already nudged. -->
             <button
-              v-if="member.uid !== authStore.uid"
+              v-if="isMemberOfCurrent && member.uid !== authStore.uid"
               class="nudge-btn"
               :class="{ nudged: !canNudge(member) }"
               :disabled="!canNudge(member)"

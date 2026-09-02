@@ -11,6 +11,7 @@ import {
   type User,
 } from 'firebase/auth'
 import { auth } from '../firebase'
+import { useUserStore } from './user'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -43,6 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
         await updateProfile(cred.user, { displayName: name })
       }
       user.value = cred.user
+      // Adopt the entered name as the in-game username (if none set yet).
+      if (name) applyDefaultUsername(name)
     } catch (e: any) {
       error.value = mapFirebaseError(e.code)
       throw e
@@ -65,6 +68,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const cred = await signInWithPopup(auth, googleProvider)
       user.value = cred.user
+      // Use the part before the @ of the Google email as the username
+      // (if none set yet). Falls back to the Google display name.
+      const emailLocal = cred.user.email ? cred.user.email.split('@')[0] : ''
+      applyDefaultUsername(emailLocal || cred.user.displayName || '')
     } catch (e: any) {
       console.error('Google login error:', e.code, e.message)
       if (e.code === 'auth/popup-closed-by-user') return
@@ -82,6 +89,20 @@ export const useAuthStore = defineStore('auth', () => {
 
   function clearError() {
     error.value = ''
+  }
+
+  /**
+   * Set the in-game username from a suggested value (registration name or
+   * Google email local part), but only if the user hasn't set one yet — so
+   * a returning user's chosen name is never overwritten.
+   */
+  function applyDefaultUsername(suggested: string) {
+    const name = (suggested || '').trim()
+    if (!name) return
+    const userStore = useUserStore()
+    if (!userStore.displayName) {
+      userStore.setDisplayName(name.slice(0, 20))
+    }
   }
 
   return {
