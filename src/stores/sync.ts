@@ -132,12 +132,22 @@ export async function loadFromCloud(): Promise<boolean> {
   try {
     const snapshot = await getDoc(getUserDocRef(authStore.uid))
     if (!snapshot.exists()) {
-      // Genuinely brand-new account (Firestore reachable, no doc exists):
-      // safe to save now, then allow future saves.
+      // Genuinely brand-new account (Firestore reachable, no doc exists).
+      // Apply the suggested username (registration name / Google email prefix)
+      // now — but only here, so an existing account never inherits it.
+      const userStore = useUserStore()
+      const suggested = authStore.consumeSuggestedName()
+      if (suggested && !userStore.displayName) {
+        userStore.setDisplayName(suggested)
+      }
       markCloudLoaded()
       await saveToCloud()
       return false
     }
+
+    // Existing account → the suggested name is irrelevant, discard it so it
+    // can't leak into a later login.
+    authStore.consumeSuggestedName()
 
     const cloud = snapshot.data() as CloudUserData
     mergeCloudData(cloud)
@@ -192,12 +202,11 @@ function mergeCloudData(cloud: CloudUserData) {
     userStore.sessionsCompletedTotal = cloud.sessionsCompletedTotal
     localStorage.setItem('nihongo_sessions_total', JSON.stringify(cloud.sessionsCompletedTotal))
   }
-  // The cloud name is the source of truth for a returning user — it overrides
-  // any default username applied locally at login (e.g. Google email part).
-  if (cloud.displayName) {
-    userStore.displayName = cloud.displayName
-    localStorage.setItem('nihongo_display_name', JSON.stringify(cloud.displayName))
-  }
+  // The cloud is the source of truth for the username of an existing account.
+  // Always adopt the cloud value — including an empty one — so a stale name
+  // from a previously logged-in account (same browser session) never leaks in.
+  userStore.displayName = cloud.displayName || ''
+  localStorage.setItem('nihongo_display_name', JSON.stringify(cloud.displayName || ''))
   if (cloud.avatarDataUrl && !userStore.avatarDataUrl) {
     userStore.avatarDataUrl = cloud.avatarDataUrl
     localStorage.setItem('nihongo_avatar', JSON.stringify(cloud.avatarDataUrl))

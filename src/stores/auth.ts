@@ -11,7 +11,6 @@ import {
   type User,
 } from 'firebase/auth'
 import { auth } from '../firebase'
-import { useUserStore } from './user'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -19,6 +18,9 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const loading = ref(true)
   const error = ref('')
+  // Suggested username from registration/Google login. Applied ONLY for a
+  // brand-new account (by loadFromCloud), never for an existing account.
+  const pendingSuggestedName = ref('')
 
   const isLoggedIn = computed(() => !!user.value)
   const displayName = computed(() => user.value?.displayName || '')
@@ -93,17 +95,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Set the in-game username from a suggested value (registration name or
-   * Google email local part), but only if the user hasn't set one yet — so
-   * a returning user's chosen name is never overwritten.
+   * Takes and clears the pending suggested username (from registration or
+   * Google login). Callers (loadFromCloud) apply it ONLY for a brand-new
+   * account, so an existing account's username is never overwritten with a
+   * stale value from a previously logged-in account.
    */
-  function applyDefaultUsername(suggested: string) {
-    const name = (suggested || '').trim()
-    if (!name) return
-    const userStore = useUserStore()
-    if (!userStore.displayName) {
-      userStore.setDisplayName(name.slice(0, 20))
-    }
+  function consumeSuggestedName(): string {
+    const name = (pendingSuggestedName.value || '').trim()
+    pendingSuggestedName.value = ''
+    return name.slice(0, 20)
   }
 
   return {
@@ -120,6 +120,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithGoogle,
     logout,
     clearError,
+    consumeSuggestedName,
   }
 })
 
