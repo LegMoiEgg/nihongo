@@ -153,6 +153,17 @@ export async function loadFromCloud(): Promise<boolean> {
     // can't leak into a later login.
     authStore.consumeSuggestedName()
 
+    // If a DIFFERENT account than last time is logging in (account switch in
+    // the same session), clear the previous account's identity fields first
+    // so they don't leak into this account before the merge overwrites them.
+    const lastUid = localStorage.getItem('nihongo_last_uid')
+    if (lastUid && lastUid !== authStore.uid) {
+      const userStore = useUserStore()
+      userStore.setDisplayName('')
+      userStore.setAvatar('')
+    }
+    localStorage.setItem('nihongo_last_uid', authStore.uid)
+
     const cloud = snapshot.data() as CloudUserData
     mergeCloudData(cloud)
 
@@ -206,11 +217,14 @@ function mergeCloudData(cloud: CloudUserData) {
     userStore.sessionsCompletedTotal = cloud.sessionsCompletedTotal
     localStorage.setItem('nihongo_sessions_total', JSON.stringify(cloud.sessionsCompletedTotal))
   }
-  // The cloud is the source of truth for the username of an existing account.
-  // Always adopt the cloud value — including an empty one — so a stale name
-  // from a previously logged-in account (same browser session) never leaks in.
-  userStore.displayName = cloud.displayName || ''
-  localStorage.setItem('nihongo_display_name', JSON.stringify(cloud.displayName || ''))
+  // Username: prefer the cloud value if it has one; otherwise keep whatever
+  // is local. This restores a saved name on reload AND doesn't wipe a name
+  // the user just set. (Account-switch leaks are prevented by clearing the
+  // name on logout / account change, not here.)
+  if (cloud.displayName) {
+    userStore.displayName = cloud.displayName
+    localStorage.setItem('nihongo_display_name', JSON.stringify(cloud.displayName))
+  }
   if (cloud.avatarDataUrl && !userStore.avatarDataUrl) {
     userStore.avatarDataUrl = cloud.avatarDataUrl
     localStorage.setItem('nihongo_avatar', JSON.stringify(cloud.avatarDataUrl))

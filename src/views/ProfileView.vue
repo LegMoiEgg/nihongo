@@ -39,10 +39,10 @@ function startEditName() {
   isEditingName.value = true
 }
 
-function saveName() {
+async function saveName() {
   userStore.setDisplayName(nameInput.value)
   isEditingName.value = false
-  saveToCloud() // immediate sync, not debounced
+  await saveToCloud() // immediate sync, not debounced
 }
 
 function cancelEditName() {
