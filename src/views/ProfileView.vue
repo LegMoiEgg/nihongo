@@ -61,7 +61,15 @@ async function handleLogout() {
     await flushSave()
   } catch { /* offline — proceed with logout anyway */ }
 
-  // 2. Sign out of Firebase.
+  // 2. Clear this account's FCM token BEFORE signing out (uid still available).
+  //    Prevents the next account on this device from inheriting/sharing the
+  //    same token, which silently breaks nudges.
+  const uid = authStore.uid
+  if (uid) {
+    try { await notifStore.clearTokenOnLogout(uid) } catch { /* ignore */ }
+  }
+
+  // 3. Sign out of Firebase.
   await authStore.logout()
 
   // 3. Clear all local progress so the next account doesn't inherit it.

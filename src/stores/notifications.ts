@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getToken, onMessage } from 'firebase/messaging'
+import { getToken, onMessage, deleteToken } from 'firebase/messaging'
 import { doc, setDoc } from 'firebase/firestore'
 import { getMessagingInstance, VAPID_KEY } from '../firebase'
 import { db } from '../firebase'
@@ -147,6 +147,34 @@ export const useNotificationsStore = defineStore('notifications', () => {
   }
 
   /**
+   * On logout: remove the FCM token from THIS account's Firestore doc and
+   * delete the local token. On a shared device (multiple test accounts, or a
+   * family device) FCM hands out the SAME token to the next account that
+   * requests one. Without clearing it, two accounts end up with the same
+   * token — FCM binds a token to one instance, so nudges to the "other"
+   * account silently fail to arrive. Clearing on logout guarantees the next
+   * login writes a fresh token bound to that account.
+   */
+  async function clearTokenOnLogout(uid: string) {
+    try {
+      await setDoc(
+        doc(db, 'users', uid),
+        { fcmToken: null, fcmTokenUpdatedAt: new Date().toISOString() },
+        { merge: true }
+      )
+    } catch (e) {
+      console.error('Failed to clear FCM token in Firestore:', e)
+    }
+    try {
+      const messaging = await getMessagingInstance()
+      if (messaging) await deleteToken(messaging)
+    } catch {
+      // deleteToken can throw if none exists — safe to ignore.
+    }
+    token.value = null
+  }
+
+  /**
    * Fire a LOCAL test notification via the service worker — no Cloud Function,
    * no FCM token involved. Used to verify that the device can display
    * notifications at all. Returns a short status string for the UI.
@@ -206,6 +234,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     initialize,
     requestPermission,
     syncTokenIfEnabled,
+    clearTokenOnLogout,
     sendTestNotification,
     refreshTokenWithStatus,
   }
