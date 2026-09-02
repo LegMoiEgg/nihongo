@@ -177,3 +177,52 @@ exports.sendNudge = onDocumentCreated(
     }
   }
 );
+
+/**
+ * Reset broken streaks at midnight (Europe/Berlin).
+ * For every user whose last active day is older than "yesterday", set their
+ * currentStreak to 0. Runs server-side so it works even if the user never
+ * opens the app.
+ */
+exports.resetStreaks = onSchedule(
+  {
+    schedule: "5 0 * * *", // 00:05 every day
+    timeZone: "Europe/Berlin",
+    region: "europe-west1",
+  },
+  async () => {
+    // Compute "yesterday" in Europe/Berlin as a YYYY-MM-DD string.
+    const now = new Date();
+    const berlinNow = new Date(
+      now.toLocaleString("en-US", { timeZone: "Europe/Berlin" })
+    );
+    const yesterday = new Date(berlinNow);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    try {
+      const usersSnap = await db.collection("users").get();
+      let resetCount = 0;
+      const batch = db.batch();
+
+      usersSnap.forEach((doc) => {
+        const data = doc.data();
+        const lastActive = data.lastActiveDate || "";
+        const streak = data.currentStreak || 0;
+        // Streak is broken if it's non-zero and the last active day is
+        // strictly before yesterday (i.e. the user missed all of yesterday).
+        if (streak > 0 && lastActive && lastActive < yesterdayStr) {
+          batch.update(doc.ref, { currentStreak: 0 });
+          resetCount++;
+        }
+      });
+
+      if (resetCount > 0) {
+        await batch.commit();
+      }
+      logger.info(`resetStreaks: reset ${resetCount} broken streak(s).`);
+    } catch (error) {
+      logger.error("resetStreaks error:", error);
+    }
+  }
+);
