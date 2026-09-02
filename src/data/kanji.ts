@@ -29,26 +29,26 @@ export const kanjiData: KanjiCard[] = [
   { id: 'kj-mizu', character: '水', meanings: ['Wasser'], onyomi: ['スイ'], kunyomi: ['みず'], jlpt: 'N5', strokes: 4, group: 'Natur', examples: [{ word: '水曜日', reading: 'すいようび', meaning: 'Mittwoch' }, { word: 'お水', reading: 'おみず', meaning: 'Wasser' }] },
   { id: 'kj-hi2', character: '火', meanings: ['Feuer'], onyomi: ['カ'], kunyomi: ['ひ'], jlpt: 'N5', strokes: 4, group: 'Natur', examples: [{ word: '火曜日', reading: 'かようび', meaning: 'Dienstag' }, { word: '火事', reading: 'かじ', meaning: 'Brand' }] },
   { id: 'kj-ki', character: '木', meanings: ['Baum', 'Holz'], onyomi: ['モク', 'ボク'], kunyomi: ['き'], jlpt: 'N5', strokes: 4, group: 'Natur', examples: [{ word: '木曜日', reading: 'もくようび', meaning: 'Donnerstag' }] },
-  { id: 'kj-kane', character: '金', meanings: ['Gold', 'Geld'], onyomi: ['キン', 'コン'], kunyomi: ['かね'], jlpt: 'N5', strokes: 8, group: 'Natur', examples: [{ word: '金曜日', reading: 'きんようび', meaning: 'Freitag' }, { word: 'お金', reading: 'おかね', meaning: 'Geld' }] },
+  { id: 'kj-kane', character: '金', meanings: ['Gold', 'Geld', 'Metall'], onyomi: ['キン', 'コン'], kunyomi: ['かね'], jlpt: 'N5', strokes: 8, group: 'Natur', examples: [{ word: '金曜日', reading: 'きんようび', meaning: 'Freitag' }, { word: 'お金', reading: 'おかね', meaning: 'Geld' }] },
   { id: 'kj-tsuchi', character: '土', meanings: ['Erde', 'Boden'], onyomi: ['ド', 'ト'], kunyomi: ['つち'], jlpt: 'N5', strokes: 3, group: 'Natur', examples: [{ word: '土曜日', reading: 'どようび', meaning: 'Samstag' }] },
   { id: 'kj-yama', character: '山', meanings: ['Berg'], onyomi: ['サン'], kunyomi: ['やま'], jlpt: 'N5', strokes: 3, group: 'Natur', examples: [{ word: '富士山', reading: 'ふじさん', meaning: 'Berg Fuji' }] },
   { id: 'kj-kawa', character: '川', meanings: ['Fluss'], onyomi: ['セン'], kunyomi: ['かわ'], jlpt: 'N5', strokes: 3, group: 'Natur', examples: [{ word: '川', reading: 'かわ', meaning: 'Fluss' }] },
 
   // People & Body
   { id: 'kj-hito', character: '人', meanings: ['Mensch', 'Person'], onyomi: ['ジン', 'ニン'], kunyomi: ['ひと'], jlpt: 'N5', strokes: 2, group: 'Menschen', examples: [{ word: '日本人', reading: 'にほんじん', meaning: 'Japaner' }, { word: '大人', reading: 'おとな', meaning: 'Erwachsener' }] },
-  { id: 'kj-otoko', character: '男', meanings: ['Mann'], onyomi: ['ダン'], kunyomi: ['おとこ'], jlpt: 'N5', strokes: 7, group: 'Menschen', examples: [{ word: '男の人', reading: 'おとこのひと', meaning: 'Mann' }] },
-  { id: 'kj-onna', character: '女', meanings: ['Frau'], onyomi: ['ジョ'], kunyomi: ['おんな'], jlpt: 'N5', strokes: 3, group: 'Menschen', examples: [{ word: '女の人', reading: 'おんなのひと', meaning: 'Frau' }] },
+  { id: 'kj-otoko', character: '男', meanings: ['Mann', 'männlich'], onyomi: ['ダン'], kunyomi: ['おとこ'], jlpt: 'N5', strokes: 7, group: 'Menschen', examples: [{ word: '男の人', reading: 'おとこのひと', meaning: 'Mann' }] },
+  { id: 'kj-onna', character: '女', meanings: ['Frau', 'weiblich'], onyomi: ['ジョ'], kunyomi: ['おんな'], jlpt: 'N5', strokes: 3, group: 'Menschen', examples: [{ word: '女の人', reading: 'おんなのひと', meaning: 'Frau' }] },
   { id: 'kj-ko', character: '子', meanings: ['Kind'], onyomi: ['シ', 'ス'], kunyomi: ['こ'], jlpt: 'N5', strokes: 3, group: 'Menschen', examples: [{ word: '子ども', reading: 'こども', meaning: 'Kind' }, { word: '女の子', reading: 'おんなのこ', meaning: 'Mädchen' }] },
   { id: 'kj-me', character: '目', meanings: ['Auge'], onyomi: ['モク'], kunyomi: ['め'], jlpt: 'N5', strokes: 5, group: 'Menschen', examples: [{ word: '目', reading: 'め', meaning: 'Auge' }] },
   { id: 'kj-te', character: '手', meanings: ['Hand'], onyomi: ['シュ'], kunyomi: ['て'], jlpt: 'N5', strokes: 4, group: 'Menschen', examples: [{ word: '手紙', reading: 'てがみ', meaning: 'Brief' }] },
-  { id: 'kj-ashi', character: '足', meanings: ['Fuß', 'Bein'], onyomi: ['ソク'], kunyomi: ['あし'], jlpt: 'N5', strokes: 7, group: 'Menschen', examples: [{ word: '足', reading: 'あし', meaning: 'Fuß/Bein' }] },
+  { id: 'kj-ashi', character: '足', meanings: ['Fuß', 'Bein', 'genug'], onyomi: ['ソク'], kunyomi: ['あし', 'た(りる)'], jlpt: 'N5', strokes: 7, group: 'Menschen', examples: [{ word: '足', reading: 'あし', meaning: 'Fuß/Bein' }] },
 
   // Size & Direction
   { id: 'kj-ookii', character: '大', meanings: ['Groß'], onyomi: ['ダイ', 'タイ'], kunyomi: ['おお(きい)'], jlpt: 'N5', strokes: 3, group: 'Größe', examples: [{ word: '大きい', reading: 'おおきい', meaning: 'groß' }, { word: '大学', reading: 'だいがく', meaning: 'Universität' }] },
   { id: 'kj-chiisai', character: '小', meanings: ['Klein'], onyomi: ['ショウ'], kunyomi: ['ちい(さい)', 'こ'], jlpt: 'N5', strokes: 3, group: 'Größe', examples: [{ word: '小さい', reading: 'ちいさい', meaning: 'klein' }, { word: '小学校', reading: 'しょうがっこう', meaning: 'Grundschule' }] },
-  { id: 'kj-naka', character: '中', meanings: ['Mitte', 'Innen'], onyomi: ['チュウ'], kunyomi: ['なか'], jlpt: 'N5', strokes: 4, group: 'Größe', examples: [{ word: '中国', reading: 'ちゅうごく', meaning: 'China' }, { word: '中', reading: 'なか', meaning: 'Mitte/Innen' }] },
-  { id: 'kj-ue', character: '上', meanings: ['Oben', 'Auf'], onyomi: ['ジョウ'], kunyomi: ['うえ', 'あ(げる)'], jlpt: 'N5', strokes: 3, group: 'Größe', examples: [{ word: '上', reading: 'うえ', meaning: 'oben' }] },
-  { id: 'kj-shita', character: '下', meanings: ['Unten', 'Unter'], onyomi: ['カ', 'ゲ'], kunyomi: ['した', 'さ(げる)'], jlpt: 'N5', strokes: 3, group: 'Größe', examples: [{ word: '下', reading: 'した', meaning: 'unten' }] },
+  { id: 'kj-naka', character: '中', meanings: ['Mitte', 'Innen', 'während'], onyomi: ['チュウ'], kunyomi: ['なか'], jlpt: 'N5', strokes: 4, group: 'Größe', examples: [{ word: '中国', reading: 'ちゅうごく', meaning: 'China' }, { word: '中', reading: 'なか', meaning: 'Mitte/Innen' }] },
+  { id: 'kj-ue', character: '上', meanings: ['Oben', 'Auf', 'hinauf'], onyomi: ['ジョウ'], kunyomi: ['うえ', 'あ(げる)', 'のぼ(る)'], jlpt: 'N5', strokes: 3, group: 'Größe', examples: [{ word: '上', reading: 'うえ', meaning: 'oben' }] },
+  { id: 'kj-shita', character: '下', meanings: ['Unten', 'Unter', 'hinunter'], onyomi: ['カ', 'ゲ'], kunyomi: ['した', 'さ(げる)', 'くだ(る)'], jlpt: 'N5', strokes: 3, group: 'Größe', examples: [{ word: '下', reading: 'した', meaning: 'unten' }] },
 ]
 
 export const kanjiGroups = [...new Set(kanjiData.map(k => k.group))]
