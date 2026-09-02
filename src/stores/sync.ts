@@ -37,9 +37,25 @@ function getUserDocRef(uid: string) {
  * Save all current local state to Firestore.
  * Called after login/register and periodically during use.
  */
+/**
+ * Guard against overwriting cloud data with empty local state.
+ * After login, local state starts empty (0 XP) until loadFromCloud() merges
+ * the real data. If a save fired during that window it would wipe the cloud
+ * doc. We only allow saving once the cloud has been loaded this session.
+ */
+let cloudLoaded = false
+
+export function markCloudLoaded() {
+  cloudLoaded = true
+}
+
 export async function saveToCloud(): Promise<void> {
   const authStore = useAuthStore()
   if (!authStore.isLoggedIn || !authStore.uid) return
+
+  // Don't save before the initial cloud load completed — prevents wiping
+  // existing progress with the empty post-login local state.
+  if (!cloudLoaded) return
 
   const userStore = useUserStore()
   const learningStore = useLearningStore()
@@ -80,14 +96,17 @@ export async function loadFromCloud(): Promise<boolean> {
   try {
     const snapshot = await getDoc(getUserDocRef(authStore.uid))
     if (!snapshot.exists()) {
-      // Brand-new account: upload local data, but this is NOT a returning
-      // user — return false so the onboarding redirect doesn't fire.
+      // Brand-new account: safe to save now, then allow future saves.
+      markCloudLoaded()
       await saveToCloud()
       return false
     }
 
     const cloud = snapshot.data() as CloudUserData
     mergeCloudData(cloud)
+
+    // Cloud data is now merged into local state → future saves are safe.
+    markCloudLoaded()
 
     // Returning user only if the cloud actually had meaningful progress.
     const hadRealData = (cloud.totalXp > 0) ||
@@ -103,6 +122,9 @@ export async function loadFromCloud(): Promise<boolean> {
     return hadRealData
   } catch (e) {
     console.error('Failed to load from cloud:', e)
+    // On error, don't permanently block saving — but also don't risk
+    // wiping cloud data. Leave cloudLoaded false so saves stay blocked
+    // until a successful load; the user's cloud data remains intact.
     return false
   }
 }
