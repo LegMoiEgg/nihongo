@@ -87,6 +87,11 @@ const router = createRouter({
       component: () => import('../views/VocabOverviewView.vue'),
     },
     {
+      path: '/learn/grammar',
+      name: 'learn-grammar',
+      component: () => import('../views/GrammarSessionView.vue'),
+    },
+    {
       path: '/social',
       name: 'social',
       component: () => import('../views/SocialView.vue'),

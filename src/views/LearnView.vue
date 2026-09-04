@@ -5,6 +5,7 @@ import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
 import { vocabularyData } from '../data/vocabulary'
+import { particleData } from '../data/particles'
 import { computed } from 'vue'
 
 const learningStore = useLearningStore()
@@ -13,6 +14,7 @@ learningStore.initialize()
 
 const level = computed(() => userStore.currentLevel.level)
 const kanjiUnlocked = computed(() => level.value >= 15)
+const grammarUnlocked = computed(() => level.value >= 5)
 
 const categories = computed(() => [
   {
@@ -70,6 +72,20 @@ const categories = computed(() => [
     route: '/learn/vocabulary/overview',
     locked: false,
     lockLabel: '',
+  },
+  {
+    id: 'grammar',
+    title: 'Grammatik',
+    subtitle: grammarUnlocked.value ? 'Partikel: は を に で の …' : 'Ab Level 5 verfügbar',
+    icon: 'は',
+    iconClass: 'jp-large',
+    total: particleData.length,
+    mastered: learningStore.progressByCategory.grammar?.mastered || 0,
+    due: learningStore.dueByCategory.grammar,
+    color: '#ff9800',
+    route: '/learn/grammar',
+    locked: !grammarUnlocked.value,
+    lockLabel: `🔒 Level 5`,
   },
 ])
 </script>

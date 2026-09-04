@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-export type CardCategory = 'hiragana' | 'katakana' | 'kanji' | 'vocabulary'
+export type CardCategory = 'hiragana' | 'katakana' | 'kanji' | 'vocabulary' | 'grammar'
 export type CardStatus = 'new' | 'learning' | 'reviewing' | 'mastered'
 
 export interface CardProgress {
@@ -137,7 +137,7 @@ export const useLearningStore = defineStore('learning', () => {
 
   // ── Computed ──
   const progressByCategory = computed(() => {
-    const categories: CardCategory[] = ['hiragana', 'katakana', 'kanji', 'vocabulary']
+    const categories: CardCategory[] = ['hiragana', 'katakana', 'kanji', 'vocabulary', 'grammar']
     const result: Record<CardCategory, { total: number; new: number; learning: number; reviewing: number; mastered: number }> = {} as any
 
     for (const cat of categories) {
@@ -169,6 +169,7 @@ export const useLearningStore = defineStore('learning', () => {
       katakana: 0,
       kanji: 0,
       vocabulary: 0,
+      grammar: 0,
     }
     for (const card of dueCards.value) {
       result[card.category]++

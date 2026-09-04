@@ -10,6 +10,7 @@ import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
 import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
+import { particleData, allParticles, type ParticleCard, type ParticleQuiz } from '../data/particles'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 
 const router = useRouter()
@@ -39,7 +40,7 @@ function vocabHasFurigana(v: VocabCard): boolean {
 }
 
 // ── Exercise types ──
-type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-study' | 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence'
+type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-study' | 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence' | 'particle-study' | 'particle-fill'
 
 interface Exercise {
   type: ExerciseType
@@ -52,6 +53,9 @@ interface Exercise {
   sentence?: SentenceChallenge
   kana?: KanaCard
   kanaOptions?: string[]
+  particle?: ParticleCard        // for particle-study
+  particleQuiz?: ParticleQuiz    // for particle-fill
+  particleOptions?: string[]     // particle choices for particle-fill
 }
 
 // ── State ──
@@ -207,6 +211,39 @@ function generateExercises(): Exercise[] {
     }
   }
 
+  // Grammar particles (level 5+). New particles get a study card first, then
+  // fill-in-the-blank quizzes. Same "learn before quizzing" idea as vocab.
+  if (lvl >= 5) {
+    // Ensure progress entries exist.
+    for (const p of particleData) {
+      learningStore.getOrCreateProgress(p.id, 'grammar')
+    }
+    const isNewParticle = (id: string) => {
+      const p = learningStore.cardProgress.find(cp => cp.id === id)
+      return !p || p.status === 'new'
+    }
+    // Up to 2 new particles get a study card this session.
+    const newParticles = shuffle(particleData.filter(p => isNewParticle(p.id))).slice(0, 2)
+    for (const p of newParticles) {
+      result.push({ type: 'particle-study', particle: p })
+    }
+    // Build a small set of fill-in-the-blank quizzes (mix of new + known).
+    const quizPool: { quiz: ParticleQuiz; id: string }[] = []
+    for (const p of particleData) {
+      for (const q of p.quizzes) quizPool.push({ quiz: q, id: p.id })
+    }
+    const quizCount = lvl >= 12 ? 4 : 3
+    for (const { quiz, id } of shuffle(quizPool).slice(0, quizCount)) {
+      const wrong = shuffle(allParticles.filter(pc => pc !== quiz.answer)).slice(0, 3)
+      result.push({
+        type: 'particle-fill',
+        particle: particleData.find(p => p.id === id),
+        particleQuiz: quiz,
+        particleOptions: shuffle([quiz.answer, ...wrong]),
+      })
+    }
+  }
+
   // Kanji (level 15+)
   if (lvl >= 15) {
     const kanjiPool = shuffle(kanjiData)
@@ -236,13 +273,14 @@ function generateExercises(): Exercise[] {
     }
   }
 
-  // Study cards for new words come FIRST (learn before quizzing), keeping
-  // their generated order. Then: DE→JP block, JP→DE block, mixed rest.
-  const study = result.filter(e => e.type === 'vocab-study')
+  // Study cards for new words/particles come FIRST (learn before quizzing).
+  // Then: DE→JP block, JP→DE block, mixed rest.
+  const study = result.filter(e => e.type === 'vocab-study' || e.type === 'particle-study')
   const deJp = shuffle(result.filter(e => e.type === 'vocab-de-jp'))
   const jpDe = shuffle(result.filter(e => e.type === 'vocab-jp-de'))
   const rest = shuffle(result.filter(e =>
-    e.type !== 'vocab-study' && e.type !== 'vocab-de-jp' && e.type !== 'vocab-jp-de'
+    e.type !== 'vocab-study' && e.type !== 'particle-study' &&
+    e.type !== 'vocab-de-jp' && e.type !== 'vocab-jp-de'
   ))
 
   // Interleave: study first, then DE→JP block, some rest, JP→DE block, remaining rest
@@ -260,7 +298,7 @@ function generateExercises(): Exercise[] {
 function initSession() {
   exercises.value = generateExercises()
   // Study cards aren't questions → don't count them in the accuracy total.
-  originalCount.value = exercises.value.filter(e => e.type !== 'vocab-study').length
+  originalCount.value = exercises.value.filter(e => e.type !== 'vocab-study' && e.type !== 'particle-study').length
   currentIndex.value = 0
   score.value = 0
   totalXp.value = 0
@@ -293,6 +331,7 @@ function getCorrectMcAnswer(): string {
   if (ex.type === 'vocab-jp-de') return ex.vocab!.meaning
   if (ex.type === 'kanji-meaning') return ex.kanji!.meanings[0]
   if (ex.type === 'kanji-reading') return ex.kanji!.kunyomi[0] || ex.kanji!.onyomi[0]
+  if (ex.type === 'particle-fill') return ex.particleQuiz!.answer
   return ''
 }
 
@@ -319,9 +358,10 @@ function selectMcOption(option: string) {
     playWrongSound()
   }
 
-  if (ex.vocab) learningStore.recordAnswer(ex.vocab.id, 'vocabulary', correct)
+  if (ex.vocab && ex.type !== 'particle-fill') learningStore.recordAnswer(ex.vocab.id, 'vocabulary', correct)
   if (ex.kanji) learningStore.recordAnswer(ex.kanji.id, 'kanji', correct)
   if (ex.kana) learningStore.recordAnswer(ex.kana.id, ex.kana.id.startsWith('h-') ? 'hiragana' : 'katakana', correct)
+  if (ex.type === 'particle-fill' && ex.particle) learningStore.recordAnswer(ex.particle.id, 'grammar', correct)
 }
 
 // ── Sentence handlers ──
@@ -362,7 +402,7 @@ function nextExercise() {
   // If a real exercise was answered wrong, requeue it at the very end so it
   // comes back later — the learner must eventually get it right.
   const wasWrong =
-    ex && ex.type !== 'vocab-study' &&
+    ex && ex.type !== 'vocab-study' && ex.type !== 'particle-study' &&
     (ex.type === 'sentence' ? !sentenceCorrect.value : !mcCorrect.value)
   if (ex && wasWrong) {
     exercises.value.push({ ...ex, isRetry: true })
@@ -443,6 +483,7 @@ onMounted(() => {
         <span v-else-if="currentExercise.type === 'kanji-meaning'" class="badge badge-level">漢字 Bedeutung</span>
         <span v-else-if="currentExercise.type === 'kanji-reading'" class="badge badge-level">漢字 Lesung</span>
         <span v-else-if="currentExercise.type === 'sentence'" class="badge badge-streak">🧩 Satz bauen</span>
+        <span v-else-if="currentExercise.type === 'particle-fill'" class="badge badge-level">は Partikel</span>
         <span v-if="currentExercise.isNewWord && currentExercise.type !== 'vocab-study'" class="badge badge-new">🆕 Neues Wort</span>
         <span v-if="currentExercise.isRetry" class="badge badge-streak">🔁 Wiederholung</span>
       </div>
@@ -741,6 +782,59 @@ onMounted(() => {
           @click="checkSentence"
         >Prüfen</button>
       </template>
+
+      <!-- ══════════ PARTICLE STUDY (flashcard for new particles) ══════════ -->
+      <template v-else-if="currentExercise.type === 'particle-study' && currentExercise.particle">
+        <div class="vocab-study-intro">
+          <span class="badge badge-level">は Neuer Partikel</span>
+          <p class="vocab-study-hint">Schau dir den Partikel an. Danach wird er abgefragt.</p>
+        </div>
+        <div class="vocab-study-card card-flat">
+          <span class="vocab-study-word jp">{{ currentExercise.particle.particle }}</span>
+          <span class="vocab-study-reading">{{ currentExercise.particle.romaji }} · {{ currentExercise.particle.name }}</span>
+          <span class="vocab-study-meaning">{{ currentExercise.particle.explanation }}</span>
+          <div class="particle-examples">
+            <div v-for="(ex, i) in currentExercise.particle.examples" :key="i" class="particle-example">
+              <span class="jp">{{ ex.japanese }}</span>
+              <span class="particle-example-meaning">{{ ex.meaning }}</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary next-btn" @click="nextExercise">Verstanden →</button>
+      </template>
+
+      <!-- ══════════ PARTICLE FILL-IN-THE-BLANK ══════════ -->
+      <template v-else-if="currentExercise.type === 'particle-fill' && currentExercise.particleQuiz">
+        <div class="prompt-card card-flat">
+          <p class="prompt-label">{{ currentExercise.particleQuiz.meaning }}</p>
+          <p class="prompt-text jp">
+            <span>{{ currentExercise.particleQuiz.sentence.split('＿')[0] }}</span>
+            <span class="particle-blank">{{ mcChecked ? currentExercise.particleQuiz.answer : '＿' }}</span>
+            <span>{{ currentExercise.particleQuiz.sentence.split('＿')[1] }}</span>
+          </p>
+          <p v-if="!mcChecked" class="prompt-sublabel">Welcher Partikel passt?</p>
+        </div>
+        <div class="mc-grid">
+          <button
+            v-for="option in currentExercise.particleOptions" :key="option"
+            class="mc-option jp"
+            :class="{
+              correct: mcChecked && option === currentExercise.particleQuiz!.answer,
+              wrong: mcChecked && selectedMcAnswer === option && option !== currentExercise.particleQuiz!.answer,
+              dimmed: mcChecked && option !== currentExercise.particleQuiz!.answer && selectedMcAnswer !== option,
+            }"
+            :disabled="mcChecked" @click="selectMcOption(option)"
+          >{{ option }}</button>
+        </div>
+        <div v-if="mcChecked" class="feedback animate-slide-up">
+          <p :class="mcCorrect ? 'fb-correct' : 'fb-wrong'">{{ mcCorrect ? '✅ Richtig!' : '❌ Falsch' }}</p>
+          <div class="fb-example">
+            <span class="jp">{{ currentExercise.particleQuiz.reading }}</span>
+            <span class="fb-example-meaning">{{ currentExercise.particleQuiz.why }}</span>
+          </div>
+          <button class="btn btn-primary next-btn" @click="nextExercise">Weiter →</button>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -769,6 +863,38 @@ onMounted(() => {
 .counter {
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+/* Particle exercises */
+.particle-examples {
+  margin-top: 14px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.particle-example {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--bg-accent);
+  border-radius: var(--radius-md);
+}
+.particle-example .jp { font-size: 1.1rem; }
+.particle-example-meaning { font-size: 0.82rem; color: var(--text-secondary); }
+.particle-blank {
+  display: inline-block;
+  min-width: 1.3em;
+  color: var(--accent-primary);
+  font-weight: 700;
+  border-bottom: 2px dashed var(--accent-primary);
+  margin: 0 2px;
+}
+.prompt-sublabel {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 10px;
 }
 
 .back-btn {

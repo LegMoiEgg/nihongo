@@ -78,6 +78,7 @@ const categoryTitle = computed(() => {
     katakana: 'Katakana',
     kanji: 'Kanji',
     vocabulary: 'Vokabeln',
+    grammar: 'Grammatik',
   }
   return titles[props.category]
 })
