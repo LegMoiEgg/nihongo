@@ -28,14 +28,15 @@ exports.streakReminder = onSchedule(
     const DAILY_XP_GOAL = 100;
 
     const messages = [
-      "Dein Streak wartet auf dich! 🔥",
+      "Dein Streak & Dailys warten auf dich! 🔥",
       "Noch eine kurze Lektion? Du schaffst das! 💪",
-      "Vergiss nicht deine tägliche Lektion! 📚",
+      "Vergiss nicht deine tägliche Mission! 📚",
       "Dein Japanisch wartet auf dich! 🇯🇵",
       "Nur ein paar Minuten — dein Streak ist es wert! ⭐",
       "POWER!!! Mach deine Aufgabe du Mensch! 💧",
       "Du bist doch ein Macher, also mach deine Dailys! 💪",
       "Deswegen ist Böse's Arsch am Arsch! Mach die Dailys! 🔥",
+      "Du musst eine Krise abwenden und Dolmedgen! ⭐",
     ];
 
     try {
