@@ -73,8 +73,13 @@ export const useNotificationsStore = defineStore('notifications', () => {
       const messaging = await getMessagingInstance()
       if (!messaging) return
 
-      // Register the firebase messaging service worker
+      // Register the firebase messaging service worker AND wait until it is
+      // active. Calling getToken() before the SW is ready is the most common
+      // silent failure on other devices (getToken rejects/returns empty and
+      // the error is only logged). Waiting for `ready` makes token retrieval
+      // reliable across devices, not just the dev's own.
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      await navigator.serviceWorker.ready
 
       const fcmToken = await getToken(messaging, {
         vapidKey: VAPID_KEY,

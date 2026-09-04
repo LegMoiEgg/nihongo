@@ -17,7 +17,9 @@ const APP_URL = "https://nihongo-learn-gg.vercel.app";
  */
 exports.streakReminder = onSchedule(
   {
-    schedule: "0 20,21,22,23 * * *",
+    // Remind at 12:00, 18:00, 20:00, 21:00, 22:00, 23:00 (Europe/Berlin) —
+    // but only users who haven't reached their daily XP goal yet (filtered below).
+    schedule: "0 12,18,20,21,22,23 * * *",
     timeZone: "Europe/Berlin",
     region: "europe-west1",
   },
@@ -34,10 +36,12 @@ exports.streakReminder = onSchedule(
     ];
 
     try {
-      const usersSnap = await db
-        .collection("users")
-        .where("fcmToken", "!=", null)
-        .get();
+      // Read ALL users and filter in code. A Firestore `where("fcmToken","!=",null)`
+      // query silently EXCLUDES documents where the field is missing or null —
+      // which is exactly the set of users we still want to consider (and it made
+      // notifications only ever reach the app creator). Filtering in code avoids
+      // that trap; the user base is small so a full read is fine.
+      const usersSnap = await db.collection("users").get();
 
       const tokensToNotify = [];
 

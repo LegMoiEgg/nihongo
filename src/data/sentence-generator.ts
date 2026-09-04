@@ -148,6 +148,120 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
     hint: 'べんきょうします = lernen',
     difficulty: 'hard',
   },
+
+  // ── More Easy: X は Y です ──
+  {
+    requiredVocab: ['v-watashi', 'v-sensei'],
+    meaning: 'Ich bin Lehrer.',
+    blocks: ['わたし', 'は', 'せんせい', 'です'],
+    extraDistractors: ['がくせい', 'あなた'],
+    hint: 'せんせい = Lehrer',
+    difficulty: 'easy',
+  },
+  {
+    requiredVocab: ['v-kore', 'v-ocha'],
+    meaning: 'Das ist Tee.',
+    blocks: ['これ', 'は', 'おちゃ', 'です'],
+    extraDistractors: ['みず', 'ほん'],
+    hint: 'おちゃ = Tee',
+    difficulty: 'easy',
+  },
+  {
+    requiredVocab: ['v-sore', 'v-hon'],
+    meaning: 'Das (dort) ist ein Buch.',
+    blocks: ['それ', 'は', 'ほん', 'です'],
+    extraDistractors: ['これ', 'みず'],
+    hint: 'それ = das (dort)',
+    difficulty: 'easy',
+  },
+
+  // ── More Easy: Noun は Adjektiv です ──
+  {
+    requiredVocab: ['v-ocha', 'v-atsui'],
+    meaning: 'Der Tee ist heiß.',
+    blocks: ['おちゃ', 'は', 'あつい', 'です'],
+    extraDistractors: ['つめたい', 'おいしい'],
+    hint: 'あつい = heiß',
+    difficulty: 'easy',
+  },
+  {
+    requiredVocab: ['v-hon', 'v-takai'],
+    meaning: 'Das Buch ist teuer.',
+    blocks: ['ほん', 'は', 'たかい', 'です'],
+    extraDistractors: ['やすい', 'おいしい'],
+    hint: 'たかい = teuer',
+    difficulty: 'easy',
+  },
+
+  // ── More Medium: essen/trinken/lesen ──
+  {
+    requiredVocab: ['v-watashi', 'v-tabemono', 'v-taberu'],
+    meaning: 'Ich esse Essen.',
+    blocks: ['わたし', 'は', 'たべもの', 'を', 'たべます'],
+    extraDistractors: ['のみます', 'みず'],
+    hint: 'たべもの = Essen',
+    difficulty: 'medium',
+  },
+  {
+    requiredVocab: ['v-watashi', 'v-nihongo', 'v-hanasu'],
+    meaning: 'Ich spreche Japanisch.',
+    blocks: ['わたし', 'は', 'にほんご', 'を', 'はなします'],
+    extraDistractors: ['えいご', 'べんきょうします'],
+    hint: 'はなします = sprechen',
+    difficulty: 'medium',
+  },
+  {
+    requiredVocab: ['v-watashi', 'v-eigo', 'v-hanasu'],
+    meaning: 'Ich spreche Englisch.',
+    blocks: ['わたし', 'は', 'えいご', 'を', 'はなします'],
+    extraDistractors: ['にほんご', 'よみます'],
+    hint: 'えいご = Englisch',
+    difficulty: 'medium',
+  },
+
+  // ── More Medium: gehen/kommen ──
+  {
+    requiredVocab: ['v-watashi', 'v-gakkou', 'v-kuru'],
+    meaning: 'Ich komme zur Schule.',
+    blocks: ['わたし', 'は', 'がっこう', 'に', 'きます'],
+    extraDistractors: ['いきます', 'えき'],
+    hint: 'きます = kommen',
+    difficulty: 'medium',
+  },
+
+  // ── More Hard: Zeit + Objekt + Verb ──
+  {
+    requiredVocab: ['v-watashi', 'v-yoru', 'v-hon', 'v-yomu'],
+    meaning: 'Ich lese abends ein Buch.',
+    blocks: ['わたし', 'は', 'よる', 'ほん', 'を', 'よみます'],
+    extraDistractors: ['あさ', 'たべます'],
+    hint: 'よる = Nacht/Abend',
+    difficulty: 'hard',
+  },
+  {
+    requiredVocab: ['v-watashi', 'v-asa', 'v-ocha', 'v-nomu'],
+    meaning: 'Ich trinke morgens Tee.',
+    blocks: ['わたし', 'は', 'あさ', 'おちゃ', 'を', 'のみます'],
+    extraDistractors: ['よる', 'たべます'],
+    hint: 'あさ = Morgen',
+    difficulty: 'hard',
+  },
+  {
+    requiredVocab: ['v-kyou', 'v-samui'],
+    meaning: 'Heute ist es kalt.',
+    blocks: ['きょう', 'は', 'さむい', 'です'],
+    extraDistractors: ['あつい', 'あした'],
+    hint: 'さむい = kalt (Wetter)',
+    difficulty: 'medium',
+  },
+  {
+    requiredVocab: ['v-watashi', 'v-eki', 'v-iku'],
+    meaning: 'Ich gehe morgen zum Bahnhof.',
+    blocks: ['わたし', 'は', 'あした', 'えき', 'に', 'いきます'],
+    extraDistractors: ['きょう', 'がっこう'],
+    hint: 'あした = morgen',
+    difficulty: 'hard',
+  },
 ]
 
 /**
@@ -229,7 +343,8 @@ let idCounter = 0
  */
 export function generateDynamicSentences(
   learnedVocabIds: string[],
-  count: number
+  count: number,
+  userLevel = 1
 ): SentenceChallenge[] {
   const learnedSet = new Set(learnedVocabIds)
 
@@ -238,7 +353,7 @@ export function generateDynamicSentences(
   // vocab as "known" so basic sentences are always available.
   const knownVocabIds = new Set(vocabularyData.map(v => v.id))
 
-  const available = SENTENCE_TEMPLATES.filter(t =>
+  let available = SENTENCE_TEMPLATES.filter(t =>
     t.requiredVocab.every(id => {
       // If the vocab doesn't exist in our data, allow it (basic building blocks)
       if (!knownVocabIds.has(id)) return true
@@ -246,12 +361,37 @@ export function generateDynamicSentences(
     })
   )
 
-  // If nothing matches (brand new learner), use the easiest templates anyway
-  const pool = available.length > 0
-    ? available
-    : SENTENCE_TEMPLATES.filter(t => t.difficulty === 'easy')
+  // Level-based difficulty gating so higher-level users stop getting the same
+  // trivial "Das ist ein Buch." every day:
+  //   < 12  → easy + medium
+  //   12-17 → medium + hard (drop easy)
+  //   >= 18 → hard first, medium as backup (no easy)
+  const allowedByLevel = (t: SentenceTemplate): boolean => {
+    if (userLevel >= 18) return t.difficulty !== 'easy'
+    if (userLevel >= 12) return t.difficulty !== 'easy'
+    return true
+  }
+  const preferredByLevel = (t: SentenceTemplate): boolean => {
+    if (userLevel >= 18) return t.difficulty === 'hard'
+    if (userLevel >= 12) return t.difficulty === 'medium' || t.difficulty === 'hard'
+    return t.difficulty === 'easy' || t.difficulty === 'medium'
+  }
 
-  const selected = shuffle(pool).slice(0, count)
+  const leveled = available.filter(allowedByLevel)
+  if (leveled.length > 0) available = leveled
+
+  // Prefer the level-appropriate difficulty, but keep the rest as fallback so
+  // we can always reach `count`.
+  const preferred = shuffle(available.filter(preferredByLevel))
+  const fallback = shuffle(available.filter(t => !preferredByLevel(t)))
+  let pool = [...preferred, ...fallback]
+
+  // If nothing matches at all (brand new learner), use the easiest templates.
+  if (pool.length === 0) {
+    pool = shuffle(SENTENCE_TEMPLATES.filter(t => t.difficulty === 'easy'))
+  }
+
+  const selected = pool.slice(0, count)
 
   return selected.map(t => {
     const distractors = shuffle(t.extraDistractors || []).slice(0, 2)

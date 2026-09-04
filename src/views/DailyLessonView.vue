@@ -201,7 +201,7 @@ function generateExercises(): Exercise[] {
   if (lvl >= 10) {
     const learnedIds = vocabCards.map(v => v.card.id)
     const sentenceCount = lvl >= 15 ? 5 : 3
-    const generated = generateDynamicSentences(learnedIds, sentenceCount)
+    const generated = generateDynamicSentences(learnedIds, sentenceCount, lvl)
     for (const sentence of generated) {
       result.push({ type: 'sentence', sentence })
     }

@@ -65,7 +65,7 @@ function initSession() {
     })
     .map(v => v.id)
 
-  const generated = generateDynamicSentences(learnedIds, 10)
+  const generated = generateDynamicSentences(learnedIds, 10, userStore.currentLevel.level)
   challenges.value = generated
   currentChallengeIndex.value = 0
   sessionScore.value = 0

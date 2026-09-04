@@ -176,7 +176,7 @@ function generateMixedQuestions(): TestQuestion[] {
   // Sentences (if level 10+)
   if (userStore.currentLevel.level >= 10) {
     const learnedIds = learned.map(v => v.id)
-    const sentences = generateDynamicSentences(learnedIds, 3)
+    const sentences = generateDynamicSentences(learnedIds, 3, userStore.currentLevel.level)
     for (const s of sentences) {
       qs.push({ id: `mx-s-${s.id}`, type: 'sentence', prompt: s.meaning, sentence: s })
     }

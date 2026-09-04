@@ -38,6 +38,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,json,svg,png,woff2}'],
+        // Never let the Workbox SW precache or serve the FCM service worker —
+        // it must be fetched fresh so push handling isn't broken by a stale
+        // cached copy. This prevents the "notifications work only for the app
+        // creator / stop working after a deploy" class of PWA+FCM conflicts.
+        globIgnores: ['**/firebase-messaging-sw.js'],
+        navigateFallbackDenylist: [/firebase-messaging-sw\.js$/],
         // Take control immediately when a new version is deployed, so users
         // get the latest code without needing to close all tabs first.
         skipWaiting: true,

@@ -310,6 +310,18 @@ export const useLearningStore = defineStore('learning', () => {
   function getVocabForDailyLesson(allVocabIds: string[], userLevel: number, limit = 10): { id: string; isNew: boolean }[] {
     const unlocked = getUnlockedVocabIds(allVocabIds, userLevel)
 
+    // Proper Fisher-Yates shuffle. The previous `sort(() => Math.random()-0.5)`
+    // is statistically biased and barely reorders — that's a big reason the
+    // daily lesson felt like the SAME words every day.
+    const shuffleIds = (arr: string[]): string[] => {
+      const a = [...arr]
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[a[i], a[j]] = [a[j], a[i]]
+      }
+      return a
+    }
+
     const mastered: string[] = []
     const inProgress: string[] = []
     const brandNew: string[] = []
@@ -327,27 +339,39 @@ export const useLearningStore = defineStore('learning', () => {
 
     const result: { id: string; isNew: boolean }[] = []
 
-    // Priority 1: in-progress words (shuffle)
-    const shuffledInProgress = inProgress.sort(() => Math.random() - 0.5)
+    // Priority 1: in-progress words (properly shuffled so the SELECTION —
+    // not just the order — varies between sessions).
+    const shuffledInProgress = shuffleIds(inProgress)
     for (const id of shuffledInProgress.slice(0, limit)) {
       result.push({ id, isNew: false })
     }
 
-    // Priority 2: add up to 3 new words if we have room
+    // Priority 2: add up to 3 new words if we have room.
     const maxNew = Math.min(3, limit - result.length)
-    for (const id of brandNew.slice(0, maxNew)) {
+    for (const id of shuffleIds(brandNew).slice(0, maxNew)) {
       result.push({ id, isNew: true })
     }
 
-    // Priority 3: fill remaining with mastered words for review
+    // Priority 3: fill remaining with mastered words for review.
     if (result.length < limit) {
-      const shuffledMastered = mastered.sort(() => Math.random() - 0.5)
+      const shuffledMastered = shuffleIds(mastered)
       for (const id of shuffledMastered.slice(0, limit - result.length)) {
         result.push({ id, isNew: false })
       }
     }
 
-    return result.sort(() => Math.random() - 0.5)
+    // If we STILL have fewer than the limit but there are more unlocked words
+    // available overall, top up with a random review sample so higher-level
+    // users with a large vocabulary see fresh mixes instead of the same core.
+    if (result.length < limit) {
+      const already = new Set(result.map(r => r.id))
+      const extras = shuffleIds(unlocked.filter(id => !already.has(id)))
+      for (const id of extras.slice(0, limit - result.length)) {
+        result.push({ id, isNew: false })
+      }
+    }
+
+    return shuffleIds(result.map(r => r.id)).map(id => result.find(r => r.id === id)!)
   }
 
   function isCardMastered(id: string): boolean {
