@@ -19,7 +19,7 @@ exports.streakReminder = onSchedule(
   {
     // Remind at 12:00, 18:00, 20:00, 21:00, 22:00, 23:00 (Europe/Berlin) —
     // but only users who haven't reached their daily XP goal yet (filtered below).
-    schedule: "0 12,18,20,21,22,23 * * *",
+    schedule: "0 18,20,21,22,23 * * *",
     timeZone: "Europe/Berlin",
     region: "europe-west1",
   },
@@ -33,6 +33,9 @@ exports.streakReminder = onSchedule(
       "Vergiss nicht deine tägliche Lektion! 📚",
       "Dein Japanisch wartet auf dich! 🇯🇵",
       "Nur ein paar Minuten — dein Streak ist es wert! ⭐",
+      "POWER!!! Mach deine Aufgabe du Mensch! 💧",
+      "Du bist doch ein Macher, also mach deine Dailys! 💪",
+      "Deswegen ist Böse's Arsch am Arsch! Mach die Dailys! 🔥",
     ];
 
     try {
