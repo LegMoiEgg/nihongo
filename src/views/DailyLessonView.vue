@@ -9,7 +9,7 @@ import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
-import { generateDynamicSentences, type SentenceChallenge } from '../data/sentence-generator'
+import { generateSentencesFromVocab, type SentenceChallenge } from '../data/sentence-generator'
 import { particleData, allParticles, type ParticleCard, type ParticleQuiz } from '../data/particles'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 
@@ -201,11 +201,20 @@ function generateExercises(): Exercise[] {
     })
   }
 
-  // Sentences (level 10+)
+  // Sentences (level 10+). Build sentences AROUND the words practised in this
+  // session, so a freshly-learned noun (さかな, にく …) actually appears in a
+  // sentence. Falls back to curated templates when no dynamic sentence fits.
   if (lvl >= 10) {
-    const learnedIds = vocabCards.map(v => v.card.id)
+    const sessionVocabIds = vocabCards.map(v => v.card.id)
+    // All words the learner has seen (not "new") — used as sentence partners
+    // (verbs, adjectives, pronouns) and as distractors.
+    const learnedIds = learningStore.cardProgress
+      .filter(c => c.category === 'vocabulary' && c.status !== 'new')
+      .map(c => c.id)
+    // Ensure the session words count as available partners too.
+    const learnedPlusSession = Array.from(new Set([...learnedIds, ...sessionVocabIds]))
     const sentenceCount = lvl >= 15 ? 5 : 3
-    const generated = generateDynamicSentences(learnedIds, sentenceCount, lvl)
+    const generated = generateSentencesFromVocab(sessionVocabIds, learnedPlusSession, sentenceCount, lvl)
     for (const sentence of generated) {
       result.push({ type: 'sentence', sentence })
     }

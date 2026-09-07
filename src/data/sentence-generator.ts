@@ -1,4 +1,5 @@
 import { vocabularyData } from './vocabulary'
+import { toMasu } from './verb-conjugation'
 
 export interface SentenceChallenge {
   id: string
@@ -37,7 +38,7 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
     difficulty: 'easy',
   },
   {
-    requiredVocab: ['v-kore', 'v-hon'],
+    requiredVocab: ['v-kore', 'v-hon-book'],
     meaning: 'Das ist ein Buch.',
     blocks: ['これ', 'は', 'ほん', 'です'],
     extraDistractors: ['それ', 'みず'],
@@ -97,7 +98,7 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
     difficulty: 'medium',
   },
   {
-    requiredVocab: ['v-watashi', 'v-hon', 'v-yomu'],
+    requiredVocab: ['v-watashi', 'v-hon-book', 'v-yomu'],
     meaning: 'Ich lese ein Buch.',
     blocks: ['わたし', 'は', 'ほん', 'を', 'よみます'],
     extraDistractors: ['かきます', 'みます'],
@@ -167,7 +168,7 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
     difficulty: 'easy',
   },
   {
-    requiredVocab: ['v-sore', 'v-hon'],
+    requiredVocab: ['v-sore', 'v-hon-book'],
     meaning: 'Das (dort) ist ein Buch.',
     blocks: ['それ', 'は', 'ほん', 'です'],
     extraDistractors: ['これ', 'みず'],
@@ -185,7 +186,7 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
     difficulty: 'easy',
   },
   {
-    requiredVocab: ['v-hon', 'v-takai'],
+    requiredVocab: ['v-hon-book', 'v-takai'],
     meaning: 'Das Buch ist teuer.',
     blocks: ['ほん', 'は', 'たかい', 'です'],
     extraDistractors: ['やすい', 'おいしい'],
@@ -231,7 +232,7 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
 
   // ── More Hard: Zeit + Objekt + Verb ──
   {
-    requiredVocab: ['v-watashi', 'v-yoru', 'v-hon', 'v-yomu'],
+    requiredVocab: ['v-watashi', 'v-yoru', 'v-hon-book', 'v-yomu'],
     meaning: 'Ich lese abends ein Buch.',
     blocks: ['わたし', 'は', 'よる', 'ほん', 'を', 'よみます'],
     extraDistractors: ['あさ', 'たべます'],
@@ -404,4 +405,238 @@ export function generateDynamicSentences(
       difficulty: t.difficulty,
     }
   })
+}
+
+// ────────────────────────────────────────────────────────────────────────
+//  DYNAMIC SENTENCE GENERATION
+//  Builds correct sentences from the words the learner actually knows, so a
+//  freshly-learned noun (さかな, にく, …) shows up in a real sentence like
+//  わたし は さかな を たべます. This complements the hand-written templates.
+// ────────────────────────────────────────────────────────────────────────
+
+const vocabById = new Map(vocabularyData.map(v => [v.id, v]))
+
+/** Semantic groups: which nouns work as the object of which verb. */
+const EDIBLE = ['v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono']
+const DRINKABLE = ['v-mizu', 'v-ocha', 'v-nomimono']
+const READABLE = ['v-hon-book', 'v-shinbun', 'v-tegami', 'v-jisho']
+const PLACES = ['v-gakkou', 'v-eki', 'v-byouin', 'v-mise', 'v-kaisha', 'v-uchi']
+// Nouns that can sensibly take a plain "[Noun] は [i-Adjective] です".
+const DESCRIBABLE = [
+  'v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono',
+  'v-mizu', 'v-ocha', 'v-hon-book', 'v-kuruma', 'v-inu', 'v-neko',
+  'v-gakkou', 'v-eki', 'v-heya',
+]
+const I_ADJECTIVES = [
+  'v-ookii', 'v-chiisai', 'v-oishii', 'v-takai', 'v-yasui', 'v-atarashii',
+  'v-furui', 'v-ii', 'v-warui', 'v-atsui', 'v-samui',
+]
+
+const SUBJECT_PRONOUNS = ['v-watashi', 'v-kare', 'v-kanojo']
+
+function reading(id: string): string | null {
+  const v = vocabById.get(id)
+  return v ? v.reading : null
+}
+function meaningDe(id: string): string | null {
+  const v = vocabById.get(id)
+  return v ? v.meaning : null
+}
+
+/** German subject word for the pronoun (nominative). */
+const PRONOUN_DE: Record<string, string> = {
+  'v-watashi': 'Ich',
+  'v-kare': 'Er',
+  'v-kanojo': 'Sie',
+}
+/** German verb form matching the subject (only 1st/3rd person singular here). */
+const VERB_DE: Record<string, { ich: string; er: string }> = {
+  'v-taberu': { ich: 'esse', er: 'isst' },
+  'v-nomu': { ich: 'trinke', er: 'trinkt' },
+  'v-yomu': { ich: 'lese', er: 'liest' },
+  'v-iku': { ich: 'gehe', er: 'geht' },
+}
+
+interface DynOptions {
+  learnedSet: Set<string>
+  pickDistractorReadings: (correct: string[], pos: 'noun' | 'verb' | 'adj') => string[]
+}
+
+/**
+ * Try to build ONE sentence that uses `nounId`. Returns null if the required
+ * partner words (verb / adjective / pronoun) aren't learned yet.
+ */
+function buildSentenceForNoun(nounId: string, opts: DynOptions): SentenceChallenge | null {
+  const { learnedSet } = opts
+  const nounR = reading(nounId)
+  const nounDe = meaningDe(nounId)
+  if (!nounR || !nounDe) return null
+
+  const has = (id: string) => learnedSet.has(id)
+  const pron = SUBJECT_PRONOUNS.filter(has)
+  const pickPronoun = () => (pron.length ? pron[Math.floor(Math.random() * pron.length)] : 'v-watashi')
+
+  // Pattern A: [Pronoun] は [Noun] を [Verb-masu]  (edible/drinkable/readable)
+  const tryTransitive = (verbId: string): SentenceChallenge | null => {
+    if (!has(verbId)) return null
+    const vr = reading(verbId)
+    const masu = vr ? toMasu(verbId, vr) : null
+    if (!masu) return null
+    const pId = pickPronoun()
+    const pr = reading(pId) || 'わたし'
+    const vde = VERB_DE[verbId]
+    const pde = PRONOUN_DE[pId] || 'Ich'
+    const verbDe = vde ? (pId === 'v-watashi' ? vde.ich : vde.er) : ''
+    const de = `${pde} ${verbDe} ${nounDe.split(' /')[0]}.`
+    const distr = opts.pickDistractorReadings([pr, 'は', nounR, 'を', masu], 'noun')
+    return {
+      id: `dyn-${++idCounter}`,
+      meaning: de,
+      correctOrder: [pr, 'は', nounR, 'を', masu],
+      distractors: distr,
+      hint: 'は = Thema, を = Objekt',
+      difficulty: 'medium',
+    }
+  }
+
+  if (EDIBLE.includes(nounId)) { const s = tryTransitive('v-taberu'); if (s) return s }
+  if (DRINKABLE.includes(nounId)) { const s = tryTransitive('v-nomu'); if (s) return s }
+  if (READABLE.includes(nounId)) { const s = tryTransitive('v-yomu'); if (s) return s }
+
+  // Pattern B: [Pronoun] は [Place] に いきます  (place + go)
+  if (PLACES.includes(nounId) && has('v-iku')) {
+    const masu = toMasu('v-iku', reading('v-iku')!)
+    if (masu) {
+      const pId = pickPronoun()
+      const pr = reading(pId) || 'わたし'
+      const pde = PRONOUN_DE[pId] || 'Ich'
+      const de = `${pde} ${pId === 'v-watashi' ? 'gehe' : 'geht'} zu${nounDe === 'Schule' ? 'r' : 'm'} ${nounDe.split(' /')[0]}.`
+      return {
+        id: `dyn-${++idCounter}`,
+        meaning: de,
+        correctOrder: [pr, 'は', nounR, 'に', masu],
+        distractors: opts.pickDistractorReadings([pr, 'は', nounR, 'に', masu], 'noun'),
+        hint: 'に = Zielpartikel, いきます = gehen',
+        difficulty: 'medium',
+      }
+    }
+  }
+
+  // Pattern C: [Noun] は [i-Adjective] です  (noun + adjective description)
+  if (DESCRIBABLE.includes(nounId)) {
+    const adjs = I_ADJECTIVES.filter(has)
+    if (adjs.length > 0) {
+      const adjId = adjs[Math.floor(Math.random() * adjs.length)]
+      const ar = reading(adjId)
+      const ade = meaningDe(adjId)
+      if (ar && ade) {
+        const de = `${nounDe.split(' /')[0]} ist ${ade.split(' (')[0].split(' /')[0]}.`
+        return {
+          id: `dyn-${++idCounter}`,
+          meaning: de,
+          correctOrder: [nounR, 'は', ar, 'です'],
+          distractors: opts.pickDistractorReadings([nounR, 'は', ar, 'です'], 'adj'),
+          hint: 'は = Thema, です = sein',
+          difficulty: 'easy',
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+/** Build a distractor picker that pulls plausible wrong readings by role. */
+function makeDistractorPicker(learnedIds: string[]) {
+  const learnedNouns = learnedIds.filter(id => vocabById.get(id)?.partOfSpeech === 'Nomen')
+  const learnedVerbsMasu = learnedIds
+    .filter(id => vocabById.get(id)?.partOfSpeech === 'Verb')
+    .map(id => toMasu(id, reading(id) || ''))
+    .filter((x): x is string => !!x)
+  const learnedAdjs = learnedIds.filter(id => vocabById.get(id)?.partOfSpeech === 'i-Adjektiv')
+
+  return (correct: string[], pos: 'noun' | 'verb' | 'adj'): string[] => {
+    const correctSet = new Set(correct)
+    let pool: string[] = []
+    if (pos === 'noun') {
+      pool = learnedNouns.map(id => reading(id)!).filter(Boolean)
+      pool.push(...learnedVerbsMasu)
+    } else if (pos === 'adj') {
+      pool = learnedAdjs.map(id => reading(id)!).filter(Boolean)
+    } else {
+      pool = learnedVerbsMasu
+    }
+    const distinct = shuffle([...new Set(pool)].filter(r => !correctSet.has(r)))
+    return distinct.slice(0, 2)
+  }
+}
+
+/**
+ * Generate sentences that USE the given vocab (typically the words learned in
+ * this session). Falls back to the curated templates if not enough dynamic
+ * sentences can be built.
+ *
+ * @param sessionVocabIds  words to build sentences around (prioritized)
+ * @param learnedVocabIds  all words the learner knows (for distractors + partners)
+ * @param count            how many sentences to return
+ * @param userLevel        difficulty gating for the template fallback
+ */
+export function generateSentencesFromVocab(
+  sessionVocabIds: string[],
+  learnedVocabIds: string[],
+  count: number,
+  userLevel = 1
+): SentenceChallenge[] {
+  const learnedSet = new Set(learnedVocabIds)
+  const opts: DynOptions = {
+    learnedSet,
+    pickDistractorReadings: makeDistractorPicker(learnedVocabIds),
+  }
+
+  const out: SentenceChallenge[] = []
+  const usedMeanings = new Set<string>()
+
+  // 1) Prefer sentences built around the session's nouns.
+  const sessionNouns = shuffle(
+    sessionVocabIds.filter(id => vocabById.get(id)?.partOfSpeech === 'Nomen')
+  )
+  for (const nounId of sessionNouns) {
+    if (out.length >= count) break
+    const s = buildSentenceForNoun(nounId, opts)
+    if (s && !usedMeanings.has(s.meaning)) {
+      out.push(s)
+      usedMeanings.add(s.meaning)
+    }
+  }
+
+  // 2) Top up with sentences from any other learned noun.
+  if (out.length < count) {
+    const otherNouns = shuffle(
+      learnedVocabIds.filter(
+        id => vocabById.get(id)?.partOfSpeech === 'Nomen' && !sessionVocabIds.includes(id)
+      )
+    )
+    for (const nounId of otherNouns) {
+      if (out.length >= count) break
+      const s = buildSentenceForNoun(nounId, opts)
+      if (s && !usedMeanings.has(s.meaning)) {
+        out.push(s)
+        usedMeanings.add(s.meaning)
+      }
+    }
+  }
+
+  // 3) Fall back to curated templates for the remaining slots.
+  if (out.length < count) {
+    const templates = generateDynamicSentences(learnedVocabIds, count - out.length, userLevel)
+    for (const t of templates) {
+      if (out.length >= count) break
+      if (!usedMeanings.has(t.meaning)) {
+        out.push(t)
+        usedMeanings.add(t.meaning)
+      }
+    }
+  }
+
+  return out.slice(0, count)
 }

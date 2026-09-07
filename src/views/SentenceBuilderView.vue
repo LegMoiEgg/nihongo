@@ -5,7 +5,7 @@ import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
 import { scheduleSave } from '../stores/sync'
 import { vocabularyData } from '../data/vocabulary'
-import { generateDynamicSentences, translateBlock, type SentenceChallenge } from '../data/sentence-generator'
+import { generateSentencesFromVocab, translateBlock, type SentenceChallenge } from '../data/sentence-generator'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 
@@ -65,7 +65,8 @@ function initSession() {
     })
     .map(v => v.id)
 
-  const generated = generateDynamicSentences(learnedIds, 10, userStore.currentLevel.level)
+  // Build sentences around the learner's known words (dynamic + templates).
+  const generated = generateSentencesFromVocab(learnedIds, learnedIds, 10, userStore.currentLevel.level)
   challenges.value = generated
   currentChallengeIndex.value = 0
   sessionScore.value = 0
