@@ -28,15 +28,17 @@ exports.streakReminder = onSchedule(
     const DAILY_XP_GOAL = 100;
 
     const messages = [
-      "Dein Streak & Dailys warten auf dich! 🔥",
-      "Noch eine kurze Lektion? Du schaffst das! 💪",
-      "Vergiss nicht deine tägliche Mission! 📚",
-      "Dein Japanisch wartet auf dich! 🇯🇵",
-      "Nur ein paar Minuten — dein Streak ist es wert! ⭐",
       "POWER!!! Mach deine Aufgabe du Mensch! 💧",
       "Du bist doch ein Macher, also mach deine Dailys! 💪",
       "Deswegen ist Böse's Arsch am Arsch! Mach die Dailys! 🔥",
-      "Du musst eine Krise abwenden und Dolmedgen! ⭐",
+      "Du musst eine Krise abwenden und dolmetschen! ⭐",
+      "にほんご ruft — und du drückst auf Snooze?! 😤",
+      "Selbst Godzilla macht seine Dailys. Und du? 🦖",
+      "Kein Reis ohne Schweiß! Los, an die Lektion! 🍚",
+      "Deine Sensei-Ehre steht auf dem Spiel! 🥋",
+      "Heute nicht lernen = morgen doppelt heulen! 😭",
+      "Mach die Lektion, sonst kommt die Katze の Rache! 🐱",
+      "DU willst im Maid-Café was bestellen!? Dann lern! 🐱",
     ];
 
     try {
@@ -44,7 +46,6 @@ exports.streakReminder = onSchedule(
       // query silently EXCLUDES documents where the field is missing or null —
       // which is exactly the set of users we still want to consider (and it made
       // notifications only ever reach the app creator). Filtering in code avoids
-      // that trap; the user base is small so a full read is fine.
       const usersSnap = await db.collection("users").get();
 
       const tokensToNotify = [];
