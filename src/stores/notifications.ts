@@ -213,7 +213,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       await reg.showNotification('NihonGo — Test 🔔', {
         body: 'Wenn du das siehst, funktionieren Benachrichtigungen!',
         icon: '/favicon.svg',
-        badge: '/favicon.svg',
+        badge: '/notification-badge.svg',
         tag: 'test',
         requireInteraction: true, // stays until dismissed (helps on Android)
       })

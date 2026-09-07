@@ -27,7 +27,9 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, {
     body,
     icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    // Monochrome status-bar icon (transparent bg, white 日). Android tints
+    // this and shows only its shape — a colored icon becomes a white square.
+    badge: '/notification-badge.svg',
     tag: data.tag || 'nihongo',
     data: { link },
     requireInteraction: true,
