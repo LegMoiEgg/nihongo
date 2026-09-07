@@ -19,7 +19,7 @@ exports.streakReminder = onSchedule(
   {
     // Remind at 12:00, 18:00, 20:00, 21:00, 22:00, 23:00 (Europe/Berlin) —
     // but only users who haven't reached their daily XP goal yet (filtered below).
-    schedule: "0 18,20,21,22,23 * * *",
+    schedule: "0 12,18,20,21,22,23 * * *",
     timeZone: "Europe/Berlin",
     region: "europe-west1",
   },
