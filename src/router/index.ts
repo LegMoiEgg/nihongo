@@ -92,6 +92,12 @@ const router = createRouter({
       component: () => import('../views/GrammarSessionView.vue'),
     },
     {
+      path: '/weekly-test',
+      name: 'weekly-test',
+      component: () => import('../views/WeeklyTestView.vue'),
+      meta: { title: 'Wochentest' },
+    },
+    {
       path: '/social',
       name: 'social',
       component: () => import('../views/SocialView.vue'),

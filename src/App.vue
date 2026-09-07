@@ -3,6 +3,8 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomNav from './components/BottomNav.vue'
 import LevelUpPopup from './components/LevelUpPopup.vue'
+import WeeklyTestPopup from './components/WeeklyTestPopup.vue'
+import { shouldOfferWeeklyTest, markWeeklyTestDone } from './composables/useWeeklyTest'
 import { useUserStore } from './stores/user'
 import { useAuthStore } from './stores/auth'
 import { useBadgesStore } from './stores/badges'
@@ -45,6 +47,30 @@ function closeLevelUp() {
   levelUp.value = null
 }
 
+// ── Weekly test popup (Sundays only, once per week) ──
+const showWeeklyTest = ref(false)
+
+/** Offer the Sunday test when the user is on the home screen (not onboarding,
+ *  not mid-exercise) and it hasn't been done/dismissed this week. */
+function maybeOfferWeeklyTest() {
+  if (showWeeklyTest.value) return
+  if (!authStore.isLoggedIn) return
+  if (currentRouteName.value !== 'dashboard') return
+  if (!shouldOfferWeeklyTest()) return
+  showWeeklyTest.value = true
+}
+watch(currentRouteName, maybeOfferWeeklyTest)
+
+function startWeeklyTest() {
+  showWeeklyTest.value = false
+  router.push('/weekly-test')
+}
+function dismissWeeklyTest() {
+  showWeeklyTest.value = false
+  // Dismissing counts as "done this week" so it doesn't nag on every restart.
+  markWeeklyTestDone()
+}
+
 // Initialize on app start
 userStore.initializeUser()
 badgesStore.initialize()
@@ -82,6 +108,9 @@ let initialAuthHandled = false
   initialAuthHandled = true
   // Unblock the router guard now that auth + initial load are done.
   resolveAuthSettled()
+  // Offer the Sunday test if we already landed on the dashboard (the route
+  // watcher won't fire if the route didn't change after startup).
+  maybeOfferWeeklyTest()
 })()
 
 // Flush pending saves to Firestore when the app is hidden, so the
@@ -146,6 +175,13 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
       :level="levelUp.level"
       :label="levelUp.label"
       @close="closeLevelUp"
+    />
+
+    <!-- Sunday weekly-test popup -->
+    <WeeklyTestPopup
+      v-if="showWeeklyTest"
+      @start="startWeeklyTest"
+      @dismiss="dismissWeeklyTest"
     />
   </div>
 </template>

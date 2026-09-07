@@ -12,6 +12,7 @@ export interface CardProgress {
   incorrectCount: number
   consecutiveCorrect: number  // resets on any wrong answer
   lastReviewed: string | null
+  firstLearned: string | null // date (YYYY-MM-DD) the item was first learned
   nextReview: string | null
   interval: number
   easeFactor: number
@@ -187,10 +188,11 @@ export const useLearningStore = defineStore('learning', () => {
   // ── Actions ──
   function initialize() {
     const stored = loadFromStorage<CardProgress[]>('nihongo_card_progress', [])
-    // Migrate old data that may lack consecutiveCorrect
+    // Migrate old data that may lack newer fields.
     cardProgress.value = stored.map(c => ({
       ...c,
       consecutiveCorrect: c.consecutiveCorrect ?? 0,
+      firstLearned: c.firstLearned ?? null,
     }))
   }
 
@@ -205,6 +207,7 @@ export const useLearningStore = defineStore('learning', () => {
         incorrectCount: 0,
         consecutiveCorrect: 0,
         lastReviewed: null,
+        firstLearned: null,
         nextReview: null,
         interval: 0,
         easeFactor: 2.5,
@@ -217,6 +220,12 @@ export const useLearningStore = defineStore('learning', () => {
   function recordAnswer(id: string, category: CardCategory, correct: boolean) {
     const progress = getOrCreateProgress(id, category)
     const today = getToday()
+
+    // Record when the item was first learned (first time it's ever reviewed).
+    // Powers the weekly test ("what did I learn this week?").
+    if (!progress.firstLearned) {
+      progress.firstLearned = today
+    }
 
     progress.lastReviewed = today
 
@@ -463,6 +472,28 @@ export const useLearningStore = defineStore('learning', () => {
     }
   }
 
+  /**
+   * IDs of items the learner first learned within the last `days` days.
+   * Powers the weekly test ("what did I learn this week?").
+   *
+   * Uses `firstLearned` where available. For items stored before that field
+   * existed (transition week), it falls back to `lastReviewed` so the first
+   * weekly test after this update isn't empty.
+   */
+  function getItemsLearnedRecently(days = 7, category?: CardCategory): CardProgress[] {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    const cutoffStr = cutoff.toISOString().split('T')[0]
+
+    return cardProgress.value.filter(c => {
+      if (category && c.category !== category) return false
+      if (c.status === 'new') return false // never actually practised
+      const ref = c.firstLearned ?? c.lastReviewed
+      if (!ref) return false
+      return ref >= cutoffStr
+    })
+  }
+
   return {
     cardProgress,
     progressByCategory,
@@ -480,6 +511,7 @@ export const useLearningStore = defineStore('learning', () => {
     getConsecutiveCorrect,
     getDueCardsForCategory,
     getCategoryStats,
+    getItemsLearnedRecently,
     getCurrentKanaLessonIndex,
     getCurriculumCardIds,
   }
