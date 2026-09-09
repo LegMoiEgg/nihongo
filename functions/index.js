@@ -163,7 +163,22 @@ exports.sendNudge = onDocumentCreated(
       const groupName = nudge.groupName
         ? ` aus \"${nudge.groupName}\"`
         : "";
-      const body = `${fromName}${groupName} erinnert dich an deine tägliche Lektion! 🔔`;
+      const from = `${fromName}${groupName}`;
+      // Random nudge message. {from} = the sender's name (+ group). The sender
+      // must stay in the text so the receiver knows who nudged them.
+      const nudgeMessages = [
+        `${from} stupst dich an: Mach deine Dailys! 👉`,
+        `${from} sagt: Kein Japanisch heute?! Unfassbar! 😱`,
+        `${from} erinnert dich an deine tägliche Lektion! 🔔`,
+        `${from} hat dich im Blick — ab an die Lektion! 👀`,
+        `${from} findet, du solltest jetzt lernen. Sofort! ⚡`,
+        `${from} schickt dir einen freundlichen Tritt: Lernen! 🦵`,
+        `${from} will, dass dein Streak überlebt! 🔥`,
+        `${from} wartet — にほんご ruft nach dir! 🇯🇵`,
+        `${from}: Sensei ist enttäuscht. Beweise das Gegenteil! 🥋`,
+        `${from} sagt: Ein Ninja übt JEDEN Tag. Los! 🥷`,
+      ];
+      const body = nudgeMessages[Math.floor(Math.random() * nudgeMessages.length)];
 
       try {
         // DATA-ONLY message: no `notification` block. The service worker's
