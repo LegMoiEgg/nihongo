@@ -89,9 +89,12 @@ const completedDays = computed(() =>
       <div class="xp-section">
         <div class="xp-header">
           <span class="badge badge-level">Lv. {{ userStore.currentLevel.level }}</span>
-          <span class="xp-text">{{ userStore.totalXp }} XP</span>
+          <span v-if="userStore.nextLevel" class="xp-text">
+            {{ userStore.levelXp }} / {{ userStore.xpNeededThisLevel }} XP
+          </span>
+          <span v-else class="xp-text">Max-Level 🎉</span>
           <span v-if="userStore.nextLevel" class="xp-next">
-            {{ userStore.xpForNextLevel }} bis Lv. {{ userStore.nextLevel.level }}
+            bis Lv. {{ userStore.nextLevel.level }}
           </span>
         </div>
         <div class="progress-bar progress-bar-xp">

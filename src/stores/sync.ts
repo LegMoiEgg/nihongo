@@ -12,6 +12,7 @@ import { useBadgesStore } from './badges'
 interface CloudUserData {
   // user store
   totalXp: number
+  levelNum: number
   levelXp: number
   currentStreak: number
   longestStreak: number
@@ -32,6 +33,15 @@ interface CloudUserData {
 
 function getUserDocRef(uid: string) {
   return doc(db, 'users', uid)
+}
+
+/** Return whichever (levelNum, levelXp) pair is further along. */
+function pickHigherLevel(
+  a: { levelNum: number; levelXp: number },
+  b: { levelNum: number; levelXp: number }
+): { levelNum: number; levelXp: number } {
+  if (a.levelNum !== b.levelNum) return a.levelNum > b.levelNum ? a : b
+  return a.levelXp >= b.levelXp ? a : b
 }
 
 /**
@@ -113,7 +123,12 @@ export async function saveToCloud(): Promise<void> {
     const data: CloudUserData = {
       // Never write a lower value for monotonic progress fields.
       totalXp: Math.max(userStore.totalXp, cloudXp),
-      levelXp: Math.max(userStore.levelXp, cloud?.levelXp ?? 0),
+      // Level progression is a (levelNum, levelXp) pair. Keep whichever is
+      // further along so a stale save can't lower the level.
+      ...pickHigherLevel(
+        { levelNum: userStore.levelNum, levelXp: userStore.levelXp },
+        { levelNum: cloud?.levelNum ?? 1, levelXp: cloud?.levelXp ?? 0 }
+      ),
       currentStreak: Math.max(userStore.currentStreak, cloud?.currentStreak ?? 0),
       longestStreak: Math.max(userStore.longestStreak, cloud?.longestStreak ?? 0),
       lastActiveDate: userStore.lastActiveDate || cloud?.lastActiveDate || '',
@@ -237,13 +252,18 @@ function mergeCloudData(cloud: CloudUserData) {
     userStore.totalXp = cloud.totalXp
     localStorage.setItem('nihongo_xp', JSON.stringify(cloud.totalXp))
   }
-  // levelXp drives the level curve, separate from totalXp. Take the higher.
-  // Fallback for old cloud docs without levelXp: derive from placementLevel.
+  // Level progression (levelNum + within-level levelXp). Adopt the cloud
+  // values only if they are further along than the local ones.
   {
-    const cloudLevelXp = (cloud as any).levelXp ?? 0
-    if (cloudLevelXp > userStore.levelXp) {
-      userStore.levelXp = cloudLevelXp
-      localStorage.setItem('nihongo_level_xp', JSON.stringify(cloudLevelXp))
+    const cloudNum = (cloud as any).levelNum ?? 0
+    const cloudXpIn = (cloud as any).levelXp ?? 0
+    const higher = (cloudNum > userStore.levelNum) ||
+      (cloudNum === userStore.levelNum && cloudXpIn > userStore.levelXp)
+    if (cloudNum > 0 && higher) {
+      userStore.levelNum = cloudNum
+      userStore.levelXp = cloudXpIn
+      localStorage.setItem('nihongo_level_num', JSON.stringify(cloudNum))
+      localStorage.setItem('nihongo_level_xp', JSON.stringify(cloudXpIn))
     }
   }
   // Streak belongs together with lastActiveDate: adopt the streak from

@@ -443,7 +443,8 @@ const maxWeeklyXp = computed(() =>
         <div class="progress-bar-fill" :style="{ width: userStore.levelProgress + '%' }" />
       </div>
       <p class="level-xp-text" v-if="userStore.nextLevel">
-        Noch {{ userStore.xpForNextLevel }} XP bis zum nächsten Level
+        {{ userStore.levelXp }} / {{ userStore.xpNeededThisLevel }} XP — noch
+        {{ userStore.xpForNextLevel }} bis Level {{ userStore.nextLevel.level }}
       </p>
       <p class="level-xp-text" v-else>🎉 Maximales Level erreicht!</p>
     </section>

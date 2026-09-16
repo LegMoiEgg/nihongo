@@ -85,6 +85,31 @@ function getToday(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+/**
+ * XP required to advance FROM `level` to `level + 1`.
+ * Derived from the cumulative thresholds: threshold(level+1) − threshold(level).
+ * Returns 0 at (or above) the max level.
+ */
+export function xpForLevel(level: number): number {
+  const idx = LEVEL_THRESHOLDS.findIndex(t => t.level === level)
+  if (idx < 0 || idx >= LEVEL_THRESHOLDS.length - 1) return 0
+  return LEVEL_THRESHOLDS[idx + 1].xpRequired - LEVEL_THRESHOLDS[idx].xpRequired
+}
+
+/**
+ * Convert a CUMULATIVE XP value (old model / placement threshold) into the
+ * per-level representation: which level you're on and how much XP you've
+ * earned within it. Used only for one-time migration.
+ */
+export function levelFromCumulative(cumulativeXp: number): { level: number; within: number } {
+  let lvl = LEVEL_THRESHOLDS[0]
+  for (const t of LEVEL_THRESHOLDS) {
+    if (cumulativeXp >= t.xpRequired) lvl = t
+    else break
+  }
+  return { level: lvl.level, within: Math.max(0, cumulativeXp - lvl.xpRequired) }
+}
+
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const stored = localStorage.getItem(key)
@@ -100,8 +125,13 @@ function saveToStorage(key: string, value: unknown): void {
 
 export const useUserStore = defineStore('user', () => {
   // State
-  const totalXp = ref(0)     // lifetime XP — STATISTICS ONLY, never drives level
-  const levelXp = ref(0)     // XP counted towards the level curve (separate!)
+  const totalXp = ref(0)      // lifetime XP — STATISTICS ONLY, never drives level
+  // Per-level progression (independent of totalXp):
+  //   levelNum = the current level number
+  //   levelXp  = XP earned WITHIN the current level (resets to 0 on level-up,
+  //              overflow carries into the next level)
+  const levelNum = ref(1)
+  const levelXp = ref(0)
   const currentStreak = ref(0)
   const longestStreak = ref(0)
   const lastActiveDate = ref('')
@@ -127,39 +157,32 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // Computed
-  // Level is driven ONLY by levelXp (never by totalXp, which is statistics).
-  // The placement test sets a levelXp floor, so progression then flows
-  // naturally: earning XP raises levelXp and levels you up as normal.
+  // Level progression is PER-LEVEL: levelNum is the current level, levelXp is
+  // the XP earned inside it. Each level needs xpForLevel(levelNum) XP; on
+  // reaching it we increment levelNum and keep the overflow (see addXp).
   const currentLevel = computed(() => {
-    let lvl = LEVEL_THRESHOLDS[0]
-    for (const threshold of LEVEL_THRESHOLDS) {
-      if (levelXp.value >= threshold.xpRequired) {
-        lvl = threshold
-      } else {
-        break
-      }
-    }
-    return lvl
+    return LEVEL_THRESHOLDS.find(t => t.level === levelNum.value) ?? LEVEL_THRESHOLDS[0]
   })
 
   const nextLevel = computed(() => {
-    const idx = LEVEL_THRESHOLDS.findIndex(t => t.level === currentLevel.value.level)
-    return idx < LEVEL_THRESHOLDS.length - 1 ? LEVEL_THRESHOLDS[idx + 1] : null
+    const idx = LEVEL_THRESHOLDS.findIndex(t => t.level === levelNum.value)
+    return idx >= 0 && idx < LEVEL_THRESHOLDS.length - 1 ? LEVEL_THRESHOLDS[idx + 1] : null
   })
 
+  /** XP required to complete the CURRENT level (0 if at max level). */
+  const xpNeededThisLevel = computed(() => xpForLevel(levelNum.value))
+
+  /** XP still remaining to reach the next level. */
   const xpForNextLevel = computed(() => {
     if (!nextLevel.value) return 0
-    const levelRange = nextLevel.value.xpRequired - currentLevel.value.xpRequired
-    const xpIntoLevel = Math.max(0, levelXp.value - currentLevel.value.xpRequired)
-    return Math.max(0, levelRange - xpIntoLevel)
+    return Math.max(0, xpNeededThisLevel.value - levelXp.value)
   })
 
   const levelProgress = computed(() => {
     if (!nextLevel.value) return 100
-    const levelRange = nextLevel.value.xpRequired - currentLevel.value.xpRequired
-    if (levelRange <= 0) return 100
-    const xpIntoLevel = Math.max(0, levelXp.value - currentLevel.value.xpRequired)
-    return Math.min(100, Math.max(0, Math.round((xpIntoLevel / levelRange) * 100)))
+    const need = xpNeededThisLevel.value
+    if (need <= 0) return 100
+    return Math.min(100, Math.max(0, Math.round((levelXp.value / need) * 100)))
   })
 
   const todayLog = computed((): DailyLog => {
@@ -195,20 +218,29 @@ export const useUserStore = defineStore('user', () => {
   // Actions
   function initializeUser() {
     totalXp.value = loadFromStorage('nihongo_xp', 0)
-    // levelXp: separate counter for the level curve. Migrate existing users:
-    // if never stored, seed it from whichever gives the higher level —
-    // their placement level's threshold or their lifetime totalXp — so no one
-    // loses the level they already had.
-    const storedLevelXp = loadFromStorage<number | null>('nihongo_level_xp', null)
-    if (storedLevelXp === null) {
+    // Per-level progression. Prefer the new (levelNum + within-level levelXp)
+    // storage. Migrate from older data otherwise.
+    const storedLevelNum = loadFromStorage<number | null>('nihongo_level_num', null)
+    if (storedLevelNum !== null) {
+      levelNum.value = storedLevelNum
+      levelXp.value = loadFromStorage('nihongo_level_xp', 0)
+    } else {
+      // Migrate: derive from whichever gives the higher starting point —
+      //   (a) an old CUMULATIVE levelXp value, or
+      //   (b) the placement level's threshold, or
+      //   (c) lifetime totalXp.
+      // Convert that cumulative XP into levelNum + within-level overflow.
+      const oldCumulative = loadFromStorage<number>('nihongo_level_xp', 0)
       const placement = loadFromStorage('nihongo_placement_level', 0)
       const placementFloor = placement > 0
         ? (LEVEL_THRESHOLDS.find(t => t.level === placement)?.xpRequired ?? 0)
         : 0
-      levelXp.value = Math.max(totalXp.value, placementFloor)
+      const cumulative = Math.max(oldCumulative, placementFloor, totalXp.value)
+      const seeded = levelFromCumulative(cumulative)
+      levelNum.value = seeded.level
+      levelXp.value = seeded.within
+      saveToStorage('nihongo_level_num', levelNum.value)
       saveToStorage('nihongo_level_xp', levelXp.value)
-    } else {
-      levelXp.value = storedLevelXp
     }
     currentStreak.value = loadFromStorage('nihongo_streak', 0)
     longestStreak.value = loadFromStorage('nihongo_longest_streak', 0)
@@ -246,17 +278,28 @@ export const useUserStore = defineStore('user', () => {
   function addXp(amount: number, wordsLearned = 0) {
     const today = getToday()
 
-    // Detect a level-up: capture the level before and after adding XP.
-    const levelBefore = currentLevel.value.level
+    const levelBefore = levelNum.value
 
-    // totalXp = lifetime statistic; levelXp = drives the level curve.
+    // totalXp = lifetime statistic (never reset).
     totalXp.value += amount
     saveToStorage('nihongo_xp', totalXp.value)
+
+    // levelXp = XP within the current level. Roll over into the next level(s)
+    // while there's enough, carrying the overflow. Example: 1513 + 10 with a
+    // 1500 need → level up, levelXp becomes 23 for the next level.
     levelXp.value += amount
+    let need = xpForLevel(levelNum.value)
+    while (need > 0 && levelXp.value >= need) {
+      levelXp.value -= need
+      levelNum.value += 1
+      need = xpForLevel(levelNum.value) // 0 at max level → loop stops
+    }
+    // At max level, don't let levelXp grow unbounded — cap display at "done".
+    if (xpForLevel(levelNum.value) === 0) levelXp.value = 0
+    saveToStorage('nihongo_level_num', levelNum.value)
     saveToStorage('nihongo_level_xp', levelXp.value)
 
-    const levelAfter = currentLevel.value.level
-    if (levelAfter > levelBefore) {
+    if (levelNum.value > levelBefore) {
       pendingLevelUp.value = { level: currentLevel.value.level, label: currentLevel.value.label }
       saveToStorage('nihongo_pending_levelup', pendingLevelUp.value)
     }
@@ -330,12 +373,13 @@ export const useUserStore = defineStore('user', () => {
   function setPlacementLevel(level: number) {
     placementLevel.value = level
     saveToStorage('nihongo_placement_level', level)
-    // Raise the LEVEL counter to this level's threshold (a floor). totalXp
-    // (the statistic) is left untouched. From here, earning XP levels up
-    // normally because currentLevel reads levelXp.
-    const threshold = LEVEL_THRESHOLDS.find(t => t.level === level)?.xpRequired ?? 0
-    if (threshold > levelXp.value) {
-      levelXp.value = threshold
+    // Placement raises the level as a FLOOR. totalXp (statistic) is untouched.
+    // Set the current level and reset within-level XP so progression starts
+    // cleanly at the beginning of that level.
+    if (level > levelNum.value) {
+      levelNum.value = level
+      levelXp.value = 0
+      saveToStorage('nihongo_level_num', levelNum.value)
       saveToStorage('nihongo_level_xp', levelXp.value)
     }
   }
@@ -343,6 +387,7 @@ export const useUserStore = defineStore('user', () => {
   return {
     // State
     totalXp,
+    levelNum,
     levelXp,
     currentStreak,
     longestStreak,
@@ -358,6 +403,7 @@ export const useUserStore = defineStore('user', () => {
     currentLevel,
     nextLevel,
     xpForNextLevel,
+    xpNeededThisLevel,
     levelProgress,
     todayLog,
     dailyGoalProgress,
@@ -398,35 +444,25 @@ export interface LevelInfo {
 }
 
 /**
- * Full level info for an arbitrary user (used e.g. for public profiles).
- * The level is driven by `levelXp` (the level counter), NOT lifetime totalXp.
- * For older cloud data without levelXp, pass the placement level so we can
- * derive a floor (its threshold) as a fallback.
+ * Full level info for an arbitrary user (used e.g. for public profiles) in the
+ * per-level model: `levelNum` = current level, `levelXpWithin` = XP earned
+ * inside it. `placementLevel` is used as a floor for legacy data.
  */
-export function levelInfoForXp(levelXp: number, placementLevel = 0): LevelInfo {
-  // Floor from placement level (for legacy data missing levelXp).
-  const placementFloor = placementLevel > 0
-    ? (LEVEL_THRESHOLDS.find(t => t.level === placementLevel)?.xpRequired ?? 0)
-    : 0
-  const xp = Math.max(levelXp, placementFloor)
-
-  let current = LEVEL_THRESHOLDS[0]
-  for (const t of LEVEL_THRESHOLDS) {
-    if (xp >= t.xpRequired) current = t
-    else break
-  }
+export function levelInfoForXp(levelNum: number, levelXpWithin = 0, placementLevel = 0): LevelInfo {
+  let lvlNum = Math.max(levelNum || 1, placementLevel || 0, 1)
+  let current = LEVEL_THRESHOLDS.find(t => t.level === lvlNum) ?? LEVEL_THRESHOLDS[0]
 
   const idx = LEVEL_THRESHOLDS.findIndex(t => t.level === current.level)
-  const next = idx < LEVEL_THRESHOLDS.length - 1 ? LEVEL_THRESHOLDS[idx + 1] : null
+  const next = idx >= 0 && idx < LEVEL_THRESHOLDS.length - 1 ? LEVEL_THRESHOLDS[idx + 1] : null
 
   let progress = 100
   let xpToNext = 0
   if (next) {
-    const range = next.xpRequired - current.xpRequired
-    if (range > 0) {
-      const into = Math.max(0, xp - current.xpRequired)
-      progress = Math.min(100, Math.max(0, Math.round((into / range) * 100)))
-      xpToNext = Math.max(0, range - into)
+    const need = next.xpRequired - current.xpRequired
+    if (need > 0) {
+      const into = Math.max(0, Math.min(levelXpWithin, need))
+      progress = Math.min(100, Math.max(0, Math.round((into / need) * 100)))
+      xpToNext = Math.max(0, need - into)
     }
   }
 

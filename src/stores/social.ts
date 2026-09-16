@@ -36,7 +36,8 @@ export interface PublicProfile {
   displayName: string
   avatarDataUrl: string
   totalXp: number
-  levelXp: number
+  levelNum: number
+  levelXp: number         // XP within the current level
   placementLevel: number
   currentStreak: number   // effective (validated against today/yesterday)
   longestStreak: number
@@ -261,9 +262,9 @@ export const useSocialStore = defineStore('social', () => {
             const dailyLog: { date: string; xpEarned: number }[] = data.dailyLog || []
             const todayEntry = dailyLog.find(d => d.date === today)
             const todayXp = todayEntry ? todayEntry.xpEarned : 0
-            // Level is driven by levelXp (separate from lifetime totalXp).
-            // Fallback for old docs without levelXp: totalXp, then placement.
-            const xpLevel = levelForXp(data.levelXp ?? data.totalXp ?? 0)
+            // Level = stored per-level number. Fallback for old docs without
+            // levelNum: derive from cumulative totalXp, then placement.
+            const xpLevel = data.levelNum ?? levelForXp(data.totalXp ?? 0)
             const placement = data.placementLevel || 0
             // Effective streak: a stored streak is only still valid if the
             // member was active today or yesterday. Otherwise it's broken —
@@ -332,7 +333,8 @@ export const useSocialStore = defineStore('social', () => {
         displayName: data.displayName || 'Anonym',
         avatarDataUrl: data.avatarDataUrl || '',
         totalXp: data.totalXp || 0,
-        levelXp: data.levelXp ?? data.totalXp ?? 0,
+        levelNum: data.levelNum ?? 0,
+        levelXp: data.levelXp ?? 0,
         placementLevel: data.placementLevel || 0,
         currentStreak: effectiveStreak,
         longestStreak: data.longestStreak || 0,
