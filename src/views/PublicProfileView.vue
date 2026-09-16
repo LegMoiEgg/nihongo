@@ -26,7 +26,7 @@ const profile = computed(() => socialStore.publicProfile)
 const levelInfo = computed(() => {
   const p = profile.value
   if (!p) return null
-  return levelInfoForXp(p.totalXp, p.placementLevel)
+  return levelInfoForXp(p.levelXp, p.placementLevel)
 })
 
 // Latest 3 earned badges (newest first)

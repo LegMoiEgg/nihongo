@@ -12,6 +12,7 @@ import { useBadgesStore } from './badges'
 interface CloudUserData {
   // user store
   totalXp: number
+  levelXp: number
   currentStreak: number
   longestStreak: number
   lastActiveDate: string
@@ -112,6 +113,7 @@ export async function saveToCloud(): Promise<void> {
     const data: CloudUserData = {
       // Never write a lower value for monotonic progress fields.
       totalXp: Math.max(userStore.totalXp, cloudXp),
+      levelXp: Math.max(userStore.levelXp, cloud?.levelXp ?? 0),
       currentStreak: Math.max(userStore.currentStreak, cloud?.currentStreak ?? 0),
       longestStreak: Math.max(userStore.longestStreak, cloud?.longestStreak ?? 0),
       lastActiveDate: userStore.lastActiveDate || cloud?.lastActiveDate || '',
@@ -234,6 +236,15 @@ function mergeCloudData(cloud: CloudUserData) {
   if (cloud.totalXp > userStore.totalXp) {
     userStore.totalXp = cloud.totalXp
     localStorage.setItem('nihongo_xp', JSON.stringify(cloud.totalXp))
+  }
+  // levelXp drives the level curve, separate from totalXp. Take the higher.
+  // Fallback for old cloud docs without levelXp: derive from placementLevel.
+  {
+    const cloudLevelXp = (cloud as any).levelXp ?? 0
+    if (cloudLevelXp > userStore.levelXp) {
+      userStore.levelXp = cloudLevelXp
+      localStorage.setItem('nihongo_level_xp', JSON.stringify(cloudLevelXp))
+    }
   }
   // Streak belongs together with lastActiveDate: adopt the streak from
   // whichever side was active more recently. Do NOT just take the higher
