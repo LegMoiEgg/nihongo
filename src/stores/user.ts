@@ -82,7 +82,17 @@ export const LEVEL_THRESHOLDS = [
 ]
 
 function getToday(): string {
-  return new Date().toISOString().split('T')[0]
+  // Use Europe/Berlin (not UTC) so the daily-XP day boundary matches the
+  // streakReminder Cloud Function's timezone. With UTC the day flipped an
+  // hour or two "early", so late-evening XP could land under the wrong date
+  // and the server thought the goal wasn't reached.
+  return berlinDateStr(new Date())
+}
+
+/** YYYY-MM-DD for the given instant, in the Europe/Berlin timezone. */
+export function berlinDateStr(date: Date): string {
+  // en-CA gives ISO-style YYYY-MM-DD; timeZone shifts it to Berlin local date.
+  return date.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' })
 }
 
 /**
@@ -209,7 +219,7 @@ export const useUserStore = defineStore('user', () => {
     const now = new Date()
     const weekAgo = new Date(now)
     weekAgo.setDate(weekAgo.getDate() - 7)
-    const weekAgoStr = weekAgo.toISOString().split('T')[0]
+    const weekAgoStr = berlinDateStr(weekAgo)
     return dailyLog.value
       .filter(d => d.date >= weekAgoStr)
       .reduce((sum, d) => sum + d.xpEarned, 0)
@@ -260,7 +270,7 @@ export const useUserStore = defineStore('user', () => {
     const today = getToday()
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    const yesterdayStr = berlinDateStr(yesterday)
 
     if (lastActiveDate.value === today) {
       // Already active today, streak is fine
@@ -316,7 +326,7 @@ export const useUserStore = defineStore('user', () => {
     // Keep only last 90 days
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 90)
-    const cutoffStr = cutoff.toISOString().split('T')[0]
+    const cutoffStr = berlinDateStr(cutoff)
     dailyLog.value = dailyLog.value.filter(d => d.date >= cutoffStr)
     saveToStorage('nihongo_daily_log', dailyLog.value)
 
@@ -324,7 +334,7 @@ export const useUserStore = defineStore('user', () => {
     if (lastActiveDate.value !== today) {
       const yesterday = new Date()
       yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      const yesterdayStr = berlinDateStr(yesterday)
 
       if (lastActiveDate.value === yesterdayStr || lastActiveDate.value === '') {
         currentStreak.value += 1
@@ -347,6 +357,12 @@ export const useUserStore = defineStore('user', () => {
       wordsLearnedTotal.value += wordsLearned
       saveToStorage('nihongo_words_total', wordsLearnedTotal.value)
     }
+
+    // Push to the cloud shortly after EVERY XP gain (debounced), not only at
+    // session end. This keeps the server's dailyLog fresh so the streak
+    // reminder doesn't fire after the goal was reached. Dynamic import avoids
+    // a circular dependency (sync.ts imports the user store).
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
   }
 
   function completeSession() {

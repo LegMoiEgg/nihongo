@@ -368,7 +368,7 @@ export function scheduleSave() {
   saveTimeout = setTimeout(() => {
     saveToCloud()
     saveTimeout = null
-  }, 5000) // 5 second debounce — keeps Firestore fresh for the Cloud Function
+  }, 2000) // 2s debounce — keeps Firestore fresh for the reminder Function
 }
 
 /**
@@ -390,17 +390,30 @@ export function flushSave(): Promise<void> {
 let flushHandlerRegistered = false
 
 /**
- * Registers a visibilitychange handler that flushes pending saves when the
- * app is hidden (tab switch, app minimized, screen lock). Idempotent.
+ * Registers handlers that flush pending saves when the app is backgrounded or
+ * closed, so the server-side reminder reads an up-to-date dailyLog.
+ *
+ * We listen to BOTH visibilitychange→hidden and pagehide. On mobile, pagehide
+ * is the most reliable "app is going away" signal. We flush whenever there is
+ * a pending debounced save — this is the window where the last ~30 XP of a
+ * session would otherwise be lost if the user swipes the app away.
+ * Idempotent.
  */
 export function registerFlushOnHide() {
   if (flushHandlerRegistered) return
   if (typeof document === 'undefined') return
   flushHandlerRegistered = true
 
+  const flushIfPending = () => {
+    // Only flush when a debounced save is actually queued — avoids redundant
+    // writes on every tab switch.
+    if (saveTimeout) flushSave()
+  }
+
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && saveTimeout) {
-      flushSave()
-    }
+    if (document.visibilityState === 'hidden') flushIfPending()
   })
+  // pagehide fires on mobile app close / navigation away, often when
+  // visibilitychange alone isn't enough to complete the write.
+  window.addEventListener('pagehide', flushIfPending)
 }

@@ -24,7 +24,12 @@ exports.streakReminder = onSchedule(
     region: "europe-west1",
   },
   async () => {
-    const today = new Date().toISOString().split("T")[0];
+    // Use Europe/Berlin for "today" so it matches the client's day boundary
+    // (the client now keys dailyLog by Berlin date too). Using UTC here made
+    // the server look at the wrong day near midnight.
+    const today = new Date().toLocaleDateString("en-CA", {
+      timeZone: "Europe/Berlin",
+    });
     const DAILY_XP_GOAL = 100;
 
     const messages = [
