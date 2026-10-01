@@ -413,7 +413,6 @@ export const vocabularyData: VocabCard[] = [
   { id: 'v-mushi', japanese: '虫', reading: 'むし', meaning: 'Insekt', jlpt: 'N4', category: 'Tiere', partOfSpeech: 'Nomen' },
 
   // Natur
-  { id: 'v-hana-flower2', japanese: '花', reading: 'はな', meaning: 'Blume (allg.)', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
   { id: 'v-mori', japanese: '森', reading: 'もり', meaning: 'Wald', jlpt: 'N4', category: 'Natur', partOfSpeech: 'Nomen' },
   { id: 'v-ishi', japanese: '石', reading: 'いし', meaning: 'Stein', jlpt: 'N4', category: 'Natur', partOfSpeech: 'Nomen' },
   { id: 'v-kumo', japanese: '雲', reading: 'くも', meaning: 'Wolke', jlpt: 'N4', category: 'Natur', partOfSpeech: 'Nomen' },
@@ -442,6 +441,51 @@ export const vocabularyData: VocabCard[] = [
   { id: 'v-zenbu', japanese: '全部', reading: 'ぜんぶ', meaning: 'alles', jlpt: 'N4', category: 'Adverbien', partOfSpeech: 'Adverb' },
   { id: 'v-taitei', japanese: 'たいてい', reading: 'たいてい', meaning: 'meistens', jlpt: 'N4', category: 'Adverbien', partOfSpeech: 'Adverb' },
   { id: 'v-yukkuri', japanese: 'ゆっくり', reading: 'ゆっくり', meaning: 'langsam / gemütlich', jlpt: 'N4', category: 'Adverbien', partOfSpeech: 'Adverb' },
+
+  // ───────────────────────────── Etappe 2: Verben + Adjektive ──
+  // Verben (godan unless noted ichidan/irregular in verb-conjugation.ts)
+  { id: 'v-kaeru-home', japanese: '帰る', reading: 'かえる', meaning: 'nach Hause gehen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-noboru', japanese: '登る', reading: 'のぼる', meaning: 'steigen / klettern', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-okuru', japanese: '送る', reading: 'おくる', meaning: 'senden / schicken', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-harau', japanese: '払う', reading: 'はらう', meaning: 'bezahlen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-tetsudau', japanese: '手伝う', reading: 'てつだう', meaning: 'helfen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-kayou', japanese: '通う', reading: 'かよう', meaning: 'pendeln / regelmäßig gehen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-naku', japanese: '泣く', reading: 'なく', meaning: 'weinen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-warau', japanese: '笑う', reading: 'わらう', meaning: 'lachen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-isogu', japanese: '急ぐ', reading: 'いそぐ', meaning: 'sich beeilen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-yasumu', japanese: '休む', reading: 'やすむ', meaning: 'sich ausruhen / fehlen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-shinu', japanese: '死ぬ', reading: 'しぬ', meaning: 'sterben', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-motsu', japanese: '持つ', reading: 'もつ', meaning: 'halten / besitzen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-kangaeru', japanese: '考える', reading: 'かんがえる', meaning: 'nachdenken', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-shiraberu', japanese: '調べる', reading: 'しらべる', meaning: 'nachschlagen / untersuchen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-miseru', japanese: '見せる', reading: 'みせる', meaning: 'zeigen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-kimeru', japanese: '決める', reading: 'きめる', meaning: 'entscheiden', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-tsukareru', japanese: '疲れる', reading: 'つかれる', meaning: 'müde werden', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-ryokousuru', japanese: '旅行する', reading: 'りょこうする', meaning: 'reisen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-sentakusuru', japanese: '洗濯する', reading: 'せんたくする', meaning: 'Wäsche waschen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-soujisuru', japanese: '掃除する', reading: 'そうじする', meaning: 'putzen / aufräumen', jlpt: 'N4', category: 'Verben', partOfSpeech: 'Verb' },
+
+  // Adjektive
+  { id: 'v-tsumetai', japanese: '冷たい', reading: 'つめたい', meaning: 'kalt (Berührung)', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-atatakai', japanese: '暖かい', reading: 'あたたかい', meaning: 'warm', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-suzushii', japanese: '涼しい', reading: 'すずしい', meaning: 'kühl / angenehm', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-kitanai', japanese: '汚い', reading: 'きたない', meaning: 'schmutzig', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-mezurashii', japanese: '珍しい', reading: 'めずらしい', meaning: 'selten / ungewöhnlich', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-kowai', japanese: '怖い', reading: 'こわい', meaning: 'beängstigend', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-itai', japanese: '痛い', reading: 'いたい', meaning: 'schmerzhaft', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-nemui', japanese: '眠い', reading: 'ねむい', meaning: 'schläfrig', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-sabishii', japanese: '寂しい', reading: 'さびしい', meaning: 'einsam', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-ureshii', japanese: '嬉しい', reading: 'うれしい', meaning: 'erfreut / glücklich', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-kanashii', japanese: '悲しい', reading: 'かなしい', meaning: 'traurig', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-asai', japanese: '浅い', reading: 'あさい', meaning: 'flach / seicht', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-fukai', japanese: '深い', reading: 'ふかい', meaning: 'tief', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-futoi', japanese: '太い', reading: 'ふとい', meaning: 'dick', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-hosoi', japanese: '細い', reading: 'ほそい', meaning: 'dünn / schmal', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-daiji', japanese: '大事', reading: 'だいじ', meaning: 'wichtig', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-shinsetsu', japanese: '親切', reading: 'しんせつ', meaning: 'freundlich / hilfsbereit', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-hima', japanese: '暇', reading: 'ひま', meaning: 'frei (Zeit) / Muße', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-fuben', japanese: '不便', reading: 'ふべん', meaning: 'unpraktisch', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-anzen', japanese: '安全', reading: 'あんぜん', meaning: 'sicher', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
 ]
 
 export const vocabCategories = [...new Set(vocabularyData.map(v => v.category))]

@@ -33,6 +33,11 @@ const ICHIDAN_IDS = new Set([
   'v-shimeru',  // しめる  schließen
   'v-tsukeru',  // つける  anmachen
   'v-suteru',   // すてる  wegwerfen
+  'v-kangaeru', // かんがえる nachdenken
+  'v-shiraberu',// しらべる  nachschlagen
+  'v-miseru',   // みせる   zeigen
+  'v-kimeru',   // きめる   entscheiden
+  'v-tsukareru',// つかれる  müde werden
 ])
 
 // Verb IDs that are irregular.
@@ -40,6 +45,9 @@ const IRREGULAR: Record<string, string> = {
   'v-kuru': 'きます',            // くる
   'v-benkyousuru': 'べんきょうします', // べんきょうする
   'v-shigotosuru': 'しごとします',    // しごとする
+  'v-ryokousuru': 'りょこうします',   // りょこうする
+  'v-sentakusuru': 'せんたくします',  // せんたくする
+  'v-soujisuru': 'そうじします',      // そうじする
 }
 
 // Godan final-kana → its i-row counterpart (used before ます).
