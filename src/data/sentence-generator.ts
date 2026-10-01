@@ -461,6 +461,36 @@ const I_ADJECTIVES = [
 
 const SUBJECT_PRONOUNS = ['v-watashi', 'v-kare', 'v-kanojo']
 
+// Weekdays → take the に particle: "[Weekday] に [Verb]" (am … tue ich …).
+const WEEKDAYS: Record<string, string> = {
+  'v-getsuyoubi': 'montags',
+  'v-kayoubi': 'dienstags',
+  'v-suiyoubi': 'mittwochs',
+  'v-mokuyoubi': 'donnerstags',
+  'v-kinyoubi': 'freitags',
+  'v-doyoubi': 'samstags',
+  'v-nichiyoubi': 'sonntags',
+}
+// Time words that work WITHOUT a particle as a sentence-initial adverb:
+// "[Time] [Pronoun] は [Verb]" (heute/morgens/jeden Tag … tue ich …).
+const TIME_ADVERBS: Record<string, string> = {
+  'v-kyou': 'heute',
+  'v-ashita': 'morgen',
+  'v-kinou': 'gestern',
+  'v-asa': 'morgens',
+  'v-hiru': 'mittags',
+  'v-yoru': 'abends',
+  'v-mainichi': 'jeden Tag',
+  'v-maiasa': 'jeden Morgen',
+  'v-maiban': 'jeden Abend',
+  'v-shuumatsu': 'am Wochenende',
+}
+// Verbs usable in a plain time sentence (intransitive / activity verbs).
+const TIME_VERBS = [
+  'v-benkyousuru', 'v-hataraku', 'v-asobu', 'v-neru', 'v-okiru',
+  'v-oyogu', 'v-hashiru', 'v-utau', 'v-yomu', 'v-kuru',
+]
+
 // Intransitive verbs: build "[Pron] は [Verb-masu]" (no object needed).
 // This unlocks verbs like 寝る/分かる/知る that have no object pattern, so a
 // freshly-learned verb actually appears in a sentence instead of being unused.
@@ -701,6 +731,57 @@ function buildSentenceForVerb(verbId: string, opts: DynOptions): SentenceChallen
 }
 
 /**
+ * Build time-based sentences for a weekday or time word — exactly the kind of
+ * sentence that makes sense when the lesson is about days/time, and great для
+ * practising に and は.
+ *   Weekday:    [Weekday] に [Verb-masu]      "Montags lerne ich."
+ *   Time adverb:[Time] [Pron] は [Verb-masu]  "Heute lerne ich."
+ */
+function buildSentencesForTime(timeId: string, opts: DynOptions): SentenceChallenge[] {
+  const timeR = reading(timeId)
+  if (!timeR) return []
+  const out: SentenceChallenge[] = []
+
+  // Pick a learned, usable verb.
+  const verbs = TIME_VERBS.filter(id => opts.learnedSet.has(id))
+  const verbId = verbs.length ? shuffle(verbs)[0] : 'v-benkyousuru'
+  const masu = toMasu(verbId, reading(verbId) || '')
+  const vde = VERB_DE[verbId]
+  if (!masu || !vde) return out
+
+  const pron = SUBJECT_PRONOUNS.filter(id => opts.learnedSet.has(id))
+  const pId = pron.length ? shuffle(pron)[0] : 'v-watashi'
+  const pr = reading(pId) || 'わたし'
+  const pde = PRONOUN_DE[pId] || 'Ich'
+  const verbDe = pId === 'v-watashi' ? vde.ich : vde.er
+
+  if (WEEKDAYS[timeId]) {
+    // [Weekday] に [Pron] は [Verb]  — に marks the time point.
+    // German: "Montags lerne ich." / "Montags lernt er." (adverb-first inversion)
+    const subj = pId === 'v-watashi' ? 'ich' : pId === 'v-kare' ? 'er' : 'sie'
+    out.push({
+      id: `dyn-${++idCounter}`,
+      meaning: `${WEEKDAYS[timeId].charAt(0).toUpperCase()}${WEEKDAYS[timeId].slice(1)} ${verbDe} ${subj}.`,
+      correctOrder: [timeR, 'に', pr, 'は', masu],
+      distractors: opts.pickDistractorReadings([timeR, 'に', pr, 'は', masu], 'verb'),
+      hint: 'に = Zeitpunkt-Partikel, は = Thema',
+      difficulty: 'medium',
+    })
+  } else if (TIME_ADVERBS[timeId]) {
+    // [Time] [Pron] は [Verb]  — time adverb needs no particle.
+    out.push({
+      id: `dyn-${++idCounter}`,
+      meaning: `${pde} ${verbDe} ${TIME_ADVERBS[timeId]}.`,
+      correctOrder: [timeR, pr, 'は', masu],
+      distractors: opts.pickDistractorReadings([timeR, pr, 'は', masu], 'verb'),
+      hint: 'Zeitangabe am Satzanfang, は = Thema',
+      difficulty: 'medium',
+    })
+  }
+  return out
+}
+
+/**
  * Generate sentences that USE the given vocab (typically the words learned in
  * this session). Falls back to the curated templates if not enough dynamic
  * sentences can be built.
@@ -750,6 +831,10 @@ export function generateSentencesFromVocab(
     if (s) sessionCandidates.push(s)
   }
   for (const nounId of sessionNouns) {
+    // Time/weekday nouns get dedicated time sentences (… に … / adverb-first).
+    if (WEEKDAYS[nounId] || TIME_ADVERBS[nounId]) {
+      sessionCandidates.push(...buildSentencesForTime(nounId, opts))
+    }
     sessionCandidates.push(...buildAllSentencesForNoun(nounId, opts))
   }
   // Shuffle so we don't always take the same pattern first, then fill.
@@ -758,31 +843,10 @@ export function generateSentencesFromVocab(
     tryAdd(s)
   }
 
-  // 2) Still short? Build around OTHER learned words (nouns + verbs), so the
-  //    lesson stays sentence-heavy even if session words gave few patterns.
-  if (out.length < count) {
-    const otherNouns = shuffle(
-      learnedVocabIds.filter(
-        id => vocabById.get(id)?.partOfSpeech === 'Nomen' && !sessionVocabIds.includes(id)
-      )
-    )
-    const otherVerbs = shuffle(
-      learnedVocabIds.filter(
-        id => vocabById.get(id)?.partOfSpeech === 'Verb' && !sessionVocabIds.includes(id)
-      )
-    )
-    for (const verbId of otherVerbs) {
-      if (out.length >= count) break
-      tryAdd(buildSentenceForVerb(verbId, opts))
-    }
-    for (const nounId of otherNouns) {
-      if (out.length >= count) break
-      for (const s of buildAllSentencesForNoun(nounId, opts)) {
-        if (out.length >= count) break
-        tryAdd(s)
-      }
-    }
-  }
+  // NOTE: We deliberately do NOT fill with sentences from unrelated other
+  // learned words. That was the cause of off-topic sentences (e.g. "inu ga
+  // imasu" while learning weekdays). Sentences must stay tied to the lesson —
+  // fewer, relevant sentences beat many irrelevant ones.
 
   // 3) Curated templates — but ONLY ones that involve a SESSION word, so we
   //    never show an unrelated "Er kommt zur Schule" when the lesson is about
@@ -808,10 +872,11 @@ export function generateSentencesFromVocab(
     }
   }
 
-  // 4) Last resort: generic curated templates (only if we STILL have too few,
-  //    e.g. a brand-new learner). Better a valid sentence than an empty slot.
-  if (out.length < count) {
-    for (const t of generateDynamicSentences(learnedVocabIds, (count - out.length) * 2, userLevel)) {
+  // 4) Last resort: generic templates ONLY for brand-new learners (very few
+  //    known words), where we can't yet build lesson-specific sentences. For
+  //    everyone else we return fewer sentences rather than off-topic ones.
+  if (out.length === 0 && learnedVocabIds.length < 15) {
+    for (const t of generateDynamicSentences(learnedVocabIds, count, userLevel)) {
       if (out.length >= count) break
       tryAdd(t)
     }
