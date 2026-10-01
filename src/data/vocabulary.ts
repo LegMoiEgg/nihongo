@@ -538,6 +538,97 @@ export const vocabularyData: VocabCard[] = [
   { id: 'v-fukuro', japanese: '袋', reading: 'ふくろ', meaning: 'Tüte / Beutel', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
   { id: 'v-shouhin', japanese: '商品', reading: 'しょうひん', meaning: 'Ware / Produkt', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
   { id: 'v-waribiki', japanese: '割引', reading: 'わりびき', meaning: 'Rabatt', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+
+  // ───────────────────────────── Etappe 4: weitere Kategorien + N3 ──
+  // Reisen
+  { id: 'v-kippu', japanese: '切符', reading: 'きっぷ', meaning: 'Fahrkarte', jlpt: 'N5', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-chizu', japanese: '地図', reading: 'ちず', meaning: 'Karte / Landkarte', jlpt: 'N5', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-ryokan', japanese: '旅館', reading: 'りょかん', meaning: 'traditionelles Gasthaus', jlpt: 'N4', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-nimotsu', japanese: '荷物', reading: 'にもつ', meaning: 'Gepäck', jlpt: 'N4', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-pasupooto', japanese: 'パスポート', reading: 'パスポート', meaning: 'Reisepass', jlpt: 'N4', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-yoyaku', japanese: '予約', reading: 'よやく', meaning: 'Reservierung', jlpt: 'N4', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-kankou', japanese: '観光', reading: 'かんこう', meaning: 'Besichtigung / Tourismus', jlpt: 'N4', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-omiyage', japanese: 'お土産', reading: 'おみやげ', meaning: 'Souvenir', jlpt: 'N4', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-kokunai', japanese: '国', reading: 'くに', meaning: 'Land', jlpt: 'N5', category: 'Reisen', partOfSpeech: 'Nomen' },
+  { id: 'v-sekai', japanese: '世界', reading: 'せかい', meaning: 'Welt', jlpt: 'N4', category: 'Reisen', partOfSpeech: 'Nomen' },
+
+  // Küche / Haushalt
+  { id: 'v-naifu', japanese: 'ナイフ', reading: 'ナイフ', meaning: 'Messer', jlpt: 'N5', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-fooku', japanese: 'フォーク', reading: 'フォーク', meaning: 'Gabel', jlpt: 'N5', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-supuun', japanese: 'スプーン', reading: 'スプーン', meaning: 'Löffel', jlpt: 'N5', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-ohashi', japanese: 'お箸', reading: 'おはし', meaning: 'Essstäbchen', jlpt: 'N5', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-sara', japanese: 'お皿', reading: 'おさら', meaning: 'Teller', jlpt: 'N5', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-koppu', japanese: 'コップ', reading: 'コップ', meaning: 'Becher / Glas', jlpt: 'N5', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-chawan', japanese: '茶碗', reading: 'ちゃわん', meaning: 'Reisschale', jlpt: 'N4', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-nabe', japanese: '鍋', reading: 'なべ', meaning: 'Topf', jlpt: 'N4', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-taoru', japanese: 'タオル', reading: 'タオル', meaning: 'Handtuch', jlpt: 'N4', category: 'Küche', partOfSpeech: 'Nomen' },
+  { id: 'v-sekken', japanese: '石鹸', reading: 'せっけん', meaning: 'Seife', jlpt: 'N4', category: 'Küche', partOfSpeech: 'Nomen' },
+
+  // Stadt / Gebäude
+  { id: 'v-tatemono', japanese: '建物', reading: 'たてもの', meaning: 'Gebäude', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-biru', japanese: 'ビル', reading: 'ビル', meaning: 'Hochhaus', jlpt: 'N5', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-kouban', japanese: '交番', reading: 'こうばん', meaning: 'Polizeiwache', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-jinja', japanese: '神社', reading: 'じんじゃ', meaning: 'Shinto-Schrein', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-otera', japanese: 'お寺', reading: 'おてら', meaning: 'Tempel', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-hashi-bridge', japanese: '橋', reading: 'はし', meaning: 'Brücke', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-kado', japanese: '角', reading: 'かど', meaning: 'Ecke', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-shingou', japanese: '信号', reading: 'しんごう', meaning: 'Ampel', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-koujou', japanese: '工場', reading: 'こうじょう', meaning: 'Fabrik', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+  { id: 'v-chuushajou', japanese: '駐車場', reading: 'ちゅうしゃじょう', meaning: 'Parkplatz', jlpt: 'N4', category: 'Stadt', partOfSpeech: 'Nomen' },
+
+  // Richtung / Position
+  { id: 'v-migi', japanese: '右', reading: 'みぎ', meaning: 'rechts', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-hidari', japanese: '左', reading: 'ひだり', meaning: 'links', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-ue', japanese: '上', reading: 'うえ', meaning: 'oben / auf', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-shita', japanese: '下', reading: 'した', meaning: 'unten / unter', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-naka', japanese: '中', reading: 'なか', meaning: 'drinnen / Mitte', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-soto', japanese: '外', reading: 'そと', meaning: 'draußen', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-mae', japanese: '前', reading: 'まえ', meaning: 'vorne / vor', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-ushiro', japanese: '後ろ', reading: 'うしろ', meaning: 'hinten / hinter', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-tonari', japanese: '隣', reading: 'となり', meaning: 'neben / Nachbar', jlpt: 'N5', category: 'Position', partOfSpeech: 'Nomen' },
+  { id: 'v-aida', japanese: '間', reading: 'あいだ', meaning: 'zwischen', jlpt: 'N4', category: 'Position', partOfSpeech: 'Nomen' },
+
+  // Zähler / Mengen
+  { id: 'v-hitotsu', japanese: '一つ', reading: 'ひとつ', meaning: 'ein Stück', jlpt: 'N5', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-futatsu', japanese: '二つ', reading: 'ふたつ', meaning: 'zwei Stück', jlpt: 'N5', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-mittsu', japanese: '三つ', reading: 'みっつ', meaning: 'drei Stück', jlpt: 'N5', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-hitori', japanese: '一人', reading: 'ひとり', meaning: 'eine Person / allein', jlpt: 'N5', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-futari', japanese: '二人', reading: 'ふたり', meaning: 'zwei Personen', jlpt: 'N5', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-ippon', japanese: '一本', reading: 'いっぽん', meaning: 'ein (langer Gegenstand)', jlpt: 'N4', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-ichimai', japanese: '一枚', reading: 'いちまい', meaning: 'ein (flacher Gegenstand)', jlpt: 'N4', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-ikko', japanese: '一個', reading: 'いっこ', meaning: 'ein (kleines Objekt)', jlpt: 'N4', category: 'Zähler', partOfSpeech: 'Zähler' },
+  { id: 'v-hankbun', japanese: '半分', reading: 'はんぶん', meaning: 'Hälfte', jlpt: 'N4', category: 'Zähler', partOfSpeech: 'Nomen' },
+  { id: 'v-ryouhou', japanese: '両方', reading: 'りょうほう', meaning: 'beide', jlpt: 'N4', category: 'Zähler', partOfSpeech: 'Nomen' },
+
+  // Kommunikation (N4/N3)
+  { id: 'v-hanashi', japanese: '話', reading: 'はなし', meaning: 'Gespräch / Geschichte', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-henji', japanese: '返事', reading: 'へんじ', meaning: 'Antwort', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-shitsumon', japanese: '質問', reading: 'しつもん', meaning: 'Frage', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-kotae', japanese: '答え', reading: 'こたえ', meaning: 'Antwort / Lösung', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-imi', japanese: '意味', reading: 'いみ', meaning: 'Bedeutung', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-kotoba', japanese: '言葉', reading: 'ことば', meaning: 'Wort / Sprache', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-yakusoku', japanese: '約束', reading: 'やくそく', meaning: 'Versprechen', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-setsumei', japanese: '説明', reading: 'せつめい', meaning: 'Erklärung', jlpt: 'N4', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-renraku', japanese: '連絡', reading: 'れんらく', meaning: 'Kontakt / Mitteilung', jlpt: 'N3', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+  { id: 'v-soudan', japanese: '相談', reading: 'そうだん', meaning: 'Beratung / Rücksprache', jlpt: 'N3', category: 'Kommunikation', partOfSpeech: 'Nomen' },
+
+  // Abstrakt / N3-Grundstock
+  { id: 'v-riyuu', japanese: '理由', reading: 'りゆう', meaning: 'Grund', jlpt: 'N4', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-kikai', japanese: '機会', reading: 'きかい', meaning: 'Gelegenheit', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-keiken', japanese: '経験', reading: 'けいけん', meaning: 'Erfahrung', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-yotei', japanese: '予定', reading: 'よてい', meaning: 'Plan / Vorhaben', jlpt: 'N4', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-mokuteki', japanese: '目的', reading: 'もくてき', meaning: 'Ziel / Zweck', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-houhou', japanese: '方法', reading: 'ほうほう', meaning: 'Methode', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-mondai', japanese: '問題', reading: 'もんだい', meaning: 'Problem / Aufgabe', jlpt: 'N4', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-kekka', japanese: '結果', reading: 'けっか', meaning: 'Ergebnis', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-genin', japanese: '原因', reading: 'げんいん', meaning: 'Ursache', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-chigai', japanese: '違い', reading: 'ちがい', meaning: 'Unterschied', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-yousu', japanese: '様子', reading: 'ようす', meaning: 'Zustand / Anschein', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-bubun', japanese: '部分', reading: 'ぶぶん', meaning: 'Teil / Abschnitt', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-kankei', japanese: '関係', reading: 'かんけい', meaning: 'Beziehung / Zusammenhang', jlpt: 'N3', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-chikara', japanese: '力', reading: 'ちから', meaning: 'Kraft / Stärke', jlpt: 'N4', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-yume', japanese: '夢', reading: 'ゆめ', meaning: 'Traum', jlpt: 'N4', category: 'Abstrakt', partOfSpeech: 'Nomen' },
+  { id: 'v-kokoro', japanese: '心', reading: 'こころ', meaning: 'Herz / Gemüt', jlpt: 'N4', category: 'Abstrakt', partOfSpeech: 'Nomen' },
 ]
 
 export const vocabCategories = [...new Set(vocabularyData.map(v => v.category))]
