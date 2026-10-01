@@ -944,14 +944,19 @@ export function generateSentencesFromVocab(
     out.push(s)
   }
 
-  // Advanced learners (level ≥ 12) get 1-2 COMPLEX sentences first
-  // (time + subject + place + object + verb) for more challenge.
-  if (userLevel >= 12) {
-    const complexWanted = userLevel >= 20 ? 2 : 1
-    for (let i = 0; i < complexWanted; i++) {
-      if (out.length >= count) break
-      tryAdd(buildComplexSentence(opts))
-    }
+  // ── Difficulty scales with level ──
+  // How many of the `count` sentences should be COMPLEX (time+place+object+
+  // verb). Grows with level so the lesson gets genuinely harder over time:
+  //   <12 → 0, 12-19 → 1, 20-29 → 2, 30-39 → most, 40+ → (almost) all.
+  let complexWanted = 0
+  if (userLevel >= 40) complexWanted = count
+  else if (userLevel >= 30) complexWanted = Math.max(1, count - 1)
+  else if (userLevel >= 20) complexWanted = 2
+  else if (userLevel >= 12) complexWanted = 1
+
+  for (let i = 0; i < complexWanted; i++) {
+    if (out.length >= count) break
+    tryAdd(buildComplexSentence(opts))
   }
 
   // Build a big pool of candidate sentences that each USE a session word, so
@@ -968,8 +973,20 @@ export function generateSentencesFromVocab(
     }
     sessionCandidates.push(...buildAllSentencesForNoun(nounId, opts))
   }
-  // Shuffle so we don't always take the same pattern first, then fill.
-  for (const s of shuffle(sessionCandidates)) {
+  // At higher levels, drop the simplest "X ist Y" / existence sentences so the
+  // remaining pool is tougher. Below 20 everything stays available.
+  let pool = sessionCandidates
+  if (userLevel >= 30) {
+    const harder = pool.filter(s => s.difficulty !== 'easy')
+    if (harder.length > 0) pool = harder
+  } else if (userLevel >= 20) {
+    // Keep easy ones only as a minority: push them to the back.
+    pool = [...pool.filter(s => s.difficulty !== 'easy'), ...pool.filter(s => s.difficulty === 'easy')]
+  }
+  // Shuffle (within the difficulty-ordered pool) and fill.
+  const easyBack = userLevel >= 20 && userLevel < 30
+  const ordered = easyBack ? pool : shuffle(pool)
+  for (const s of ordered) {
     if (out.length >= count) break
     tryAdd(s)
   }
