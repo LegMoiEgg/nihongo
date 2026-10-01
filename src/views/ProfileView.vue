@@ -264,8 +264,13 @@ const maxWeeklyXp = computed(() =>
             <span class="shop-balance-sub">Erreiche dein Tagesziel für mehr</span>
           </div>
         </div>
+      </div>
+      <div class="shop-actions">
         <router-link to="/shop" class="btn btn-primary shop-open-btn">
-          Zum Shop →
+          🛒 Shop
+        </router-link>
+        <router-link to="/customize" class="btn btn-ghost shop-open-btn">
+          🎨 Anpassen
         </router-link>
       </div>
     </section>
@@ -644,12 +649,20 @@ const maxWeeklyXp = computed(() =>
   color: var(--text-muted);
 }
 
+.shop-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .shop-open-btn {
+  flex: 1;
   padding: 10px 16px;
   font-size: 0.9rem;
   font-weight: 700;
   white-space: nowrap;
   text-decoration: none;
+  text-align: center;
 }
 
 /* ── Badges Preview ── */

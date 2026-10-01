@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { MAX_STREAK_FREEZES } from '../data/shop'
 
 export interface DailyLog {
   date: string // YYYY-MM-DD
@@ -506,6 +507,8 @@ export const useUserStore = defineStore('user', () => {
   function buyItem(itemId: string, price: number, isConsumable = false): boolean {
     if (coins.value < price) return false
     if (!isConsumable && owns(itemId)) return false
+    // Streak-freeze is capped — can't stockpile more than MAX_STREAK_FREEZES.
+    if (isConsumable && streakFreezes.value >= MAX_STREAK_FREEZES) return false
     coins.value -= price
     saveToStorage('nihongo_coins', coins.value)
     if (isConsumable) {

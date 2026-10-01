@@ -185,12 +185,15 @@ const FRAMES: ShopItem[] = [
 // ────────────────────────────────────────────────────────────────────────
 export const STREAK_FREEZE_ID = 'streak-freeze'
 
+/** The most streak freezes a user may hold at once. */
+export const MAX_STREAK_FREEZES = 2
+
 const UTILITIES: ShopItem[] = [
   {
     id: STREAK_FREEZE_ID,
     name: 'Streak-Freeze',
     description: 'Rettet deine Streak, wenn du einen Tag vergisst. Wird automatisch eingesetzt.',
-    price: 200,
+    price: 500,
     category: 'utility',
     icon: '🧊',
   },
@@ -214,4 +217,63 @@ export const CATEGORY_LABELS: Record<ShopCategory, string> = {
   theme: 'App-Themes',
   frame: 'Profilrahmen',
   utility: 'Verbrauchsgegenstände',
+}
+
+// ────────────────────────────────────────────────────────────────────────
+//  DAILY SHOP ROTATION
+//  Each cosmetic category offers up to ROTATION_SIZE items per day, chosen
+//  deterministically from a seed (date + user id) so the selection is stable
+//  for a given user on a given day but shuffles day to day. Utility items
+//  (Streak-Freeze) are NOT rotated — they are always available.
+// ────────────────────────────────────────────────────────────────────────
+
+export const ROTATION_SIZE = 3
+
+/** Simple string hash → 32-bit int (deterministic, no deps). */
+function hashString(str: string): number {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+/** Mulberry32 PRNG — deterministic sequence from a numeric seed. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a |= 0
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** Deterministic Fisher–Yates shuffle driven by a seeded PRNG. */
+function seededShuffle<T>(arr: T[], rng: () => number): T[] {
+  const out = [...arr]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
+/**
+ * The cosmetic items offered TODAY for a given category, for a given user.
+ * Deterministic per (category, dateStr, userKey): same inputs → same list.
+ * Returns up to ROTATION_SIZE items. If a category has ≤ ROTATION_SIZE items
+ * they all show (just in a stable daily order).
+ */
+export function rotatedItems(
+  category: ShopCategory,
+  dateStr: string,
+  userKey: string,
+): ShopItem[] {
+  const pool = SHOP_ITEMS.filter(i => i.category === category)
+  const seed = hashString(`${category}|${dateStr}|${userKey}`)
+  const shuffled = seededShuffle(pool, mulberry32(seed))
+  return shuffled.slice(0, ROTATION_SIZE)
 }

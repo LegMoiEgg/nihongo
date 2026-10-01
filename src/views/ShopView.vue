@@ -2,10 +2,13 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { useAuthStore } from '../stores/auth'
 import {
   SHOP_ITEMS,
   CATEGORY_LABELS,
   STREAK_FREEZE_ID,
+  MAX_STREAK_FREEZES,
+  rotatedItems,
   type ShopItem,
   type ShopCategory,
 } from '../data/shop'
@@ -13,6 +16,12 @@ import { applyCosmetics, frameStyle } from '../composables/useCosmetics'
 
 const router = useRouter()
 const userStore = useUserStore()
+const authStore = useAuthStore()
+
+// Today's date (Berlin-ish via local date is fine for a daily rotation) and a
+// per-user key so each user sees their own stable daily selection.
+const todayStr = new Date().toISOString().split('T')[0]
+const userKey = computed(() => authStore.uid || 'guest')
 
 const toast = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -28,9 +37,15 @@ const groupedItems = computed(() =>
   CATEGORY_ORDER.map(cat => ({
     category: cat,
     label: CATEGORY_LABELS[cat],
-    items: SHOP_ITEMS.filter(i => i.category === cat),
+    // Cosmetic categories rotate daily (up to 3 per day, per user). Utility
+    // (Streak-Freeze) is always fully available.
+    items: cat === 'utility'
+      ? SHOP_ITEMS.filter(i => i.category === 'utility')
+      : rotatedItems(cat, todayStr, userKey.value),
   })),
 )
+
+const freezeAtMax = computed(() => userStore.streakFreezes >= MAX_STREAK_FREEZES)
 
 function isConsumable(item: ShopItem): boolean {
   return item.category === 'utility'
@@ -52,12 +67,17 @@ function canAfford(item: ShopItem): boolean {
 }
 
 function buy(item: ShopItem) {
-  const ok = userStore.buyItem(item.id, item.price, isConsumable(item))
+  const consumable = isConsumable(item)
+  if (consumable && freezeAtMax.value) {
+    showToast(`Maximal ${MAX_STREAK_FREEZES} Streak-Freezes.`)
+    return
+  }
+  const ok = userStore.buyItem(item.id, item.price, consumable)
   if (!ok) {
     showToast(canAfford(item) ? 'Schon gekauft.' : 'Nicht genug Münzen.')
     return
   }
-  if (isConsumable(item)) {
+  if (consumable) {
     showToast(`${item.name} gekauft 🧊 (${userStore.streakFreezes}x)`)
   } else {
     showToast(`${item.name} gekauft!`)
@@ -97,8 +117,10 @@ const freezeCount = computed(() => userStore.streakFreezes)
 
       <!-- Streak-freeze count hint -->
       <p v-if="group.category === 'utility'" class="freeze-hint">
-        Du hast aktuell <strong>{{ freezeCount }}</strong> Streak-Freeze{{ freezeCount === 1 ? '' : 's' }}.
+        Du hast aktuell <strong>{{ freezeCount }}</strong> / {{ MAX_STREAK_FREEZES }} Streak-Freeze{{ freezeCount === 1 ? '' : 's' }}.
       </p>
+      <!-- Daily rotation hint for cosmetic categories -->
+      <p v-else class="rotation-hint">Täglich wechselndes Angebot 🔄</p>
 
       <div class="item-grid">
         <div
@@ -134,14 +156,15 @@ const freezeCount = computed(() => userStore.streakFreezes)
 
           <!-- Actions -->
           <div class="item-actions">
-            <!-- Consumable: always buyable -->
+            <!-- Consumable: buyable until the max is reached -->
             <template v-if="item.id === STREAK_FREEZE_ID">
               <button
                 class="btn btn-primary buy-btn"
-                :disabled="!canAfford(item)"
+                :disabled="!canAfford(item) || freezeAtMax"
                 @click="buy(item)"
               >
-                🪙 {{ item.price }}
+                <template v-if="freezeAtMax">Max. erreicht ({{ MAX_STREAK_FREEZES }}/{{ MAX_STREAK_FREEZES }})</template>
+                <template v-else>🪙 {{ item.price }}</template>
               </button>
             </template>
 
@@ -242,18 +265,25 @@ const freezeCount = computed(() => userStore.streakFreezes)
   margin-bottom: 10px;
 }
 
+.rotation-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
 .item-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
+  /* Fixed 3 columns per category (as requested) — never 2+1. */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
 .item-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 16px 12px;
+  gap: 8px;
+  padding: 12px 8px;
   text-align: center;
   transition: border-color var(--transition-fast);
   border: 2px solid transparent;

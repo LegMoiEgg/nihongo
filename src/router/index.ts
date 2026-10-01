@@ -141,6 +141,12 @@ const router = createRouter({
       meta: { title: 'Shop' }
     },
     {
+      path: '/customize',
+      name: 'customize',
+      component: () => import('../views/CustomizeView.vue'),
+      meta: { title: 'Anpassen' }
+    },
+    {
       path: '/auth',
       name: 'auth',
       component: () => import('../views/AuthView.vue'),

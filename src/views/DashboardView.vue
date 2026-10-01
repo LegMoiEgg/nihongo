@@ -200,6 +200,16 @@ const completedDays = computed(() =>
 
     <!-- Continue Section -->
     <section class="continue-section">
+      <router-link to="/shop" class="continue-card card">
+        <div class="continue-info">
+          <span class="continue-icon">🛒</span>
+          <div>
+            <h3>Shop</h3>
+            <p>Münzen gegen Farben, Themes &amp; Rahmen eintauschen</p>
+          </div>
+        </div>
+        <span class="continue-arrow">→</span>
+      </router-link>
       <router-link to="/social" class="continue-card card">
         <div class="continue-info">
           <span class="continue-icon">👥</span>
