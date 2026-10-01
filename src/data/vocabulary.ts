@@ -312,6 +312,49 @@ export const vocabularyData: VocabCard[] = [
   // Names (Katakana)
   { id: 'v-miku', japanese: 'ミク', reading: 'ミク', meaning: 'Miku (Name)', jlpt: 'N5', category: 'Namen', partOfSpeech: 'Name' },
   { id: 'v-teto', japanese: 'テト', reading: 'テト', meaning: 'Teto (Name)', jlpt: 'N5', category: 'Namen', partOfSpeech: 'Name' },
+
+  // ── Additional N5 vocabulary (more material for higher levels) ──
+  // More verbs
+  { id: 'v-oyogu2', japanese: '泳ぐ', reading: 'およぐ', meaning: 'schwimmen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-noru', japanese: '乗る', reading: 'のる', meaning: 'einsteigen / fahren', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-oriru', japanese: '降りる', reading: 'おりる', meaning: 'aussteigen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-tomaru', japanese: '止まる', reading: 'とまる', meaning: 'anhalten', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-hajimaru', japanese: '始まる', reading: 'はじまる', meaning: 'beginnen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-owaru', japanese: '終わる', reading: 'おわる', meaning: 'enden', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-dekiru', japanese: 'できる', reading: 'できる', meaning: 'können', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+  { id: 'v-wakaru2', japanese: '分かる', reading: 'わかる', meaning: 'verstehen', jlpt: 'N5', category: 'Verben', partOfSpeech: 'Verb' },
+
+  // More food
+  { id: 'v-cha-han', japanese: 'チャーハン', reading: 'チャーハン', meaning: 'Gebratener Reis', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-ramen', japanese: 'ラーメン', reading: 'ラーメン', meaning: 'Ramen', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-sushi', japanese: 'すし', reading: 'すし', meaning: 'Sushi', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-juusu', japanese: 'ジュース', reading: 'ジュース', meaning: 'Saft', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+
+  // More places
+  { id: 'v-koen', japanese: '公園', reading: 'こうえん', meaning: 'Park', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-toshokan', japanese: '図書館', reading: 'としょかん', meaning: 'Bibliothek', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-ginkou', japanese: '銀行', reading: 'ぎんこう', meaning: 'Bank', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-yuubinkyoku', japanese: '郵便局', reading: 'ゆうびんきょく', meaning: 'Post', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-resutoran', japanese: 'レストラン', reading: 'レストラン', meaning: 'Restaurant', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+
+  // More adjectives
+  { id: 'v-tooi', japanese: '遠い', reading: 'とおい', meaning: 'weit entfernt', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-chikai', japanese: '近い', reading: 'ちかい', meaning: 'nah', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-tsuyoi', japanese: '強い', reading: 'つよい', meaning: 'stark', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-yowai', japanese: '弱い', reading: 'よわい', meaning: 'schwach', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-wakai', japanese: '若い', reading: 'わかい', meaning: 'jung', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-amai', japanese: '甘い', reading: 'あまい', meaning: 'süß', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+  { id: 'v-karai', japanese: '辛い', reading: 'からい', meaning: 'scharf', jlpt: 'N5', category: 'Adjektive', partOfSpeech: 'i-Adjektiv' },
+
+  // More school/work
+  { id: 'v-enpitsu', japanese: '鉛筆', reading: 'えんぴつ', meaning: 'Bleistift', jlpt: 'N5', category: 'Schule', partOfSpeech: 'Nomen' },
+  { id: 'v-nooto', japanese: 'ノート', reading: 'ノート', meaning: 'Heft', jlpt: 'N5', category: 'Schule', partOfSpeech: 'Nomen' },
+  { id: 'v-kaigi', japanese: '会議', reading: 'かいぎ', meaning: 'Besprechung', jlpt: 'N5', category: 'Schule', partOfSpeech: 'Nomen' },
+
+  // More nature / weather
+  { id: 'v-tenki', japanese: '天気', reading: 'てんき', meaning: 'Wetter', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-taiyou', japanese: '太陽', reading: 'たいよう', meaning: 'Sonne', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-hoshi', japanese: '星', reading: 'ほし', meaning: 'Stern', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
 ]
 
 export const vocabCategories = [...new Set(vocabularyData.map(v => v.category))]

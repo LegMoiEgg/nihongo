@@ -239,7 +239,7 @@ function initSession() {
     // ── Vocabulary: follow the themed curriculum (same red thread as the
     //    daily lesson) — one topic at a time, not a random mix. ──
     const allVocabMeta = vocabularyData.map(v => ({ id: v.id, category: v.category }))
-    const slots = learningStore.getVocabForDailyLesson(allVocabMeta, 1, 12)
+    const slots = learningStore.getVocabForDailyLesson(allVocabMeta, userStore.currentLevel.level, 12)
     const byId = new Map(vocabularyData.map(v => [v.id, v]))
     selected = slots.map(s => byId.get(s.id)).filter((c): c is VocabCard => !!c)
   } else {

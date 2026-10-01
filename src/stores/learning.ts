@@ -369,15 +369,8 @@ export const useLearningStore = defineStore('learning', () => {
    * @param allVocab  all vocab as {id, category} in curriculum/display order
    * @returns { lessonIds, reviewIds } — current theme + a little prior review
    */
-  function getVocabCurriculumLesson(
-    allVocab: { id: string; category: string }[]
-  ): { lessonIds: string[]; reviewIds: string[] } {
-    const isMastered = (id: string) => {
-      const p = cardProgress.value.find(c => c.id === id)
-      return !!p && p.consecutiveCorrect >= MASTERY_STREAK
-    }
-
-    // Build the ordered list of chunks: each category split into ≤10er groups.
+  /** Build the ordered list of lesson chunks (each ≤ VOCAB_LESSON_SIZE). */
+  function buildVocabChunks(allVocab: { id: string; category: string }[]): string[][] {
     const chunks: string[][] = []
     for (const category of VOCAB_CURRICULUM) {
       const ids = allVocab.filter(v => v.category === category).map(v => v.id)
@@ -385,21 +378,62 @@ export const useLearningStore = defineStore('learning', () => {
         chunks.push(ids.slice(i, i + VOCAB_LESSON_SIZE))
       }
     }
-    // Any categories not listed in the curriculum → appended at the end.
     const listed = new Set(VOCAB_CURRICULUM)
     const leftover = allVocab.filter(v => !listed.has(v.category)).map(v => v.id)
     for (let i = 0; i < leftover.length; i += VOCAB_LESSON_SIZE) {
       chunks.push(leftover.slice(i, i + VOCAB_LESSON_SIZE))
     }
+    return chunks
+  }
 
-    // Find the first chunk with at least one unmastered word.
-    let currentIdx = chunks.findIndex(chunk => chunk.some(id => !isMastered(id)))
-    if (currentIdx === -1) currentIdx = chunks.length - 1 // everything mastered → last chunk
+  function getVocabCurriculumLesson(
+    allVocab: { id: string; category: string }[],
+    userLevel = 1
+  ): { lessonIds: string[]; reviewIds: string[] } {
+    const isMastered = (id: string) => {
+      const p = cardProgress.value.find(c => c.id === id)
+      return !!p && p.consecutiveCorrect >= MASTERY_STREAK
+    }
+
+    const chunks = buildVocabChunks(allVocab)
+    if (chunks.length === 0) return { lessonIds: [], reviewIds: [] }
+
+    // ── LEVEL-GATED progression ──
+    // The level decides HOW FAR into the curriculum the learner is, so a
+    // level-25 user is on advanced themes, not on こんにちは. We unlock roughly
+    // CHUNKS_PER_LEVEL chunks per level. Within the unlocked range the lesson
+    // focuses on the LATEST not-yet-mastered chunk (hardest/newest), not the
+    // very first — early beginner words are only brief review.
+    const CHUNKS_PER_LEVEL = 1.5
+    const unlockedUpto = Math.min(
+      chunks.length,
+      Math.max(1, Math.ceil(userLevel * CHUNKS_PER_LEVEL))
+    )
+
+    // Focus = the furthest unlocked chunk that still has unmastered words.
+    let currentIdx = -1
+    for (let i = unlockedUpto - 1; i >= 0; i--) {
+      if (chunks[i].some(id => !isMastered(id))) { currentIdx = i; break }
+    }
+    // Everything in range mastered → use the newest unlocked chunk.
+    if (currentIdx === -1) currentIdx = unlockedUpto - 1
 
     const lessonIds = chunks[currentIdx] ?? []
-    // A little review of the previous (already-worked) chunk for retention.
-    const reviewIds = currentIdx > 0 ? (chunks[currentIdx - 1] ?? []) : []
-    return { lessonIds, reviewIds }
+
+    // Review: a mix of the immediately-previous chunk AND any earlier
+    // not-yet-mastered chunk (so skipped beginner gaps still get occasional
+    // practice, but never dominate the lesson).
+    const reviewSet = new Set<string>()
+    if (currentIdx > 0) {
+      for (const id of chunks[currentIdx - 1]) reviewSet.add(id)
+    }
+    for (let i = 0; i < currentIdx - 1; i++) {
+      if (chunks[i].some(id => !isMastered(id))) {
+        for (const id of chunks[i].filter(id => !isMastered(id))) reviewSet.add(id)
+        break // only ONE earlier gap chunk, keep review light
+      }
+    }
+    return { lessonIds, reviewIds: [...reviewSet] }
   }
 
   /**
@@ -411,10 +445,10 @@ export const useLearningStore = defineStore('learning', () => {
    */
   function getVocabForDailyLesson(
     allVocab: { id: string; category: string }[],
-    _userLevel: number,
+    userLevel: number,
     limit = 10
   ): { id: string; isNew: boolean }[] {
-    const { lessonIds, reviewIds } = getVocabCurriculumLesson(allVocab)
+    const { lessonIds, reviewIds } = getVocabCurriculumLesson(allVocab, userLevel)
 
     const isNewWord = (id: string) => {
       const p = cardProgress.value.find(c => c.id === id)

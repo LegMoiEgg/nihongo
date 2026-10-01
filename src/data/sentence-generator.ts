@@ -420,12 +420,14 @@ const vocabById = new Map(vocabularyData.map(v => [v.id, v]))
 const EDIBLE = [
   'v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono',
   'v-pan', 'v-tamago', 'v-ringo', 'v-mikan', 'v-okashi', 'v-tamanegi', 'v-ryouri',
+  'v-sushi', 'v-ramen', 'v-cha-han',
 ]
-const DRINKABLE = ['v-mizu', 'v-ocha', 'v-nomimono', 'v-gyuunyuu', 'v-koohii', 'v-sake']
+const DRINKABLE = ['v-mizu', 'v-ocha', 'v-nomimono', 'v-gyuunyuu', 'v-koohii', 'v-sake', 'v-juusu']
 const READABLE = ['v-hon-book', 'v-shinbun', 'v-jisho']
 const PLACES = [
   'v-gakkou', 'v-eki', 'v-byouin', 'v-mise', 'v-kaisha', 'v-uchi', 'v-umi',
-  'v-yama', 'v-daigaku', 'v-kyoushitsu',
+  'v-yama', 'v-daigaku', 'v-kyoushitsu', 'v-koen', 'v-toshokan', 'v-ginkou',
+  'v-yuubinkyoku', 'v-resutoran',
 ]
 // Nouns that can be bought (object of 買う / kaufen).
 const BUYABLE = [
@@ -490,6 +492,7 @@ const I_ADJECTIVES = [
   'v-muzukashii', 'v-yasashii', 'v-hayai', 'v-osoi',
   'v-nagai', 'v-mijikai', 'v-hiroi', 'v-semai', 'v-omoi', 'v-karui',
   'v-akarui', 'v-kurai', 'v-isogashii', 'v-omoshiroi',
+  'v-tooi', 'v-chikai', 'v-tsuyoi', 'v-yowai', 'v-wakai', 'v-amai', 'v-karai',
 ]
 
 const SUBJECT_PRONOUNS = ['v-watashi', 'v-kare', 'v-kanojo']
@@ -814,6 +817,91 @@ function buildSentencesForTime(timeId: string, opts: DynOptions): SentenceChalle
   return out
 }
 
+// Places that take で (location of an action) for the complex pattern.
+const ACTION_PLACES = ['v-gakkou', 'v-uchi', 'v-mise', 'v-kaisha', 'v-kyoushitsu', 'v-heya']
+// Time words (both weekday-に and adverb-type) usable at the start.
+const COMPLEX_TIME = [
+  'v-asa', 'v-hiru', 'v-yoru', 'v-kyou', 'v-mainichi', 'v-maiasa', 'v-maiban',
+]
+
+/**
+ * Build a COMPLEX sentence for advanced learners, combining time + subject +
+ * place + object + verb:
+ *   [Time] [Pron] は [Place] で [Object] を [Verb-masu]
+ *   "Morgens esse ich zuhause Fisch." → あさ わたし は うち で さかな を たべます
+ * Returns null if the learner doesn't know enough of the needed pieces.
+ */
+function buildComplexSentence(opts: DynOptions): SentenceChallenge | null {
+  const has = (id: string) => opts.learnedSet.has(id)
+
+  // Pick an object + its verb (eat/drink/read) that the learner knows.
+  const objVerb: Array<[string[], string, string]> = [
+    [EDIBLE, 'v-taberu', 'esse'],
+    [DRINKABLE, 'v-nomu', 'trinke'],
+    [READABLE, 'v-yomu', 'lese'],
+  ]
+  const usableObjVerb = objVerb.filter(([objs, verb]) => has(verb) && objs.some(has))
+  if (usableObjVerb.length === 0) return null
+  const [objs, verbId] = shuffle(usableObjVerb)[0]
+  const objId = shuffle(objs.filter(has))[0]
+  const masu = toMasu(verbId, reading(verbId) || '')
+  const objR = reading(objId)
+  const objDe = meaningDe(objId)
+  if (!masu || !objR || !objDe) return null
+
+  // Place (で) — optional but preferred.
+  const places = ACTION_PLACES.filter(has)
+  const placeId = places.length ? shuffle(places)[0] : null
+  const placeR = placeId ? reading(placeId) : null
+  const placeDe = placeId ? meaningDe(placeId) : null
+
+  // Time — optional but preferred.
+  const times = COMPLEX_TIME.filter(has)
+  const timeId = times.length ? shuffle(times)[0] : null
+  const timeR = timeId ? reading(timeId) : null
+  const timeDeMap: Record<string, string> = {
+    'v-asa': 'morgens', 'v-hiru': 'mittags', 'v-yoru': 'abends', 'v-kyou': 'heute',
+    'v-mainichi': 'jeden Tag', 'v-maiasa': 'jeden Morgen', 'v-maiban': 'jeden Abend',
+  }
+
+  // Need at least a place OR a time to make it "complex"; otherwise skip.
+  if (!placeId && !timeId) return null
+
+  const pron = SUBJECT_PRONOUNS.filter(has)
+  const pId = pron.length ? shuffle(pron)[0] : 'v-watashi'
+  const pr = reading(pId) || 'わたし'
+  const verbDeIch = VERB_DE[verbId]?.ich ?? ''
+
+  // Assemble JP block order: [Time] [Pron] は [Place] で [Obj] を [Verb]
+  const order: string[] = []
+  if (timeR) order.push(timeR)
+  order.push(pr, 'は')
+  if (placeR) order.push(placeR, 'で')
+  order.push(objR, 'を', masu)
+
+  // German place phrasing with a sensible preposition per place word.
+  const placePhrase: Record<string, string> = {
+    'v-gakkou': 'in der Schule', 'v-uchi': 'zu Hause', 'v-mise': 'im Geschäft',
+    'v-kaisha': 'in der Firma', 'v-kyoushitsu': 'im Klassenzimmer', 'v-heya': 'im Zimmer',
+  }
+  // German: "[Zeit] [verb] ich [Ort] [Objekt]."
+  const parts: string[] = []
+  if (timeId) parts.push(timeDeMap[timeId] ?? '')
+  parts.push(verbDeIch, 'ich')
+  if (placeId && placePhrase[placeId]) parts.push(placePhrase[placeId])
+  parts.push(objDe.split(' /')[0])
+  const meaning = parts.filter(Boolean).join(' ').replace(/^\w/, c => c.toUpperCase()) + '.'
+
+  return {
+    id: `dyn-${++idCounter}`,
+    meaning,
+    correctOrder: order,
+    distractors: opts.pickDistractorReadings(order, 'noun'),
+    hint: 'に/は/で/を — Zeit, Thema, Ort, Objekt',
+    difficulty: 'hard',
+  }
+}
+
 /**
  * Generate sentences that USE the given vocab (typically the words learned in
  * this session). Falls back to the curated templates if not enough dynamic
@@ -854,6 +942,16 @@ export function generateSentencesFromVocab(
     if (usedMeanings.has(key)) return
     usedMeanings.add(key)
     out.push(s)
+  }
+
+  // Advanced learners (level ≥ 12) get 1-2 COMPLEX sentences first
+  // (time + subject + place + object + verb) for more challenge.
+  if (userLevel >= 12) {
+    const complexWanted = userLevel >= 20 ? 2 : 1
+    for (let i = 0; i < complexWanted; i++) {
+      if (out.length >= count) break
+      tryAdd(buildComplexSentence(opts))
+    }
   }
 
   // Build a big pool of candidate sentences that each USE a session word, so
