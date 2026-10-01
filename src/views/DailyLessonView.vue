@@ -56,6 +56,7 @@ interface Exercise {
   isRetry?: boolean  // requeued after a wrong answer — no XP on retries
   vocab?: VocabCard
   vocabOptions?: string[]
+  vocabAnswer?: string   // frozen correct JP display at creation time (de-jp)
   kanji?: KanjiCard
   kanjiOptions?: string[]
   sentence?: SentenceChallenge
@@ -190,13 +191,18 @@ function generateExercises(): Exercise[] {
       result.push({ type: 'vocab-study', isNewWord: true, vocab: card })
     }
 
+    // Freeze the correct display NOW. vocabDisplay depends on mastery, which
+    // can change later in the session — if we recomputed it at check time the
+    // stored option (e.g. 捨てる) wouldn't match the live answer (すてる).
+    const correctJp = vocabDisplay(card)
     const wrongJp = shuffle(vocabularyData.filter(v => v.id !== card.id))
       .slice(0, 3).map(v => vocabDisplay(v))
     result.push({
       type: 'vocab-de-jp',
       isNewWord: isNew,
       vocab: card,
-      vocabOptions: shuffle([vocabDisplay(card), ...wrongJp]),
+      vocabAnswer: correctJp,
+      vocabOptions: shuffle([correctJp, ...wrongJp]),
     })
 
     const wrongDe = shuffle(vocabularyData.filter(v => v.id !== card.id))
@@ -344,7 +350,7 @@ function getCorrectMcAnswer(): string {
   if (!ex) return ''
   if (ex.type === 'kana-char' && ex.kana) return ex.kana.character
   if (ex.type === 'kana-romaji' && ex.kana) return ex.kana.romaji
-  if (ex.type === 'vocab-de-jp') return vocabDisplay(ex.vocab!)
+  if (ex.type === 'vocab-de-jp') return ex.vocabAnswer ?? vocabDisplay(ex.vocab!)
   if (ex.type === 'vocab-jp-de') return ex.vocab!.meaning
   if (ex.type === 'kanji-meaning') return ex.kanji!.meanings[0]
   if (ex.type === 'kanji-reading') return ex.kanji!.kunyomi[0] || ex.kanji!.onyomi[0]
@@ -598,9 +604,9 @@ onMounted(() => {
             :key="option"
             class="mc-option jp"
             :class="{
-              correct: mcChecked && option === vocabDisplay(currentExercise.vocab!),
-              wrong: mcChecked && selectedMcAnswer === option && option !== vocabDisplay(currentExercise.vocab!),
-              dimmed: mcChecked && option !== vocabDisplay(currentExercise.vocab!) && selectedMcAnswer !== option,
+              correct: mcChecked && option === getCorrectMcAnswer(),
+              wrong: mcChecked && selectedMcAnswer === option && option !== getCorrectMcAnswer(),
+              dimmed: mcChecked && option !== getCorrectMcAnswer() && selectedMcAnswer !== option,
             }"
             :disabled="mcChecked"
             @click="selectMcOption(option)"
