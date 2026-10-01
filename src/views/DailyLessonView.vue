@@ -184,6 +184,21 @@ function generateExercises(): Exercise[] {
 
   newWordsInSession.value = vocabCards.filter(v => v.isNew).length
 
+  // The lesson's PRIMARY theme = the most common category among the session
+  // words (the review words from the previous theme are a minority). Sentences
+  // and kanji are tied to THIS theme only, so a Family lesson never pulls in
+  // "Ich lerne Japanisch" or a Number kanji from the review tail.
+  const categoryCount = new Map<string, number>()
+  for (const { card } of vocabCards) {
+    categoryCount.set(card.category, (categoryCount.get(card.category) ?? 0) + 1)
+  }
+  let lessonCategory = ''
+  let lessonCategoryMax = 0
+  for (const [cat, n] of categoryCount) {
+    if (n > lessonCategoryMax) { lessonCategoryMax = n; lessonCategory = cat }
+  }
+  const themeVocabCards = vocabCards.filter(v => v.card.category === lessonCategory)
+
   // Every vocab word in BOTH directions
   for (const { card, isNew } of vocabCards) {
     // For a brand-new word, show a flashcard first (word + reading + meaning)
@@ -220,7 +235,9 @@ function generateExercises(): Exercise[] {
   // session, so a freshly-learned noun (さかな, にく …) actually appears in a
   // sentence. Falls back to curated templates when no dynamic sentence fits.
   if (lvl >= 10) {
-    const sessionVocabIds = vocabCards.map(v => v.card.id)
+    // Only the current THEME's words drive sentence generation (not the review
+    // tail) — keeps every sentence on-topic for the lesson.
+    const sessionVocabIds = themeVocabCards.map(v => v.card.id)
     // All words the learner has seen (not "new") — used as sentence partners
     // (verbs, adjectives, pronouns) and as distractors.
     const learnedIds = learningStore.cardProgress
@@ -270,16 +287,13 @@ function generateExercises(): Exercise[] {
 
   // Kanji (level 15+)
   if (lvl >= 15) {
-    // Kanji tied to THIS lesson's vocabulary: pick kanji whose character
-    // appears in one of the session words (e.g. lesson has 水/みず → kanji 水),
-    // so kanji practice follows the same red thread as the vocab — no more
-    // random 中/naka that has nothing to do with the lesson.
-    const lessonJapanese = vocabCards.map(v => v.card.japanese).join('')
+    // Kanji tied STRICTLY to THIS lesson's theme: only kanji whose character
+    // appears in one of the theme words (e.g. Essen lesson has 水/みず → kanji
+    // 水). No random fill — if the theme has no matching kanji, we simply show
+    // no kanji this lesson rather than an unrelated 七/nanatsu.
+    const lessonJapanese = themeVocabCards.map(v => v.card.japanese).join('')
     const relatedKanji = kanjiData.filter(k => lessonJapanese.includes(k.character))
-    // If the theme yields too few kanji, top up with other kanji so the
-    // section isn't empty — but related ones always come first.
-    const otherKanji = shuffle(kanjiData.filter(k => !relatedKanji.includes(k)))
-    const kanjiPool = [...shuffle(relatedKanji), ...otherKanji]
+    const kanjiPool = shuffle(relatedKanji)
     const kanjiCount = Math.min(lvl >= 20 ? 4 : 3, kanjiPool.length)
 
     for (const kanji of kanjiPool.slice(0, kanjiCount)) {

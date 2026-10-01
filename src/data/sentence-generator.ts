@@ -848,13 +848,15 @@ export function generateSentencesFromVocab(
   // imasu" while learning weekdays). Sentences must stay tied to the lesson —
   // fewer, relevant sentences beat many irrelevant ones.
 
-  // 3) Curated templates — but ONLY ones that involve a SESSION word, so we
-  //    never show an unrelated "Er kommt zur Schule" when the lesson is about
-  //    something else. Generic templates are a last resort (step 4).
+  // 3) Curated templates — but ONLY ones whose CONTENT word is a session word.
+  //    Pronouns (わたし/かれ/…) appear in almost every template, so matching on
+  //    them would let unrelated sentences through ("Ich lerne Japanisch" during
+  //    a Family lesson). We therefore ignore pronouns when deciding relevance.
   if (out.length < count) {
     const sessionSet = new Set(sessionVocabIds)
+    const isPronoun = (id: string) => vocabById.get(id)?.partOfSpeech === 'Pronomen'
     const sessionTemplates = SENTENCE_TEMPLATES.filter(t =>
-      t.requiredVocab.some(id => sessionSet.has(id))
+      t.requiredVocab.some(id => sessionSet.has(id) && !isPronoun(id))
     )
     for (const t of shuffle(sessionTemplates)) {
       if (out.length >= count) break
