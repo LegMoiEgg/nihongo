@@ -355,6 +355,93 @@ export const vocabularyData: VocabCard[] = [
   { id: 'v-tenki', japanese: '天気', reading: 'てんき', meaning: 'Wetter', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
   { id: 'v-taiyou', japanese: '太陽', reading: 'たいよう', meaning: 'Sonne', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
   { id: 'v-hoshi', japanese: '星', reading: 'ほし', meaning: 'Stern', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+
+  // ───────────────────────────── Etappe 1: bestehende Kategorien auffüllen ──
+  // Essen
+  { id: 'v-asagohan', japanese: '朝ご飯', reading: 'あさごはん', meaning: 'Frühstück', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-hirugohan', japanese: '昼ご飯', reading: 'ひるごはん', meaning: 'Mittagessen', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-bangohan', japanese: '晩ご飯', reading: 'ばんごはん', meaning: 'Abendessen', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-yasai2', japanese: 'サラダ', reading: 'サラダ', meaning: 'Salat', jlpt: 'N5', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-chiizu', japanese: 'チーズ', reading: 'チーズ', meaning: 'Käse', jlpt: 'N4', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-bataa', japanese: 'バター', reading: 'バター', meaning: 'Butter', jlpt: 'N4', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-satou', japanese: '砂糖', reading: 'さとう', meaning: 'Zucker', jlpt: 'N4', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-shio', japanese: '塩', reading: 'しお', meaning: 'Salz', jlpt: 'N4', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-tamago2', japanese: '卵焼き', reading: 'たまごやき', meaning: 'Omelett', jlpt: 'N4', category: 'Essen', partOfSpeech: 'Nomen' },
+  { id: 'v-kome', japanese: '米', reading: 'こめ', meaning: 'Reis (ungekocht)', jlpt: 'N4', category: 'Essen', partOfSpeech: 'Nomen' },
+
+  // Orte
+  { id: 'v-depaato', japanese: 'デパート', reading: 'デパート', meaning: 'Kaufhaus', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-konbini', japanese: 'コンビニ', reading: 'コンビニ', meaning: 'Kiosk / Convenience Store', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-kuukou', japanese: '空港', reading: 'くうこう', meaning: 'Flughafen', jlpt: 'N4', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-hoteru', japanese: 'ホテル', reading: 'ホテル', meaning: 'Hotel', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-kissaten', japanese: '喫茶店', reading: 'きっさてん', meaning: 'Café', jlpt: 'N4', category: 'Orte', partOfSpeech: 'Nomen' },
+  { id: 'v-machi', japanese: '町', reading: 'まち', meaning: 'Stadt / Viertel', jlpt: 'N5', category: 'Orte', partOfSpeech: 'Nomen' },
+
+  // Zeit
+  { id: 'v-shuu', japanese: '週', reading: 'しゅう', meaning: 'Woche', jlpt: 'N5', category: 'Zeit', partOfSpeech: 'Nomen' },
+  { id: 'v-tsuki2', japanese: '月', reading: 'つき', meaning: 'Monat', jlpt: 'N5', category: 'Zeit', partOfSpeech: 'Nomen' },
+  { id: 'v-ototoi', japanese: 'おととい', reading: 'おととい', meaning: 'vorgestern', jlpt: 'N4', category: 'Zeit', partOfSpeech: 'Nomen' },
+  { id: 'v-asatte', japanese: 'あさって', reading: 'あさって', meaning: 'übermorgen', jlpt: 'N4', category: 'Zeit', partOfSpeech: 'Nomen' },
+  { id: 'v-konshuu', japanese: '今週', reading: 'こんしゅう', meaning: 'diese Woche', jlpt: 'N4', category: 'Zeit', partOfSpeech: 'Nomen' },
+  { id: 'v-raishuu', japanese: '来週', reading: 'らいしゅう', meaning: 'nächste Woche', jlpt: 'N4', category: 'Zeit', partOfSpeech: 'Nomen' },
+
+  // Familie
+  { id: 'v-ani', japanese: '兄', reading: 'あに', meaning: 'älterer Bruder (eigener)', jlpt: 'N5', category: 'Familie', partOfSpeech: 'Nomen' },
+  { id: 'v-ane', japanese: '姉', reading: 'あね', meaning: 'ältere Schwester (eigene)', jlpt: 'N5', category: 'Familie', partOfSpeech: 'Nomen' },
+  { id: 'v-haha', japanese: '母', reading: 'はは', meaning: 'Mutter (eigene)', jlpt: 'N5', category: 'Familie', partOfSpeech: 'Nomen' },
+  { id: 'v-chichi', japanese: '父', reading: 'ちち', meaning: 'Vater (eigener)', jlpt: 'N5', category: 'Familie', partOfSpeech: 'Nomen' },
+  { id: 'v-ryoushin', japanese: '両親', reading: 'りょうしん', meaning: 'Eltern', jlpt: 'N4', category: 'Familie', partOfSpeech: 'Nomen' },
+
+  // Körper
+  { id: 'v-kao', japanese: '顔', reading: 'かお', meaning: 'Gesicht', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-kami-hair', japanese: '髪', reading: 'かみ', meaning: 'Haar', jlpt: 'N4', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-ha-tooth', japanese: '歯', reading: 'は', meaning: 'Zahn', jlpt: 'N5', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-onaka', japanese: 'お腹', reading: 'おなか', meaning: 'Bauch', jlpt: 'N4', category: 'Körper', partOfSpeech: 'Nomen' },
+  { id: 'v-koe', japanese: '声', reading: 'こえ', meaning: 'Stimme', jlpt: 'N4', category: 'Körper', partOfSpeech: 'Nomen' },
+
+  // Farben
+  { id: 'v-murasaki', japanese: '紫', reading: 'むらさき', meaning: 'lila', jlpt: 'N4', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-pinku', japanese: 'ピンク', reading: 'ピンク', meaning: 'rosa', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-orenji', japanese: 'オレンジ', reading: 'オレンジ', meaning: 'orange', jlpt: 'N5', category: 'Farben', partOfSpeech: 'Nomen' },
+  { id: 'v-haiiro', japanese: '灰色', reading: 'はいいろ', meaning: 'grau', jlpt: 'N4', category: 'Farben', partOfSpeech: 'Nomen' },
+
+  // Tiere
+  { id: 'v-usagi', japanese: 'うさぎ', reading: 'うさぎ', meaning: 'Hase', jlpt: 'N4', category: 'Tiere', partOfSpeech: 'Nomen' },
+  { id: 'v-kuma', japanese: '熊', reading: 'くま', meaning: 'Bär', jlpt: 'N4', category: 'Tiere', partOfSpeech: 'Nomen' },
+  { id: 'v-zou', japanese: '象', reading: 'ぞう', meaning: 'Elefant', jlpt: 'N4', category: 'Tiere', partOfSpeech: 'Nomen' },
+  { id: 'v-saru', japanese: '猿', reading: 'さる', meaning: 'Affe', jlpt: 'N4', category: 'Tiere', partOfSpeech: 'Nomen' },
+  { id: 'v-mushi', japanese: '虫', reading: 'むし', meaning: 'Insekt', jlpt: 'N4', category: 'Tiere', partOfSpeech: 'Nomen' },
+
+  // Natur
+  { id: 'v-hana-flower2', japanese: '花', reading: 'はな', meaning: 'Blume (allg.)', jlpt: 'N5', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-mori', japanese: '森', reading: 'もり', meaning: 'Wald', jlpt: 'N4', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-ishi', japanese: '石', reading: 'いし', meaning: 'Stein', jlpt: 'N4', category: 'Natur', partOfSpeech: 'Nomen' },
+  { id: 'v-kumo', japanese: '雲', reading: 'くも', meaning: 'Wolke', jlpt: 'N4', category: 'Natur', partOfSpeech: 'Nomen' },
+
+  // Transport
+  { id: 'v-fune', japanese: '船', reading: 'ふね', meaning: 'Schiff', jlpt: 'N4', category: 'Transport', partOfSpeech: 'Nomen' },
+  { id: 'v-shinkansen', japanese: '新幹線', reading: 'しんかんせん', meaning: 'Shinkansen (Schnellzug)', jlpt: 'N4', category: 'Transport', partOfSpeech: 'Nomen' },
+  { id: 'v-michi', japanese: '道', reading: 'みち', meaning: 'Straße / Weg', jlpt: 'N4', category: 'Transport', partOfSpeech: 'Nomen' },
+
+  // Kleidung
+  { id: 'v-zubon', japanese: 'ズボン', reading: 'ズボン', meaning: 'Hose', jlpt: 'N5', category: 'Kleidung', partOfSpeech: 'Nomen' },
+  { id: 'v-sukaato', japanese: 'スカート', reading: 'スカート', meaning: 'Rock', jlpt: 'N5', category: 'Kleidung', partOfSpeech: 'Nomen' },
+  { id: 'v-kouto', japanese: 'コート', reading: 'コート', meaning: 'Mantel', jlpt: 'N5', category: 'Kleidung', partOfSpeech: 'Nomen' },
+  { id: 'v-sebiro', japanese: '背広', reading: 'せびろ', meaning: 'Anzug', jlpt: 'N4', category: 'Kleidung', partOfSpeech: 'Nomen' },
+
+  // Zuhause
+  { id: 'v-daidokoro', japanese: '台所', reading: 'だいどころ', meaning: 'Küche', jlpt: 'N4', category: 'Zuhause', partOfSpeech: 'Nomen' },
+  { id: 'v-furo', japanese: 'お風呂', reading: 'おふろ', meaning: 'Bad', jlpt: 'N5', category: 'Zuhause', partOfSpeech: 'Nomen' },
+  { id: 'v-toire', japanese: 'トイレ', reading: 'トイレ', meaning: 'Toilette', jlpt: 'N5', category: 'Zuhause', partOfSpeech: 'Nomen' },
+  { id: 'v-niwa', japanese: '庭', reading: 'にわ', meaning: 'Garten', jlpt: 'N4', category: 'Zuhause', partOfSpeech: 'Nomen' },
+  { id: 'v-reizouko', japanese: '冷蔵庫', reading: 'れいぞうこ', meaning: 'Kühlschrank', jlpt: 'N4', category: 'Zuhause', partOfSpeech: 'Nomen' },
+
+  // Fragewörter / Adverbien
+  { id: 'v-dochira', japanese: 'どちら', reading: 'どちら', meaning: 'welche(r) von beiden / wohin', jlpt: 'N5', category: 'Fragewörter', partOfSpeech: 'Fragewort' },
+  { id: 'v-nannin', japanese: '何人', reading: 'なんにん', meaning: 'wie viele Personen', jlpt: 'N5', category: 'Fragewörter', partOfSpeech: 'Fragewort' },
+  { id: 'v-zenbu', japanese: '全部', reading: 'ぜんぶ', meaning: 'alles', jlpt: 'N4', category: 'Adverbien', partOfSpeech: 'Adverb' },
+  { id: 'v-taitei', japanese: 'たいてい', reading: 'たいてい', meaning: 'meistens', jlpt: 'N4', category: 'Adverbien', partOfSpeech: 'Adverb' },
+  { id: 'v-yukkuri', japanese: 'ゆっくり', reading: 'ゆっくり', meaning: 'langsam / gemütlich', jlpt: 'N4', category: 'Adverbien', partOfSpeech: 'Adverb' },
 ]
 
 export const vocabCategories = [...new Set(vocabularyData.map(v => v.category))]
