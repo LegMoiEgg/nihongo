@@ -26,6 +26,7 @@ export interface GroupMember {
   level: number
   goalReachedToday: boolean  // has this member reached their daily XP goal today?
   canBeNudged: boolean       // has an FCM token → can receive a reminder push
+  equippedFrame: string      // avatar frame cosmetic id (shown to others)
 }
 
 const DAILY_XP_GOAL = 100
@@ -44,6 +45,7 @@ export interface PublicProfile {
   earnedBadges: { id: string; earnedAt: string }[]
   cardProgress: any[]
   dailyLog: { date: string; xpEarned: number }[]
+  equippedFrame: string   // avatar frame cosmetic id
 }
 
 export interface SocialGroup {
@@ -283,6 +285,7 @@ export const useSocialStore = defineStore('social', () => {
               level: Math.max(xpLevel, placement),
               goalReachedToday: todayXp >= DAILY_XP_GOAL,
               canBeNudged: !!data.fcmToken,
+              equippedFrame: data.equippedFrame || '',
             })
           }
         } catch {
@@ -341,6 +344,7 @@ export const useSocialStore = defineStore('social', () => {
         earnedBadges: data.earnedBadges || [],
         cardProgress: data.cardProgress || [],
         dailyLog: data.dailyLog || [],
+        equippedFrame: data.equippedFrame || '',
       }
     } catch (e: any) {
       error.value = 'Profil konnte nicht geladen werden.'

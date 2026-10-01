@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomNav from './components/BottomNav.vue'
 import LevelUpPopup from './components/LevelUpPopup.vue'
+import ChestPopup from './components/ChestPopup.vue'
 import WeeklyTestPopup from './components/WeeklyTestPopup.vue'
 import { shouldOfferWeeklyTest, markWeeklyTestDone } from './composables/useWeeklyTest'
 import { useUserStore } from './stores/user'
@@ -10,6 +11,7 @@ import { useAuthStore } from './stores/auth'
 import { useBadgesStore } from './stores/badges'
 import { loadFromCloud, registerFlushOnHide, resolveAuthSettled } from './stores/sync'
 import { useNotificationsStore } from './stores/notifications'
+import { applyCosmetics } from './composables/useCosmetics'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -47,6 +49,29 @@ function closeLevelUp() {
   levelUp.value = null
 }
 
+// ── Daily coin chest popup ──
+// Same deferral rule as the level-up popup: don't interrupt an active
+// exercise; show it once the user is back on a normal screen.
+const chestReward = ref<{ amount: number; streakBonus: number } | null>(null)
+
+function maybeShowChest() {
+  const pending = userStore.pendingCoinReward
+  if (!pending) return
+  if (ACTIVE_SESSION_ROUTES.has(currentRouteName.value || '')) return
+  // Don't stack on top of the level-up popup — show the chest after it closes.
+  if (levelUp.value) return
+  chestReward.value = pending
+  userStore.clearCoinReward()
+}
+
+watch(() => userStore.pendingCoinReward, maybeShowChest)
+watch(currentRouteName, maybeShowChest)
+watch(levelUp, maybeShowChest)
+
+function closeChest() {
+  chestReward.value = null
+}
+
 // ── Weekly test popup (Sundays only, once per week) ──
 const showWeeklyTest = ref(false)
 
@@ -76,6 +101,9 @@ userStore.initializeUser()
 badgesStore.initialize()
 badgesStore.checkAllBadges()
 notifStore.initialize()
+// Apply equipped cosmetics (accent/theme) from local state immediately, then
+// re-apply after the cloud load merges in the real equipped items.
+applyCosmetics()
 
 // Wait for Firebase to restore the auth session, then load cloud data BEFORE
 // the router decides onboarding vs. home. This prevents a returning user from
@@ -97,6 +125,7 @@ let initialAuthHandled = false
     // completes (fixes nudges not arriving after account switches).
     notifStore.syncTokenIfEnabled()
     const isReturningUser = await loadFromCloud()
+    applyCosmetics()
     if (isReturningUser) {
       const currentRoute = router.currentRoute.value.name
       if (currentRoute === 'onboarding') {
@@ -148,6 +177,7 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
   if (loggedIn) {
     notifStore.syncTokenIfEnabled()
     const isReturningUser = await loadFromCloud()
+    applyCosmetics()
     if (isReturningUser) {
       const currentRoute = router.currentRoute.value.name
       if (currentRoute === 'onboarding') {
@@ -175,6 +205,14 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
       :level="levelUp.level"
       :label="levelUp.label"
       @close="closeLevelUp"
+    />
+
+    <!-- Daily coin chest popup (shown outside active exercises) -->
+    <ChestPopup
+      v-if="chestReward"
+      :amount="chestReward.amount"
+      :streak-bonus="chestReward.streakBonus"
+      @close="closeChest"
     />
 
     <!-- Sunday weekly-test popup -->

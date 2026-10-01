@@ -23,6 +23,13 @@ interface CloudUserData {
   displayName: string
   avatarDataUrl: string
   placementLevel: number
+  // shop / cosmetics
+  coins: number
+  ownedItems: string[]
+  equippedAccent: string
+  equippedTheme: string
+  equippedFrame: string
+  streakFreezes: number
   // learning store
   cardProgress: any[]
   // badges store
@@ -141,6 +148,17 @@ export async function saveToCloud(): Promise<void> {
       displayName: userStore.displayName,
       avatarDataUrl: userStore.avatarDataUrl,
       placementLevel: Math.max(userStore.placementLevel, cloud?.placementLevel ?? 0),
+      // Shop/cosmetics are spendable (coins) or chosen (equipped), so they are
+      // NOT monotonic. We write the current local values — EXCEPT if our
+      // progress is behind the cloud (a save that fired before the initial
+      // load finished), in which case we keep the cloud's values so a stale
+      // local state can't wipe a balance or purchases.
+      coins: progressBehind ? (cloud?.coins ?? userStore.coins) : userStore.coins,
+      ownedItems: progressBehind ? (cloud?.ownedItems ?? userStore.ownedItems) : userStore.ownedItems,
+      equippedAccent: progressBehind ? (cloud?.equippedAccent ?? userStore.equippedAccent) : userStore.equippedAccent,
+      equippedTheme: progressBehind ? (cloud?.equippedTheme ?? userStore.equippedTheme) : userStore.equippedTheme,
+      equippedFrame: progressBehind ? (cloud?.equippedFrame ?? userStore.equippedFrame) : userStore.equippedFrame,
+      streakFreezes: progressBehind ? (cloud?.streakFreezes ?? userStore.streakFreezes) : userStore.streakFreezes,
       cardProgress: progressBehind ? (cloud?.cardProgress ?? learningStore.cardProgress) : learningStore.cardProgress,
       earnedBadges: badgesStore.earnedBadges,
       lastSyncedAt: new Date().toISOString(),
@@ -306,6 +324,37 @@ function mergeCloudData(cloud: CloudUserData) {
   if (cloud.lastActiveDate > userStore.lastActiveDate) {
     userStore.lastActiveDate = cloud.lastActiveDate
     localStorage.setItem('nihongo_last_active', JSON.stringify(cloud.lastActiveDate))
+  }
+
+  // ── Shop / cosmetics: cloud is the source of truth for a spendable balance.
+  //    Take the cloud values when present so a purchase/spend made on another
+  //    device is reflected here (and a fresh local 0 doesn't look "higher").
+  //    ownedItems is a union so a cosmetic bought anywhere stays owned. ──
+  if (typeof (cloud as any).coins === 'number') {
+    userStore.coins = (cloud as any).coins
+    localStorage.setItem('nihongo_coins', JSON.stringify(userStore.coins))
+  }
+  if (Array.isArray((cloud as any).ownedItems)) {
+    const union = Array.from(new Set([...userStore.ownedItems, ...(cloud as any).ownedItems]))
+    userStore.ownedItems = union
+    localStorage.setItem('nihongo_owned_items', JSON.stringify(union))
+  }
+  if (typeof (cloud as any).streakFreezes === 'number') {
+    userStore.streakFreezes = Math.max(userStore.streakFreezes, (cloud as any).streakFreezes)
+    localStorage.setItem('nihongo_streak_freezes', JSON.stringify(userStore.streakFreezes))
+  }
+  // Equipped cosmetics: adopt the cloud selection if it has one.
+  if ((cloud as any).equippedAccent !== undefined) {
+    userStore.equippedAccent = (cloud as any).equippedAccent || ''
+    localStorage.setItem('nihongo_equipped_accent', JSON.stringify(userStore.equippedAccent))
+  }
+  if ((cloud as any).equippedTheme !== undefined) {
+    userStore.equippedTheme = (cloud as any).equippedTheme || ''
+    localStorage.setItem('nihongo_equipped_theme', JSON.stringify(userStore.equippedTheme))
+  }
+  if ((cloud as any).equippedFrame !== undefined) {
+    userStore.equippedFrame = (cloud as any).equippedFrame || ''
+    localStorage.setItem('nihongo_equipped_frame', JSON.stringify(userStore.equippedFrame))
   }
 
   // ── Daily log: merge by date, take higher XP per day ──

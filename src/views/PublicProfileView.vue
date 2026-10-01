@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSocialStore } from '../stores/social'
+import { frameStyle } from '../composables/useCosmetics'
 import { levelInfoForXp } from '../stores/user'
 import { ALL_BADGES, type BadgeDefinition } from '../stores/badges'
 import { hiraganaData } from '../data/hiragana'
@@ -109,7 +110,11 @@ function goBack() {
     <template v-else-if="profile && levelInfo">
       <!-- Profile Header -->
       <section class="profile-header">
-        <div class="avatar-wrapper-static">
+        <div
+          class="avatar-wrapper-static"
+          :class="{ framed: !!frameStyle(profile.equippedFrame) }"
+          :style="frameStyle(profile.equippedFrame) || {}"
+        >
           <img
             v-if="profile.avatarDataUrl"
             :src="profile.avatarDataUrl"
@@ -316,6 +321,20 @@ function goBack() {
 .avatar-wrapper-static {
   width: 96px;
   height: 96px;
+  border-radius: 50%;
+}
+
+/* Avatar frame cosmetic: pad into a visible ring and drop the inner border. */
+.avatar-wrapper-static.framed {
+  padding: 4px;
+  display: inline-flex;
+}
+
+.avatar-wrapper-static.framed .avatar-img,
+.avatar-wrapper-static.framed .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-color: transparent;
 }
 
 .avatar-img {

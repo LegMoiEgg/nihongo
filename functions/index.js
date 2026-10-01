@@ -254,22 +254,39 @@ exports.resetStreaks = onSchedule(
       let resetCount = 0;
       const batch = db.batch();
 
+      let frozenCount = 0;
+
       usersSnap.forEach((doc) => {
         const data = doc.data();
         const lastActive = data.lastActiveDate || "";
         const streak = data.currentStreak || 0;
+        const freezes = data.streakFreezes || 0;
         // Streak is broken if it's non-zero and the last active day is
         // strictly before yesterday (i.e. the user missed all of yesterday).
         if (streak > 0 && lastActive && lastActive < yesterdayStr) {
-          batch.update(doc.ref, { currentStreak: 0 });
-          resetCount++;
+          if (freezes > 0) {
+            // Streak Freeze: consume one and keep the streak alive. We advance
+            // lastActiveDate to "yesterday" so the streak is treated as still
+            // valid for one more day (protects exactly the one missed day).
+            batch.update(doc.ref, {
+              streakFreezes: freezes - 1,
+              lastActiveDate: yesterdayStr,
+            });
+            frozenCount++;
+          } else {
+            batch.update(doc.ref, { currentStreak: 0 });
+            resetCount++;
+          }
         }
       });
 
-      if (resetCount > 0) {
+      if (resetCount > 0 || frozenCount > 0) {
         await batch.commit();
       }
-      logger.info(`resetStreaks: reset ${resetCount} broken streak(s).`);
+      logger.info(
+        `resetStreaks: reset ${resetCount} broken streak(s), ` +
+        `protected ${frozenCount} with a freeze.`
+      );
     } catch (error) {
       logger.error("resetStreaks error:", error);
     }

@@ -135,6 +135,12 @@ const router = createRouter({
       meta: { title: 'Erfolge' }
     },
     {
+      path: '/shop',
+      name: 'shop',
+      component: () => import('../views/ShopView.vue'),
+      meta: { title: 'Shop' }
+    },
+    {
       path: '/auth',
       name: 'auth',
       component: () => import('../views/AuthView.vue'),

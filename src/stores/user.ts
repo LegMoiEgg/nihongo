@@ -166,6 +166,30 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('nihongo_pending_levelup')
   }
 
+  // ── Shop / coins / cosmetics ──
+  // Spendable coin balance. Unlike XP this can go DOWN (purchases), so it is
+  // NOT treated as a monotonic field in cloud sync.
+  const coins = ref(0)
+  // Item ids the user owns (bought). Cosmetics are owned forever; the
+  // streak-freeze consumable is tracked separately via streakFreezes.
+  const ownedItems = ref<string[]>([])
+  // Currently equipped cosmetics (empty string = default / none).
+  const equippedAccent = ref('')
+  const equippedTheme = ref('')
+  const equippedFrame = ref('')
+  // Number of streak-freeze consumables held (auto-spent on a missed day).
+  const streakFreezes = ref(0)
+
+  // Set when the user earns the daily chest reward. App.vue watches this to
+  // show the chest popup, then clears it. Persisted so it survives a reload.
+  const pendingCoinReward = ref<{ amount: number; streakBonus: number } | null>(
+    loadFromStorage('nihongo_pending_coin_reward', null)
+  )
+  function clearCoinReward() {
+    pendingCoinReward.value = null
+    localStorage.removeItem('nihongo_pending_coin_reward')
+  }
+
   // Computed
   // Level progression is PER-LEVEL: levelNum is the current level, levelXp is
   // the XP earned inside it. Each level needs xpForLevel(levelNum) XP; on
@@ -263,6 +287,14 @@ export const useUserStore = defineStore('user', () => {
     avatarDataUrl.value = loadFromStorage('nihongo_avatar', '')
     placementLevel.value = loadFromStorage('nihongo_placement_level', 0)
 
+    // Shop / cosmetics
+    coins.value = loadFromStorage('nihongo_coins', 0)
+    ownedItems.value = loadFromStorage('nihongo_owned_items', [])
+    equippedAccent.value = loadFromStorage('nihongo_equipped_accent', '')
+    equippedTheme.value = loadFromStorage('nihongo_equipped_theme', '')
+    equippedFrame.value = loadFromStorage('nihongo_equipped_frame', '')
+    streakFreezes.value = loadFromStorage('nihongo_streak_freezes', 0)
+
     updateStreak()
   }
 
@@ -279,9 +311,22 @@ export const useUserStore = defineStore('user', () => {
       // Was active yesterday, streak continues (will be incremented on activity)
       return
     } else if (lastActiveDate.value && lastActiveDate.value < yesterdayStr) {
-      // Missed a day, reset streak
-      currentStreak.value = 0
-      saveToStorage('nihongo_streak', 0)
+      // Missed a day. If the user holds a Streak Freeze, consume one and keep
+      // the streak alive by treating "yesterday" as the last active day (this
+      // protects exactly the one missed day). Mirrors the resetStreaks Cloud
+      // Function; whichever runs first advances lastActiveDate so the other
+      // won't double-consume.
+      if (currentStreak.value > 0 && streakFreezes.value > 0) {
+        streakFreezes.value -= 1
+        lastActiveDate.value = yesterdayStr
+        saveToStorage('nihongo_streak_freezes', streakFreezes.value)
+        saveToStorage('nihongo_last_active', yesterdayStr)
+        import('./sync').then(m => m.scheduleSave()).catch(() => {})
+      } else {
+        // Missed a day, reset streak
+        currentStreak.value = 0
+        saveToStorage('nihongo_streak', 0)
+      }
     }
   }
 
@@ -320,8 +365,12 @@ export const useUserStore = defineStore('user', () => {
       todayEntry = { date: today, xpEarned: 0, sessionsCompleted: 0, wordsLearned: 0 }
       dailyLog.value.push(todayEntry)
     }
+    const xpBefore = todayEntry.xpEarned
     todayEntry.xpEarned += amount
     todayEntry.wordsLearned += wordsLearned
+    // Remember whether this XP gain is what pushed the user over the daily
+    // goal — the coin reward (below, after the streak is updated) uses it.
+    const crossedGoalNow = xpBefore < dailyXpGoal.value && todayEntry.xpEarned >= dailyXpGoal.value
 
     // Keep only last 90 days
     const cutoff = new Date()
@@ -350,6 +399,25 @@ export const useUserStore = defineStore('user', () => {
       lastActiveDate.value = today
       saveToStorage('nihongo_streak', currentStreak.value)
       saveToStorage('nihongo_last_active', today)
+    }
+
+    // ── Daily coin reward ──
+    // Fires once, the moment today's XP crosses the daily goal. The chest
+    // gives 10 coins + 1 per streak day, capped at 30/day so the whole shop
+    // can't be farmed from a single daily goal. Placed AFTER the streak update
+    // so the bonus reflects today's (just-incremented) streak. A dated marker
+    // guarantees it can't pay out twice on the same day.
+    const alreadyAwarded = loadFromStorage<string>('nihongo_coins_awarded_date', '') === today
+    if (crossedGoalNow && !alreadyAwarded) {
+      const BASE_REWARD = 10
+      const DAILY_CAP = 30
+      const streakForBonus = Math.max(currentStreak.value, 1)
+      const total = Math.min(BASE_REWARD + streakForBonus, DAILY_CAP)
+      coins.value += total
+      saveToStorage('nihongo_coins', coins.value)
+      saveToStorage('nihongo_coins_awarded_date', today)
+      pendingCoinReward.value = { amount: total, streakBonus: total - BASE_REWARD }
+      saveToStorage('nihongo_pending_coin_reward', pendingCoinReward.value)
     }
 
     // Update totals
@@ -386,6 +454,59 @@ export const useUserStore = defineStore('user', () => {
     saveToStorage('nihongo_avatar', dataUrl)
   }
 
+  // ── Shop actions ──
+  function owns(itemId: string): boolean {
+    return ownedItems.value.includes(itemId)
+  }
+
+  /**
+   * Attempt to buy an item. Cosmetics are added to ownedItems; the
+   * streak-freeze is a stackable consumable. Returns false if the user can't
+   * afford it or already owns a (non-consumable) cosmetic.
+   */
+  function buyItem(itemId: string, price: number, isConsumable = false): boolean {
+    if (coins.value < price) return false
+    if (!isConsumable && owns(itemId)) return false
+    coins.value -= price
+    saveToStorage('nihongo_coins', coins.value)
+    if (isConsumable) {
+      streakFreezes.value += 1
+      saveToStorage('nihongo_streak_freezes', streakFreezes.value)
+    } else {
+      ownedItems.value = [...ownedItems.value, itemId]
+      saveToStorage('nihongo_owned_items', ownedItems.value)
+    }
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+    return true
+  }
+
+  /**
+   * Equip (or, with an empty id, unequip) a cosmetic of the given category.
+   * The caller is responsible for passing an owned item id.
+   */
+  function equipCosmetic(category: 'accent' | 'theme' | 'frame', itemId: string) {
+    if (category === 'accent') {
+      equippedAccent.value = itemId
+      saveToStorage('nihongo_equipped_accent', itemId)
+    } else if (category === 'theme') {
+      equippedTheme.value = itemId
+      saveToStorage('nihongo_equipped_theme', itemId)
+    } else {
+      equippedFrame.value = itemId
+      saveToStorage('nihongo_equipped_frame', itemId)
+    }
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+  }
+
+  /** Spend one streak freeze (used client-side when recovering a streak). */
+  function consumeStreakFreeze(): boolean {
+    if (streakFreezes.value <= 0) return false
+    streakFreezes.value -= 1
+    saveToStorage('nihongo_streak_freezes', streakFreezes.value)
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+    return true
+  }
+
   function setPlacementLevel(level: number) {
     placementLevel.value = level
     saveToStorage('nihongo_placement_level', level)
@@ -415,6 +536,14 @@ export const useUserStore = defineStore('user', () => {
     displayName,
     avatarDataUrl,
     placementLevel,
+    // Shop / cosmetics
+    coins,
+    ownedItems,
+    equippedAccent,
+    equippedTheme,
+    equippedFrame,
+    streakFreezes,
+    pendingCoinReward,
     // Computed
     currentLevel,
     nextLevel,
@@ -436,6 +565,12 @@ export const useUserStore = defineStore('user', () => {
     setDisplayName,
     setAvatar,
     setPlacementLevel,
+    // Shop actions
+    clearCoinReward,
+    owns,
+    buyItem,
+    equipCosmetic,
+    consumeStreakFreeze,
   }
 })
 

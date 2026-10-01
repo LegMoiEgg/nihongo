@@ -250,6 +250,23 @@ const maxWeeklyXp = computed(() =>
         <span class="badge badge-level">Lv. {{ userStore.currentLevel.level }}</span>
         <span class="badge badge-xp">{{ userStore.totalXp }} XP</span>
         <span class="badge badge-streak">🔥 {{ userStore.currentStreak }}</span>
+        <span class="badge badge-coins">🪙 {{ userStore.coins }}</span>
+      </div>
+    </section>
+
+    <!-- Shop -->
+    <section class="shop-section card">
+      <div class="shop-row">
+        <div class="shop-balance">
+          <span class="shop-coin-emoji">🪙</span>
+          <div class="shop-balance-text">
+            <span class="shop-balance-value">{{ userStore.coins }} Münzen</span>
+            <span class="shop-balance-sub">Erreiche dein Tagesziel für mehr</span>
+          </div>
+        </div>
+        <router-link to="/shop" class="btn btn-primary shop-open-btn">
+          Zum Shop →
+        </router-link>
       </div>
     </section>
 
@@ -581,6 +598,58 @@ const maxWeeklyXp = computed(() =>
 .profile-badges {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.badge-coins {
+  background: rgba(255, 215, 0, 0.15);
+  color: var(--accent-gold);
+}
+
+/* ── Shop section ── */
+.shop-section {
+  margin-bottom: 20px;
+}
+
+.shop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shop-balance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shop-coin-emoji {
+  font-size: 1.8rem;
+}
+
+.shop-balance-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-balance-value {
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+.shop-balance-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.shop-open-btn {
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
 }
 
 /* ── Badges Preview ── */
