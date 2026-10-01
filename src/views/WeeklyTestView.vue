@@ -295,10 +295,9 @@ onMounted(() => {
             v-for="(block, i) in blocks.selectedBlocks.value" :key="'sel-' + i"
             class="word-block selected jp"
             :class="{ disabled: sentenceChecked }"
-            @click="blocks.tapPlacedBlock(i)"
-            @dblclick="blocks.removePlacedBlock(i)"
+            @click="blocks.removePlacedBlock(i)"
           >{{ block }}</button>
-          <span v-if="blocks.selectedBlocks.value.length === 0" class="answer-placeholder">Tippe auf die Wörter unten</span>
+          <span v-if="blocks.selectedBlocks.value.length === 0" class="answer-placeholder">Tippe die Wörter in der richtigen Reihenfolge an</span>
         </div>
       </div>
 

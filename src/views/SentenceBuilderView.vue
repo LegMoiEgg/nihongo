@@ -198,14 +198,13 @@ onMounted(() => {
             v-for="(block, i) in blocks.selectedBlocks.value"
             :key="'sel-' + i"
             class="word-block selected jp"
-            :class="{ disabled: isChecked, swapping: blocks.swapIndex.value === i }"
-            @click="blocks.tapPlacedBlock(i)"
-            @dblclick="blocks.removePlacedBlock(i)"
+            :class="{ disabled: isChecked }"
+            @click="blocks.removePlacedBlock(i)"
           >
             {{ block }}
           </button>
           <span v-if="blocks.selectedBlocks.value.length === 0" class="answer-placeholder">
-            Tippe auf die Wörter unten
+            Tippe die Wörter in der richtigen Reihenfolge an
           </span>
         </div>
       </div>

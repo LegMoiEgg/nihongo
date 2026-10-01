@@ -442,8 +442,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
           </div>
           <div class="sentence-answer" :class="{ 'is-correct': isChecked && isCorrect, 'is-wrong': isChecked && !isCorrect }">
             <div class="answer-blocks">
-              <button v-for="(block, i) in sentenceBlocks.selectedBlocks.value" :key="'s-'+i" class="word-block selected jp" :class="{ disabled: isChecked, swapping: sentenceBlocks.swapIndex.value === i }" @click="sentenceBlocks.tapPlacedBlock(i)" @dblclick="sentenceBlocks.removePlacedBlock(i)">{{ block }}</button>
-              <span v-if="sentenceBlocks.selectedBlocks.value.length === 0" class="answer-placeholder">Tippe auf die Wörter</span>
+              <button v-for="(block, i) in sentenceBlocks.selectedBlocks.value" :key="'s-'+i" class="word-block selected jp" :class="{ disabled: isChecked }" @click="sentenceBlocks.removePlacedBlock(i)">{{ block }}</button>
+              <span v-if="sentenceBlocks.selectedBlocks.value.length === 0" class="answer-placeholder">Tippe die Wörter in der richtigen Reihenfolge an</span>
             </div>
           </div>
           <div class="block-pool">

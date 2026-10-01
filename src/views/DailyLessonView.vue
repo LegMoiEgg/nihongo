@@ -11,6 +11,7 @@ import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
 import { generateSentencesFromVocab, buildParticleQuizFromSentence, type SentenceChallenge } from '../data/sentence-generator'
 import { particleData, allParticles, type ParticleCard, type ParticleQuiz } from '../data/particles'
+import { getDialoguesForCategories, type DialogueExercise } from '../data/dialogues'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 
 const router = useRouter()
@@ -48,7 +49,7 @@ function vocabHasFurigana(v: VocabCard): boolean {
 }
 
 // ── Exercise types ──
-type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-study' | 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence' | 'particle-study' | 'particle-fill'
+type ExerciseType = 'kana-char' | 'kana-romaji' | 'vocab-study' | 'vocab-de-jp' | 'vocab-jp-de' | 'kanji-meaning' | 'kanji-reading' | 'sentence' | 'particle-study' | 'particle-fill' | 'dialogue'
 
 interface Exercise {
   type: ExerciseType
@@ -65,6 +66,8 @@ interface Exercise {
   particle?: ParticleCard        // for particle-study
   particleQuiz?: ParticleQuiz    // for particle-fill
   particleOptions?: string[]     // particle choices for particle-fill
+  dialogue?: DialogueExercise    // for dialogue
+  dialogueOptions?: string[]     // answer-sentence choices for dialogue
 }
 
 // ── State ──
@@ -313,6 +316,20 @@ function generateExercises(): Exercise[] {
     }
   }
 
+  // Dialogue exercises (level 8+): a question + pick the correct answer
+  // sentence. Tied to the lesson theme so it fits the current topic.
+  if (lvl >= 8) {
+    const dialogues = shuffle(getDialoguesForCategories([lessonCategory]))
+    const dialogueCount = Math.min(2, dialogues.length)
+    for (const d of dialogues.slice(0, dialogueCount)) {
+      result.push({
+        type: 'dialogue',
+        dialogue: d,
+        dialogueOptions: shuffle([d.correct, ...d.wrong]),
+      })
+    }
+  }
+
   // Kanji (level 15+)
   if (lvl >= 15) {
     // Kanji tied STRICTLY to THIS lesson's theme: only kanji whose character
@@ -407,6 +424,7 @@ function getCorrectMcAnswer(): string {
   if (ex.type === 'kanji-meaning') return ex.kanji!.meanings[0]
   if (ex.type === 'kanji-reading') return ex.kanji!.kunyomi[0] || ex.kanji!.onyomi[0]
   if (ex.type === 'particle-fill') return ex.particleQuiz!.answer
+  if (ex.type === 'dialogue') return ex.dialogue!.correct
   return ''
 }
 
@@ -559,6 +577,7 @@ onMounted(() => {
         <span v-else-if="currentExercise.type === 'kanji-reading'" class="badge badge-level">漢字 Lesung</span>
         <span v-else-if="currentExercise.type === 'sentence'" class="badge badge-streak">🧩 Satz bauen</span>
         <span v-else-if="currentExercise.type === 'particle-fill'" class="badge badge-level">は Partikel</span>
+        <span v-else-if="currentExercise.type === 'dialogue'" class="badge badge-xp">💬 Dialog</span>
         <span v-if="currentExercise.isNewWord && currentExercise.type !== 'vocab-study'" class="badge badge-new">🆕 Neues Wort</span>
         <span v-if="currentExercise.isRetry" class="badge badge-streak">🔁 Wiederholung</span>
       </div>
@@ -824,11 +843,10 @@ onMounted(() => {
               v-for="(block, i) in sentenceBlocks.selectedBlocks.value"
               :key="'sel-' + i"
               class="word-block selected jp"
-              :class="{ disabled: sentenceChecked, swapping: sentenceBlocks.swapIndex.value === i }"
-              @click="sentenceBlocks.tapPlacedBlock(i)"
-              @dblclick="sentenceBlocks.removePlacedBlock(i)"
+              :class="{ disabled: sentenceChecked }"
+              @click="sentenceBlocks.removePlacedBlock(i)"
             >{{ block }}</button>
-            <span v-if="sentenceBlocks.selectedBlocks.value.length === 0" class="answer-placeholder">Tippe auf die Wörter unten</span>
+            <span v-if="sentenceBlocks.selectedBlocks.value.length === 0" class="answer-placeholder">Tippe die Wörter in der richtigen Reihenfolge an</span>
           </div>
         </div>
 
@@ -912,6 +930,35 @@ onMounted(() => {
           <button class="btn btn-primary next-btn" @click="nextExercise">Weiter →</button>
         </div>
       </template>
+
+      <!-- ══════════ DIALOGUE: pick the correct answer sentence ══════════ -->
+      <template v-else-if="currentExercise.type === 'dialogue' && currentExercise.dialogue">
+        <div class="prompt-card card-flat">
+          <p class="prompt-label">{{ currentExercise.dialogue.questionDe }}</p>
+          <p class="prompt-text jp dialogue-question">{{ currentExercise.dialogue.questionJp }}</p>
+          <p v-if="!mcChecked" class="prompt-sublabel">Wähle die passende Antwort:</p>
+        </div>
+        <div class="mc-grid mc-grid-1col">
+          <button
+            v-for="option in currentExercise.dialogueOptions" :key="option"
+            class="mc-option jp dialogue-option"
+            :class="{
+              correct: mcChecked && option === currentExercise.dialogue!.correct,
+              wrong: mcChecked && selectedMcAnswer === option && option !== currentExercise.dialogue!.correct,
+              dimmed: mcChecked && option !== currentExercise.dialogue!.correct && selectedMcAnswer !== option,
+            }"
+            :disabled="mcChecked" @click="selectMcOption(option)"
+          >{{ option }}</button>
+        </div>
+        <div v-if="mcChecked" class="feedback animate-slide-up">
+          <p :class="mcCorrect ? 'fb-correct' : 'fb-wrong'">{{ mcCorrect ? '✅ Richtig!' : '❌ Falsch' }}</p>
+          <div class="fb-example">
+            <span class="jp">{{ currentExercise.dialogue.correct }}</span>
+            <span class="fb-example-meaning">{{ currentExercise.dialogue.correctDe }}</span>
+          </div>
+          <button class="btn btn-primary next-btn" @click="nextExercise">Weiter →</button>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -972,6 +1019,20 @@ onMounted(() => {
   color: var(--text-muted);
   font-size: 0.85rem;
   margin-top: 10px;
+}
+
+/* Dialogue exercise */
+.dialogue-question {
+  font-size: 1.3rem;
+  margin-top: 6px;
+}
+.mc-grid-1col {
+  grid-template-columns: 1fr;
+}
+.dialogue-option {
+  text-align: left;
+  font-size: 1.1rem;
+  line-height: 1.4;
 }
 
 .back-btn {
