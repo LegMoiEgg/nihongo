@@ -428,12 +428,30 @@ const BUYABLE = [
 ]
 // Concrete nouns that can be the object of 見る / sehen.
 const WATCHABLE = ['v-terebi', 'v-sora', 'v-yama', 'v-umi', 'v-hana-flower', 'v-tori', 'v-inu', 'v-neko']
+// Living things → [Noun] が います ("Es gibt einen …").
+const LIVING = [
+  'v-inu', 'v-neko', 'v-tori', 'v-uma', 'v-ushi', 'v-buta', 'v-sakana-animal',
+  'v-okaasan', 'v-otousan', 'v-oniisan', 'v-oneesan', 'v-sensei', 'v-gakusei',
+  'v-tomodachi', 'v-kodomo',
+]
+// Non-living things → [Noun] が あります ("Es gibt ein …").
+const INANIMATE_EXISTS = [
+  'v-hon-book', 'v-kuruma', 'v-tsukue', 'v-isu', 'v-pen', 'v-kagi', 'v-tokei',
+  'v-denwa', 'v-terebi', 'v-mado', 'v-kami', 'v-tabemono', 'v-nomimono',
+  'v-yama', 'v-kawa', 'v-umi', 'v-ki',
+]
+// Nouns that pair naturally with a possessor via の (mein/dein …).
+const POSSESSABLE = [
+  'v-hon-book', 'v-kuruma', 'v-fuku', 'v-boushi', 'v-kutsu', 'v-pen', 'v-kagi',
+  'v-tokei', 'v-inu', 'v-neko', 'v-heya', 'v-namae', 'v-tomodachi',
+]
 // Nouns that can sensibly take a plain "[Noun] は [i-Adjective] です".
 const DESCRIBABLE = [
   'v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono',
   'v-mizu', 'v-ocha', 'v-hon-book', 'v-kuruma', 'v-inu', 'v-neko',
   'v-gakkou', 'v-eki', 'v-heya', 'v-yama', 'v-umi', 'v-sora', 'v-hana-flower',
   'v-tori', 'v-kutsu', 'v-fuku', 'v-tsukue', 'v-isu', 'v-kuruma',
+  'v-shukudai', 'v-tesuto', 'v-nihongo', 'v-uma', 'v-ushi',
 ]
 const I_ADJECTIVES = [
   'v-ookii', 'v-chiisai', 'v-oishii', 'v-takai', 'v-yasui', 'v-atarashii',
@@ -508,92 +526,126 @@ interface DynOptions {
  * partner words (verb / adjective / pronoun) aren't learned yet.
  */
 function buildSentenceForNoun(nounId: string, opts: DynOptions): SentenceChallenge | null {
+  const all = buildAllSentencesForNoun(nounId, opts)
+  return all.length ? shuffle(all)[0] : null
+}
+
+/** Clean a German noun gloss: take the first variant, drop parentheticals. */
+function cleanDe(s: string): string {
+  return s.split(' /')[0].split(' (')[0].trim()
+}
+
+/**
+ * Build EVERY grammatically sensible sentence we can make around `nounId`
+ * from the learner's known words. Returning several (not just one) gives the
+ * daily lesson real variety and keeps sentences tied to the session's words.
+ */
+function buildAllSentencesForNoun(nounId: string, opts: DynOptions): SentenceChallenge[] {
   const { learnedSet } = opts
   const nounR = reading(nounId)
   const nounDe = meaningDe(nounId)
-  if (!nounR || !nounDe) return null
+  if (!nounR || !nounDe) return []
 
   const has = (id: string) => learnedSet.has(id)
   const pron = SUBJECT_PRONOUNS.filter(has)
   const pickPronoun = () => (pron.length ? pron[Math.floor(Math.random() * pron.length)] : 'v-watashi')
+  const out: SentenceChallenge[] = []
 
-  // Pattern A: [Pronoun] は [Noun] を [Verb-masu]  (edible/drinkable/readable)
-  const tryTransitive = (verbId: string): SentenceChallenge | null => {
-    if (!has(verbId)) return null
+  // Pattern A: [Pronoun] は [Noun] を [Verb-masu]  (object + verb)
+  const tryTransitive = (verbId: string) => {
+    if (!has(verbId)) return
     const vr = reading(verbId)
     const masu = vr ? toMasu(verbId, vr) : null
-    if (!masu) return null
+    if (!masu) return
     const pId = pickPronoun()
     const pr = reading(pId) || 'わたし'
     const vde = VERB_DE[verbId]
     const pde = PRONOUN_DE[pId] || 'Ich'
     const verbDe = vde ? (pId === 'v-watashi' ? vde.ich : vde.er) : ''
-    const de = `${pde} ${verbDe} ${nounDe.split(' /')[0]}.`
-    const distr = opts.pickDistractorReadings([pr, 'は', nounR, 'を', masu], 'noun')
-    return {
+    out.push({
       id: `dyn-${++idCounter}`,
-      meaning: de,
+      meaning: `${pde} ${verbDe} ${cleanDe(nounDe)}.`,
       correctOrder: [pr, 'は', nounR, 'を', masu],
-      distractors: distr,
+      distractors: opts.pickDistractorReadings([pr, 'は', nounR, 'を', masu], 'noun'),
       hint: 'は = Thema, を = Objekt',
       difficulty: 'medium',
-    }
+    })
   }
+  if (EDIBLE.includes(nounId)) tryTransitive('v-taberu')
+  if (DRINKABLE.includes(nounId)) tryTransitive('v-nomu')
+  if (READABLE.includes(nounId)) tryTransitive('v-yomu')
+  if (BUYABLE.includes(nounId)) tryTransitive('v-kau')
+  if (WATCHABLE.includes(nounId)) tryTransitive('v-miru')
 
-  // Try object+verb patterns. Collect all that apply, then pick one at random
-  // so the same noun doesn't always produce the identical sentence.
-  const transitiveVerbs: string[] = []
-  if (EDIBLE.includes(nounId)) transitiveVerbs.push('v-taberu')
-  if (DRINKABLE.includes(nounId)) transitiveVerbs.push('v-nomu')
-  if (READABLE.includes(nounId)) transitiveVerbs.push('v-yomu')
-  if (BUYABLE.includes(nounId)) transitiveVerbs.push('v-kau')
-  if (WATCHABLE.includes(nounId)) transitiveVerbs.push('v-miru')
-  for (const verbId of shuffle(transitiveVerbs)) {
-    const s = tryTransitive(verbId)
-    if (s) return s
-  }
-
-  // Pattern B: [Pronoun] は [Place] に いきます  (place + go)
+  // Pattern B: [Pronoun] は [Place] に いきます  (go to a place)
   if (PLACES.includes(nounId) && has('v-iku')) {
     const masu = toMasu('v-iku', reading('v-iku')!)
     if (masu) {
       const pId = pickPronoun()
       const pr = reading(pId) || 'わたし'
       const pde = PRONOUN_DE[pId] || 'Ich'
-      const de = `${pde} ${pId === 'v-watashi' ? 'gehe' : 'geht'} zu${nounDe === 'Schule' ? 'r' : 'm'} ${nounDe.split(' /')[0]}.`
-      return {
+      const article = nounDe === 'Schule' ? 'zur' : 'zum'
+      out.push({
         id: `dyn-${++idCounter}`,
-        meaning: de,
+        meaning: `${pde} ${pId === 'v-watashi' ? 'gehe' : 'geht'} ${article} ${cleanDe(nounDe)}.`,
         correctOrder: [pr, 'は', nounR, 'に', masu],
         distractors: opts.pickDistractorReadings([pr, 'は', nounR, 'に', masu], 'noun'),
         hint: 'に = Zielpartikel, いきます = gehen',
         difficulty: 'medium',
-      }
+      })
     }
   }
 
-  // Pattern C: [Noun] は [i-Adjective] です  (noun + adjective description)
+  // Pattern C: [Noun] は [i-Adjective] です  (description)
   if (DESCRIBABLE.includes(nounId)) {
     const adjs = I_ADJECTIVES.filter(has)
     if (adjs.length > 0) {
-      const adjId = adjs[Math.floor(Math.random() * adjs.length)]
+      const adjId = shuffle(adjs)[0]
       const ar = reading(adjId)
       const ade = meaningDe(adjId)
       if (ar && ade) {
-        const de = `${nounDe.split(' /')[0]} ist ${ade.split(' (')[0].split(' /')[0]}.`
-        return {
+        out.push({
           id: `dyn-${++idCounter}`,
-          meaning: de,
+          meaning: `${cleanDe(nounDe)} ist ${cleanDe(ade)}.`,
           correctOrder: [nounR, 'は', ar, 'です'],
           distractors: opts.pickDistractorReadings([nounR, 'は', ar, 'です'], 'adj'),
           hint: 'は = Thema, です = sein',
           difficulty: 'easy',
-        }
+        })
       }
     }
   }
 
-  return null
+  // Pattern D: Existence. Living → います, inanimate → あります.
+  const existVerb = LIVING.includes(nounId) ? 'います'
+    : INANIMATE_EXISTS.includes(nounId) ? 'あります' : null
+  if (existVerb) {
+    out.push({
+      id: `dyn-${++idCounter}`,
+      meaning: `Es gibt ${cleanDe(nounDe)}.`,
+      correctOrder: [nounR, 'が', existVerb],
+      distractors: opts.pickDistractorReadings([nounR, 'が', existVerb], 'noun'),
+      hint: 'が = Subjekt-Partikel',
+      difficulty: 'easy',
+    })
+  }
+
+  // Pattern E: Possession. [Pronoun] の [Noun] です  (mein/dein …).
+  if (POSSESSABLE.includes(nounId) && pron.length > 0) {
+    const pId = pickPronoun()
+    const pr = reading(pId) || 'わたし'
+    const posDe = pId === 'v-watashi' ? 'mein' : pId === 'v-kare' ? 'sein' : 'ihr'
+    out.push({
+      id: `dyn-${++idCounter}`,
+      meaning: `Das ist ${posDe} ${cleanDe(nounDe)}.`,
+      correctOrder: [pr, 'の', nounR, 'です'],
+      distractors: opts.pickDistractorReadings([pr, 'の', nounR, 'です'], 'noun'),
+      hint: 'の = Besitz-Partikel',
+      difficulty: 'easy',
+    })
+  }
+
+  return out
 }
 
 /** Build a distractor picker that pulls plausible wrong readings by role. */
@@ -682,52 +734,86 @@ export function generateSentencesFromVocab(
     sessionVocabIds.filter(id => vocabById.get(id)?.partOfSpeech === 'Verb')
   )
 
-  // 1a) Sentences built around the session's VERBS (intransitive pattern).
+  const tryAdd = (s: SentenceChallenge | null | undefined) => {
+    if (!s) return
+    const key = s.correctOrder.join('|')
+    if (usedMeanings.has(key)) return
+    usedMeanings.add(key)
+    out.push(s)
+  }
+
+  // Build a big pool of candidate sentences that each USE a session word, so
+  // the lesson's sentences are tied to the words being practised right now.
+  const sessionCandidates: SentenceChallenge[] = []
   for (const verbId of sessionVerbs) {
-    if (out.length >= count) break
     const s = buildSentenceForVerb(verbId, opts)
-    if (s && !usedMeanings.has(s.meaning)) {
-      out.push(s)
-      usedMeanings.add(s.meaning)
-    }
+    if (s) sessionCandidates.push(s)
   }
-
-  // 1b) Sentences built around the session's nouns.
   for (const nounId of sessionNouns) {
+    sessionCandidates.push(...buildAllSentencesForNoun(nounId, opts))
+  }
+  // Shuffle so we don't always take the same pattern first, then fill.
+  for (const s of shuffle(sessionCandidates)) {
     if (out.length >= count) break
-    const s = buildSentenceForNoun(nounId, opts)
-    if (s && !usedMeanings.has(s.meaning)) {
-      out.push(s)
-      usedMeanings.add(s.meaning)
-    }
+    tryAdd(s)
   }
 
-  // 2) Top up with sentences from any other learned noun.
+  // 2) Still short? Build around OTHER learned words (nouns + verbs), so the
+  //    lesson stays sentence-heavy even if session words gave few patterns.
   if (out.length < count) {
     const otherNouns = shuffle(
       learnedVocabIds.filter(
         id => vocabById.get(id)?.partOfSpeech === 'Nomen' && !sessionVocabIds.includes(id)
       )
     )
+    const otherVerbs = shuffle(
+      learnedVocabIds.filter(
+        id => vocabById.get(id)?.partOfSpeech === 'Verb' && !sessionVocabIds.includes(id)
+      )
+    )
+    for (const verbId of otherVerbs) {
+      if (out.length >= count) break
+      tryAdd(buildSentenceForVerb(verbId, opts))
+    }
     for (const nounId of otherNouns) {
       if (out.length >= count) break
-      const s = buildSentenceForNoun(nounId, opts)
-      if (s && !usedMeanings.has(s.meaning)) {
-        out.push(s)
-        usedMeanings.add(s.meaning)
+      for (const s of buildAllSentencesForNoun(nounId, opts)) {
+        if (out.length >= count) break
+        tryAdd(s)
       }
     }
   }
 
-  // 3) Fall back to curated templates for the remaining slots.
+  // 3) Curated templates — but ONLY ones that involve a SESSION word, so we
+  //    never show an unrelated "Er kommt zur Schule" when the lesson is about
+  //    something else. Generic templates are a last resort (step 4).
   if (out.length < count) {
-    const templates = generateDynamicSentences(learnedVocabIds, count - out.length, userLevel)
-    for (const t of templates) {
+    const sessionSet = new Set(sessionVocabIds)
+    const sessionTemplates = SENTENCE_TEMPLATES.filter(t =>
+      t.requiredVocab.some(id => sessionSet.has(id))
+    )
+    for (const t of shuffle(sessionTemplates)) {
       if (out.length >= count) break
-      if (!usedMeanings.has(t.meaning)) {
-        out.push(t)
-        usedMeanings.add(t.meaning)
-      }
+      // Only if the learner knows all required (existing) vocab.
+      const ok = t.requiredVocab.every(id => !vocabById.has(id) || learnedSet.has(id))
+      if (!ok) continue
+      tryAdd({
+        id: `tpl-${++idCounter}`,
+        meaning: t.meaning,
+        correctOrder: t.blocks,
+        distractors: shuffle(t.extraDistractors || []).slice(0, 2),
+        hint: t.hint,
+        difficulty: t.difficulty,
+      })
+    }
+  }
+
+  // 4) Last resort: generic curated templates (only if we STILL have too few,
+  //    e.g. a brand-new learner). Better a valid sentence than an empty slot.
+  if (out.length < count) {
+    for (const t of generateDynamicSentences(learnedVocabIds, (count - out.length) * 2, userLevel)) {
+      if (out.length >= count) break
+      tryAdd(t)
     }
   }
 
