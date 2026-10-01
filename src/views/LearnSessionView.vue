@@ -235,8 +235,15 @@ function initSession() {
     }
 
     selected = lessonCards.sort(() => Math.random() - 0.5)
+  } else if (props.category === 'vocabulary') {
+    // ── Vocabulary: follow the themed curriculum (same red thread as the
+    //    daily lesson) — one topic at a time, not a random mix. ──
+    const allVocabMeta = vocabularyData.map(v => ({ id: v.id, category: v.category }))
+    const slots = learningStore.getVocabForDailyLesson(allVocabMeta, 1, 12)
+    const byId = new Map(vocabularyData.map(v => [v.id, v]))
+    selected = slots.map(s => byId.get(s.id)).filter((c): c is VocabCard => !!c)
   } else {
-    // ── Kanji / Vocabulary: keep SRS due-card selection ──
+    // ── Kanji: keep SRS due-card selection ──
     const dueCards = learningStore.getDueCardsForCategory(props.category, 20)
     const dueIds = new Set(dueCards.map(c => c.id))
 

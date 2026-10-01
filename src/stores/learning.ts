@@ -116,6 +116,44 @@ export const KANA_CURRICULUM: KanaLesson[] = [
   { groups: ['P-Kombi'], newGroups: ['P-Kombi'], isMix: false },
 ]
 
+/**
+ * Themed vocabulary curriculum — the "red thread" of the daily lesson.
+ * A lesson draws its ~10 words from ONE theme (category) at a time, in this
+ * order. Big categories (Verben, Adjektive) are split into chunks of
+ * VOCAB_LESSON_SIZE by the lesson logic. You work through / repeat a theme
+ * until its words are mastered, THEN the next theme unlocks — no more random
+ * mix of weekdays, numbers and greetings in one lesson.
+ *
+ * Order is didactic: pronouns + basic nouns + core verbs early so sentences
+ * can be built, then broader vocabulary.
+ */
+export const VOCAB_CURRICULUM: string[] = [
+  'Begrüßung',
+  'Pronomen',
+  'Zahlen',
+  'Familie',
+  'Essen',
+  'Verben',
+  'Zeit',
+  'Wochentage',
+  'Orte',
+  'Adjektive',
+  'Farben',
+  'Körper',
+  'Natur',
+  'Tiere',
+  'Kleidung',
+  'Zuhause',
+  'Transport',
+  'Schule',
+  'Fragewörter',
+  'Adverbien',
+  'Namen',
+]
+
+/** Max new words introduced per themed lesson chunk. */
+const VOCAB_LESSON_SIZE = 10
+
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const stored = localStorage.getItem(key)
@@ -312,72 +350,95 @@ export const useLearningStore = defineStore('learning', () => {
     return [...seenIds, ...unseenIds.slice(0, roomForNew)]
   }
 
-  /**
-   * Returns vocab cards for the daily lesson, prioritizing:
-   * 1. Unmastered words that need practice (consecutiveCorrect < 5)
-   * 2. A few new words (max 2-3 per session)
-   */
-  function getVocabForDailyLesson(allVocabIds: string[], userLevel: number, limit = 10): { id: string; isNew: boolean }[] {
-    const unlocked = getUnlockedVocabIds(allVocabIds, userLevel)
+  function shuffleIds(arr: string[]): string[] {
+    const a = [...arr]
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[a[i], a[j]] = [a[j], a[i]]
+    }
+    return a
+  }
 
-    // Proper Fisher-Yates shuffle. The previous `sort(() => Math.random()-0.5)`
-    // is statistically biased and barely reorders — that's a big reason the
-    // daily lesson felt like the SAME words every day.
-    const shuffleIds = (arr: string[]): string[] => {
-      const a = [...arr]
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[a[i], a[j]] = [a[j], a[i]]
-      }
-      return a
+  /**
+   * The current themed lesson: a contiguous chunk (≤ VOCAB_LESSON_SIZE) of ONE
+   * category from VOCAB_CURRICULUM. We walk the curriculum in order and return
+   * the first chunk that still has unmastered words — so a theme is worked
+   * through (and repeated) before the next one unlocks. Mastered chunks are
+   * skipped. This is the "red thread": one coherent topic per lesson.
+   *
+   * @param allVocab  all vocab as {id, category} in curriculum/display order
+   * @returns { lessonIds, reviewIds } — current theme + a little prior review
+   */
+  function getVocabCurriculumLesson(
+    allVocab: { id: string; category: string }[]
+  ): { lessonIds: string[]; reviewIds: string[] } {
+    const isMastered = (id: string) => {
+      const p = cardProgress.value.find(c => c.id === id)
+      return !!p && p.consecutiveCorrect >= MASTERY_STREAK
     }
 
-    const mastered: string[] = []
-    const inProgress: string[] = []
-    const brandNew: string[] = []
-
-    for (const id of unlocked) {
-      const p = cardProgress.value.find(c => c.id === id)
-      if (!p || p.status === 'new') {
-        brandNew.push(id)
-      } else if (p.consecutiveCorrect >= MASTERY_STREAK) {
-        mastered.push(id)
-      } else {
-        inProgress.push(id)
+    // Build the ordered list of chunks: each category split into ≤10er groups.
+    const chunks: string[][] = []
+    for (const category of VOCAB_CURRICULUM) {
+      const ids = allVocab.filter(v => v.category === category).map(v => v.id)
+      for (let i = 0; i < ids.length; i += VOCAB_LESSON_SIZE) {
+        chunks.push(ids.slice(i, i + VOCAB_LESSON_SIZE))
       }
+    }
+    // Any categories not listed in the curriculum → appended at the end.
+    const listed = new Set(VOCAB_CURRICULUM)
+    const leftover = allVocab.filter(v => !listed.has(v.category)).map(v => v.id)
+    for (let i = 0; i < leftover.length; i += VOCAB_LESSON_SIZE) {
+      chunks.push(leftover.slice(i, i + VOCAB_LESSON_SIZE))
+    }
+
+    // Find the first chunk with at least one unmastered word.
+    let currentIdx = chunks.findIndex(chunk => chunk.some(id => !isMastered(id)))
+    if (currentIdx === -1) currentIdx = chunks.length - 1 // everything mastered → last chunk
+
+    const lessonIds = chunks[currentIdx] ?? []
+    // A little review of the previous (already-worked) chunk for retention.
+    const reviewIds = currentIdx > 0 ? (chunks[currentIdx - 1] ?? []) : []
+    return { lessonIds, reviewIds }
+  }
+
+  /**
+   * Returns vocab cards for the daily lesson, following the themed curriculum:
+   * the words come from ONE theme at a time (plus a little review of the prior
+   * theme), instead of a random mix across the whole unlocked pool.
+   *
+   * @param allVocab  all vocab as {id, category} in curriculum order
+   */
+  function getVocabForDailyLesson(
+    allVocab: { id: string; category: string }[],
+    _userLevel: number,
+    limit = 10
+  ): { id: string; isNew: boolean }[] {
+    const { lessonIds, reviewIds } = getVocabCurriculumLesson(allVocab)
+
+    const isNewWord = (id: string) => {
+      const p = cardProgress.value.find(c => c.id === id)
+      return !p || p.status === 'new'
     }
 
     const result: { id: string; isNew: boolean }[] = []
+    const used = new Set<string>()
 
-    // Priority 1: in-progress words (properly shuffled so the SELECTION —
-    // not just the order — varies between sessions).
-    const shuffledInProgress = shuffleIds(inProgress)
-    for (const id of shuffledInProgress.slice(0, limit)) {
-      result.push({ id, isNew: false })
+    // 1) The current theme's words — all of them (a theme is ≤10 anyway).
+    for (const id of shuffleIds(lessonIds)) {
+      if (result.length >= limit) break
+      result.push({ id, isNew: isNewWord(id) })
+      used.add(id)
     }
 
-    // Priority 2: add up to 3 new words if we have room.
-    const maxNew = Math.min(3, limit - result.length)
-    for (const id of shuffleIds(brandNew).slice(0, maxNew)) {
-      result.push({ id, isNew: true })
-    }
-
-    // Priority 3: fill remaining with mastered words for review.
+    // 2) Top up with a light review of the previous theme (keeps retention
+    //    without breaking the red thread).
     if (result.length < limit) {
-      const shuffledMastered = shuffleIds(mastered)
-      for (const id of shuffledMastered.slice(0, limit - result.length)) {
+      for (const id of shuffleIds(reviewIds)) {
+        if (result.length >= limit) break
+        if (used.has(id)) continue
         result.push({ id, isNew: false })
-      }
-    }
-
-    // If we STILL have fewer than the limit but there are more unlocked words
-    // available overall, top up with a random review sample so higher-level
-    // users with a large vocabulary see fresh mixes instead of the same core.
-    if (result.length < limit) {
-      const already = new Set(result.map(r => r.id))
-      const extras = shuffleIds(unlocked.filter(id => !already.has(id)))
-      for (const id of extras.slice(0, limit - result.length)) {
-        result.push({ id, isNew: false })
+        used.add(id)
       }
     }
 
@@ -507,6 +568,7 @@ export const useLearningStore = defineStore('learning', () => {
     getUnlockedVocabIds,
     getLevelVocabIds,
     getVocabForDailyLesson,
+    getVocabCurriculumLesson,
     isCardMastered,
     getConsecutiveCorrect,
     getDueCardsForCategory,

@@ -172,8 +172,9 @@ function generateExercises(): Exercise[] {
   }
 
   // ── Level 5+: Vocabulary (+ sentences + kanji at higher levels) ──
-  const allVocabIds = vocabularyData.map(v => v.id)
-  const vocabSlots = learningStore.getVocabForDailyLesson(allVocabIds, lvl, 10)
+  // Themed curriculum: the lesson's words come from ONE topic at a time.
+  const allVocabMeta = vocabularyData.map(v => ({ id: v.id, category: v.category }))
+  const vocabSlots = learningStore.getVocabForDailyLesson(allVocabMeta, lvl, 10)
   const vocabCards = vocabSlots
     .map(slot => {
       const card = vocabularyData.find(v => v.id === slot.id)
@@ -269,8 +270,17 @@ function generateExercises(): Exercise[] {
 
   // Kanji (level 15+)
   if (lvl >= 15) {
-    const kanjiPool = shuffle(kanjiData)
-    const kanjiCount = lvl >= 20 ? 4 : 3
+    // Kanji tied to THIS lesson's vocabulary: pick kanji whose character
+    // appears in one of the session words (e.g. lesson has 水/みず → kanji 水),
+    // so kanji practice follows the same red thread as the vocab — no more
+    // random 中/naka that has nothing to do with the lesson.
+    const lessonJapanese = vocabCards.map(v => v.card.japanese).join('')
+    const relatedKanji = kanjiData.filter(k => lessonJapanese.includes(k.character))
+    // If the theme yields too few kanji, top up with other kanji so the
+    // section isn't empty — but related ones always come first.
+    const otherKanji = shuffle(kanjiData.filter(k => !relatedKanji.includes(k)))
+    const kanjiPool = [...shuffle(relatedKanji), ...otherKanji]
+    const kanjiCount = Math.min(lvl >= 20 ? 4 : 3, kanjiPool.length)
 
     for (const kanji of kanjiPool.slice(0, kanjiCount)) {
       const wrong = shuffle(kanjiData.filter(k => k.id !== kanji.id))
