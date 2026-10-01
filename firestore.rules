@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// Security rules for NihonGo.
+//
+// Model:
+//  - users/{uid}: a learner's profile + progress. Readable by ANY signed-in
+//    user (needed so groups and public profiles can show other members).
+//    Writable ONLY by the owner.
+//  - groups/{id}: social groups. Readable + creatable by any signed-in user.
+//    Updatable by signed-in users (join/leave edits memberUids). Deletable
+//    only by the creator.
+//  - nudges/{id}: one-off reminder requests. A signed-in user may create one;
+//    only Cloud Functions (admin SDK, bypasses rules) read/process them.
+//  - config/app: read-only app config (e.g. remote reset flag). Set manually
+//    in the console; clients may read but never write.
+//
+// Cloud Functions use the Admin SDK and bypass these rules entirely.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // ── User profiles ──
+    match /users/{uid} {
+      // Any signed-in user can read profiles (group rosters, public profiles).
+      allow read: if signedIn();
+      // Only the owner can create/update/delete their own document.
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ── Social groups ──
+    match /groups/{groupId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid;
+      // Join/leave edits memberUids. Allow updates by any signed-in user, but
+      // keep the ownership + creation metadata immutable so a member can't
+      // hijack a group. (name/password stay editable for now.)
+      allow update: if signedIn()
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+      // Only the group's creator may delete it.
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // ── Nudges (processed server-side by a Cloud Function) ──
+    match /nudges/{nudgeId} {
+      // Clients create nudge requests; they never need to read them back.
+      allow create: if signedIn();
+      allow read, update, delete: if false; // only the Admin SDK touches these
+    }
+
+    // ── App config (read-only for clients) ──
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Everything else is denied by default.
+  }
+}

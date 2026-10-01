@@ -33,7 +33,7 @@ exports.streakReminder = onSchedule(
     const DAILY_XP_GOAL = 100;
 
     const messages = [
-      "POWER!!! Mach deine Aufgabe du Mensch! 💧",
+      "POWER!!! Mach deine Aufgabe du Mensch! 🩸",
       "Du bist doch ein Macher, also mach deine Dailys! 💪",
       "Deswegen ist Böse's Arsch am Arsch! Mach die Dailys! 🔥",
       "Du musst eine Krise abwenden und dolmetschen! ⭐",
