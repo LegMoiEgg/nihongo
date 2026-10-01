@@ -149,7 +149,7 @@ onMounted(() => {
       </div>
     </header>
 
-    <div class="progress-bar" style="margin: 0 16px 16px;">
+    <div class="progress-bar progress-bar--inset">
       <div class="progress-bar-fill" :style="{ width: progress + '%', background: 'var(--gradient-xp)' }" />
     </div>
 

@@ -623,7 +623,7 @@ onMounted(() => {
     </header>
 
     <!-- Progress Bar -->
-    <div class="progress-bar" style="margin: 0 16px 16px;">
+    <div class="progress-bar progress-bar--inset">
       <div
         class="progress-bar-fill"
         :style="{ width: (studyPhase ? studyProgress : progress) + '%', background: 'var(--gradient-xp)' }"

@@ -419,20 +419,38 @@ const vocabById = new Map(vocabularyData.map(v => [v.id, v]))
 /** Semantic groups: which nouns work as the object of which verb. */
 const EDIBLE = ['v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono']
 const DRINKABLE = ['v-mizu', 'v-ocha', 'v-nomimono']
-const READABLE = ['v-hon-book', 'v-shinbun', 'v-tegami', 'v-jisho']
-const PLACES = ['v-gakkou', 'v-eki', 'v-byouin', 'v-mise', 'v-kaisha', 'v-uchi']
+const READABLE = ['v-hon-book', 'v-shinbun', 'v-jisho']
+const PLACES = ['v-gakkou', 'v-eki', 'v-byouin', 'v-mise', 'v-kaisha', 'v-uchi', 'v-umi', 'v-yama']
+// Nouns that can be bought (object of 買う / kaufen).
+const BUYABLE = [
+  'v-hon-book', 'v-kuruma', 'v-fuku', 'v-boushi', 'v-kutsu', 'v-pen',
+  'v-tabemono', 'v-nomimono', 'v-kudamono', 'v-yasai', 'v-niku', 'v-sakana',
+]
+// Concrete nouns that can be the object of 見る / sehen.
+const WATCHABLE = ['v-terebi', 'v-sora', 'v-yama', 'v-umi', 'v-hana-flower', 'v-tori', 'v-inu', 'v-neko']
 // Nouns that can sensibly take a plain "[Noun] は [i-Adjective] です".
 const DESCRIBABLE = [
   'v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono',
   'v-mizu', 'v-ocha', 'v-hon-book', 'v-kuruma', 'v-inu', 'v-neko',
-  'v-gakkou', 'v-eki', 'v-heya',
+  'v-gakkou', 'v-eki', 'v-heya', 'v-yama', 'v-umi', 'v-sora', 'v-hana-flower',
+  'v-tori', 'v-kutsu', 'v-fuku', 'v-tsukue', 'v-isu', 'v-kuruma',
 ]
 const I_ADJECTIVES = [
   'v-ookii', 'v-chiisai', 'v-oishii', 'v-takai', 'v-yasui', 'v-atarashii',
-  'v-furui', 'v-ii', 'v-warui', 'v-atsui', 'v-samui',
+  'v-furui', 'v-ii', 'v-warui', 'v-atsui', 'v-samui', 'v-tanoshii',
+  'v-muzukashii', 'v-yasashii', 'v-hayai', 'v-osoi',
 ]
 
 const SUBJECT_PRONOUNS = ['v-watashi', 'v-kare', 'v-kanojo']
+
+// Intransitive verbs: build "[Pron] は [Verb-masu]" (no object needed).
+// This unlocks verbs like 寝る/分かる/知る that have no object pattern, so a
+// freshly-learned verb actually appears in a sentence instead of being unused.
+const INTRANSITIVE_VERBS = [
+  'v-neru', 'v-okiru', 'v-wakaru', 'v-shiru', 'v-omou', 'v-iku', 'v-kuru',
+  'v-hairu', 'v-deru', 'v-matsu', 'v-asobu', 'v-hataraku', 'v-oyogu',
+  'v-tatsu', 'v-suwaru', 'v-aruku', 'v-hashiru', 'v-utau', 'v-benkyousuru',
+]
 
 function reading(id: string): string | null {
   const v = vocabById.get(id)
@@ -451,10 +469,33 @@ const PRONOUN_DE: Record<string, string> = {
 }
 /** German verb form matching the subject (only 1st/3rd person singular here). */
 const VERB_DE: Record<string, { ich: string; er: string }> = {
+  // transitive
   'v-taberu': { ich: 'esse', er: 'isst' },
   'v-nomu': { ich: 'trinke', er: 'trinkt' },
   'v-yomu': { ich: 'lese', er: 'liest' },
+  'v-kau': { ich: 'kaufe', er: 'kauft' },
+  'v-miru': { ich: 'sehe', er: 'sieht' },
+  // movement
   'v-iku': { ich: 'gehe', er: 'geht' },
+  'v-kuru': { ich: 'komme', er: 'kommt' },
+  // intransitive
+  'v-neru': { ich: 'schlafe', er: 'schläft' },
+  'v-okiru': { ich: 'wache auf', er: 'wacht auf' },
+  'v-wakaru': { ich: 'verstehe', er: 'versteht' },
+  'v-shiru': { ich: 'weiß es', er: 'weiß es' },
+  'v-omou': { ich: 'denke', er: 'denkt' },
+  'v-hairu': { ich: 'gehe hinein', er: 'geht hinein' },
+  'v-deru': { ich: 'gehe hinaus', er: 'geht hinaus' },
+  'v-matsu': { ich: 'warte', er: 'wartet' },
+  'v-asobu': { ich: 'spiele', er: 'spielt' },
+  'v-hataraku': { ich: 'arbeite', er: 'arbeitet' },
+  'v-oyogu': { ich: 'schwimme', er: 'schwimmt' },
+  'v-tatsu': { ich: 'stehe', er: 'steht' },
+  'v-suwaru': { ich: 'sitze', er: 'sitzt' },
+  'v-aruku': { ich: 'laufe', er: 'läuft' },
+  'v-hashiru': { ich: 'renne', er: 'rennt' },
+  'v-utau': { ich: 'singe', er: 'singt' },
+  'v-benkyousuru': { ich: 'lerne', er: 'lernt' },
 }
 
 interface DynOptions {
@@ -499,9 +540,18 @@ function buildSentenceForNoun(nounId: string, opts: DynOptions): SentenceChallen
     }
   }
 
-  if (EDIBLE.includes(nounId)) { const s = tryTransitive('v-taberu'); if (s) return s }
-  if (DRINKABLE.includes(nounId)) { const s = tryTransitive('v-nomu'); if (s) return s }
-  if (READABLE.includes(nounId)) { const s = tryTransitive('v-yomu'); if (s) return s }
+  // Try object+verb patterns. Collect all that apply, then pick one at random
+  // so the same noun doesn't always produce the identical sentence.
+  const transitiveVerbs: string[] = []
+  if (EDIBLE.includes(nounId)) transitiveVerbs.push('v-taberu')
+  if (DRINKABLE.includes(nounId)) transitiveVerbs.push('v-nomu')
+  if (READABLE.includes(nounId)) transitiveVerbs.push('v-yomu')
+  if (BUYABLE.includes(nounId)) transitiveVerbs.push('v-kau')
+  if (WATCHABLE.includes(nounId)) transitiveVerbs.push('v-miru')
+  for (const verbId of shuffle(transitiveVerbs)) {
+    const s = tryTransitive(verbId)
+    if (s) return s
+  }
 
   // Pattern B: [Pronoun] は [Place] に いきます  (place + go)
   if (PLACES.includes(nounId) && has('v-iku')) {
@@ -572,6 +622,33 @@ function makeDistractorPicker(learnedIds: string[]) {
 }
 
 /**
+ * Build "[Pronoun] は [Verb-masu]" for an intransitive verb (no object).
+ * Lets a freshly-learned verb (schlafen, verstehen, wissen …) appear in a
+ * sentence even if it has no object pattern. Returns null if not buildable.
+ */
+function buildSentenceForVerb(verbId: string, opts: DynOptions): SentenceChallenge | null {
+  if (!INTRANSITIVE_VERBS.includes(verbId)) return null
+  const vr = reading(verbId)
+  const masu = vr ? toMasu(verbId, vr) : null
+  const vde = VERB_DE[verbId]
+  if (!masu || !vde) return null
+
+  const pron = SUBJECT_PRONOUNS.filter(id => opts.learnedSet.has(id))
+  const pId = pron.length ? pron[Math.floor(Math.random() * pron.length)] : 'v-watashi'
+  const pr = reading(pId) || 'わたし'
+  const pde = PRONOUN_DE[pId] || 'Ich'
+  const verbDe = pId === 'v-watashi' ? vde.ich : vde.er
+  return {
+    id: `dyn-${++idCounter}`,
+    meaning: `${pde} ${verbDe}.`,
+    correctOrder: [pr, 'は', masu],
+    distractors: opts.pickDistractorReadings([pr, 'は', masu], 'verb'),
+    hint: 'は = Thema-Partikel',
+    difficulty: 'easy',
+  }
+}
+
+/**
  * Generate sentences that USE the given vocab (typically the words learned in
  * this session). Falls back to the curated templates if not enough dynamic
  * sentences can be built.
@@ -596,10 +673,26 @@ export function generateSentencesFromVocab(
   const out: SentenceChallenge[] = []
   const usedMeanings = new Set<string>()
 
-  // 1) Prefer sentences built around the session's nouns.
+  // Interleave noun-based and verb-based builders for the session's words so a
+  // freshly-learned VERB (schlafen, wissen …) also shows up — not just nouns.
   const sessionNouns = shuffle(
     sessionVocabIds.filter(id => vocabById.get(id)?.partOfSpeech === 'Nomen')
   )
+  const sessionVerbs = shuffle(
+    sessionVocabIds.filter(id => vocabById.get(id)?.partOfSpeech === 'Verb')
+  )
+
+  // 1a) Sentences built around the session's VERBS (intransitive pattern).
+  for (const verbId of sessionVerbs) {
+    if (out.length >= count) break
+    const s = buildSentenceForVerb(verbId, opts)
+    if (s && !usedMeanings.has(s.meaning)) {
+      out.push(s)
+      usedMeanings.add(s.meaning)
+    }
+  }
+
+  // 1b) Sentences built around the session's nouns.
   for (const nounId of sessionNouns) {
     if (out.length >= count) break
     const s = buildSentenceForNoun(nounId, opts)

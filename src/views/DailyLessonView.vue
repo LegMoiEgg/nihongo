@@ -21,22 +21,30 @@ learningStore.initialize()
 
 const level = computed(() => userStore.currentLevel.level)
 
-// ── Display mode for vocab: should we show kanji or only hiragana? ──
-// Level 1-4: hiragana only
-// Level 5+:  kanji with furigana
-const showKanjiForm = computed(() => level.value >= 15)
+// ── Display mode for vocab: Hiragana first, Kanji once practised ──
+// A word is introduced in pure Hiragana (reading). Only AFTER the learner has
+// answered it correctly a few times in a row do we switch to its Kanji form
+// (with furigana), so kanji are learned step by step rather than all at once.
+const KANJI_UNLOCK_STREAK = 3
 
-/**
- * Returns the display form of a vocab word depending on current level.
- * Low levels → reading (pure hiragana), high levels → japanese (kanji form).
- */
-function vocabDisplay(v: VocabCard): string {
-  return showKanjiForm.value ? v.japanese : v.reading
+/** Whether this word's Kanji form should be shown yet (per-word, not global). */
+function kanjiUnlocked(v: VocabCard): boolean {
+  // Only relevant for words that actually have a distinct kanji form.
+  if (v.japanese === v.reading) return false
+  return learningStore.getConsecutiveCorrect(v.id) >= KANJI_UNLOCK_STREAK
 }
 
-/** Whether this vocab has a kanji form different from its reading */
+/**
+ * Display form of a vocab word: pure Hiragana (reading) until the word has
+ * been practised enough, then its Kanji form.
+ */
+function vocabDisplay(v: VocabCard): string {
+  return kanjiUnlocked(v) ? v.japanese : v.reading
+}
+
+/** Whether to show furigana (ruby) — only once the kanji form is unlocked. */
 function vocabHasFurigana(v: VocabCard): boolean {
-  return showKanjiForm.value && v.japanese !== v.reading
+  return kanjiUnlocked(v)
 }
 
 // ── Exercise types ──
@@ -446,7 +454,7 @@ onMounted(() => {
       <span class="counter">{{ currentIndex + 1 }} / {{ exercises.length }}</span>
     </header>
 
-    <div class="progress-bar" style="margin: 0 16px 16px;">
+    <div class="progress-bar progress-bar--inset">
       <div class="progress-bar-fill" :style="{ width: progress + '%', background: 'var(--gradient-xp)' }" />
     </div>
 
@@ -662,9 +670,11 @@ onMounted(() => {
         <div class="prompt-card card-flat">
           <p class="prompt-label">Was bedeutet dieses Kanji?</p>
           <div class="furigana-display prompt-furigana">
+            <!-- Reading hint (furigana) disappears once the kanji is mastered
+                 (5x correct in a row), so you end up reading the bare kanji. -->
             <ruby class="jp furigana-kanji">
               {{ currentExercise.kanji.character }}
-              <rt>{{ currentExercise.kanji.kunyomi[0] || currentExercise.kanji.onyomi[0] }}</rt>
+              <rt v-if="learningStore.getConsecutiveCorrect(currentExercise.kanji.id) < 5">{{ currentExercise.kanji.kunyomi[0] || currentExercise.kanji.onyomi[0] }}</rt>
             </ruby>
           </div>
         </div>

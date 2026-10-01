@@ -392,7 +392,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
         <span class="test-progress-text">{{ currentIndex + 1 }} / {{ questions.length }}</span>
         <span class="test-score">✅ {{ score }}</span>
       </header>
-      <div class="progress-bar" style="margin: 0 16px 16px;">
+      <div class="progress-bar progress-bar--inset">
         <div class="progress-bar-fill" :style="{ width: progress + '%', background: 'var(--gradient-xp)' }" />
       </div>
 

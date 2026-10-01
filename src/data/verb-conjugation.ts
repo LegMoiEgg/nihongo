@@ -15,11 +15,24 @@
  */
 
 // Verb IDs that are ichidan (group 2) — drop る, add ます.
+// NOTE: る-ending alone does NOT mean ichidan (分かる/知る/入る/座る are godan).
+// Only the verbs listed here are treated as ichidan; everything else ending
+// in an u-sound is conjugated as godan.
 const ICHIDAN_IDS = new Set([
-  'v-taberu',   // たべる
-  'v-miru',     // みる
-  'v-neru',     // ねる
-  'v-okiru',    // おきる
+  'v-taberu',   // たべる  essen
+  'v-miru',     // みる    sehen
+  'v-neru',     // ねる    schlafen
+  'v-okiru',    // おきる  aufwachen
+  'v-deru',     // でる    hinausgehen
+  'v-oshieru',  // おしえる lehren
+  'v-oboeru',   // おぼえる sich merken
+  'v-wasureru', // わすれる vergessen
+  'v-ageru',    // あげる  geben
+  'v-kariru',   // かりる  ausleihen
+  'v-akeru',    // あける  öffnen
+  'v-shimeru',  // しめる  schließen
+  'v-tsukeru',  // つける  anmachen
+  'v-suteru',   // すてる  wegwerfen
 ])
 
 // Verb IDs that are irregular.

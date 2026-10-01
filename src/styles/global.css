@@ -197,6 +197,14 @@ body {
   overflow: hidden;
 }
 
+/* Progress bar with 16px side insets. Uses calc() so the side margin is
+   SUBTRACTED from the width — a plain `width:100%` + `margin:0 16px` would
+   total 100%+32px and overflow the screen (causing horizontal scroll). */
+.progress-bar--inset {
+  width: calc(100% - 32px);
+  margin: 0 16px 16px;
+}
+
 .progress-bar-fill {
   height: 100%;
   border-radius: 4px;
