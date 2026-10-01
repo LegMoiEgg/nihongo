@@ -486,6 +486,58 @@ export const vocabularyData: VocabCard[] = [
   { id: 'v-hima', japanese: '暇', reading: 'ひま', meaning: 'frei (Zeit) / Muße', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
   { id: 'v-fuben', japanese: '不便', reading: 'ふべん', meaning: 'unpraktisch', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
   { id: 'v-anzen', japanese: '安全', reading: 'あんぜん', meaning: 'sicher', jlpt: 'N4', category: 'Adjektive', partOfSpeech: 'na-Adjektiv' },
+
+  // ───────────────────────────── Etappe 3: neue Kategorien ──
+  // Beruf
+  { id: 'v-isha', japanese: '医者', reading: 'いしゃ', meaning: 'Arzt', jlpt: 'N5', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-kangoshi', japanese: '看護師', reading: 'かんごし', meaning: 'Krankenpfleger/-in', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-keikan', japanese: '警官', reading: 'けいかん', meaning: 'Polizist', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-untenshu', japanese: '運転手', reading: 'うんてんしゅ', meaning: 'Fahrer', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-kaishain', japanese: '会社員', reading: 'かいしゃいん', meaning: 'Angestellter', jlpt: 'N5', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-tenin', japanese: '店員', reading: 'てんいん', meaning: 'Verkäufer/-in', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-kashu', japanese: '歌手', reading: 'かしゅ', meaning: 'Sänger/-in', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-cook', japanese: '料理人', reading: 'りょうりにん', meaning: 'Koch', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-gakusha', japanese: '学者', reading: 'がくしゃ', meaning: 'Wissenschaftler', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+  { id: 'v-shufu', japanese: '主婦', reading: 'しゅふ', meaning: 'Hausfrau/-mann', jlpt: 'N4', category: 'Beruf', partOfSpeech: 'Nomen' },
+
+  // Hobby
+  { id: 'v-shumi', japanese: '趣味', reading: 'しゅみ', meaning: 'Hobby', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-supootsu', japanese: 'スポーツ', reading: 'スポーツ', meaning: 'Sport', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-ongaku', japanese: '音楽', reading: 'おんがく', meaning: 'Musik', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-eiga2', japanese: '映画', reading: 'えいが', meaning: 'Film', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-ryokou', japanese: '旅行', reading: 'りょこう', meaning: 'Reise', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-shashin', japanese: '写真', reading: 'しゃしん', meaning: 'Foto', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-e-picture', japanese: '絵', reading: 'え', meaning: 'Bild / Malerei', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-geemu', japanese: 'ゲーム', reading: 'ゲーム', meaning: 'Spiel / Videospiel', jlpt: 'N5', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-dokusho', japanese: '読書', reading: 'どくしょ', meaning: 'Lesen (als Hobby)', jlpt: 'N4', category: 'Hobby', partOfSpeech: 'Nomen' },
+  { id: 'v-tsuri', japanese: '釣り', reading: 'つり', meaning: 'Angeln', jlpt: 'N4', category: 'Hobby', partOfSpeech: 'Nomen' },
+
+  // Gefühle
+  { id: 'v-kimochi', japanese: '気持ち', reading: 'きもち', meaning: 'Gefühl / Stimmung', jlpt: 'N4', category: 'Gefühle', partOfSpeech: 'Nomen' },
+  { id: 'v-shiawase', japanese: '幸せ', reading: 'しあわせ', meaning: 'Glück', jlpt: 'N4', category: 'Gefühle', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-shinpai', japanese: '心配', reading: 'しんぱい', meaning: 'Sorge / besorgt', jlpt: 'N4', category: 'Gefühle', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-anshin', japanese: '安心', reading: 'あんしん', meaning: 'Erleichterung / beruhigt', jlpt: 'N4', category: 'Gefühle', partOfSpeech: 'na-Adjektiv' },
+  { id: 'v-bikkuri', japanese: 'びっくり', reading: 'びっくり', meaning: 'Überraschung', jlpt: 'N4', category: 'Gefühle', partOfSpeech: 'Adverb' },
+  { id: 'v-okoru', japanese: '怒る', reading: 'おこる', meaning: 'wütend werden', jlpt: 'N4', category: 'Gefühle', partOfSpeech: 'Verb' },
+  { id: 'v-kibun', japanese: '気分', reading: 'きぶん', meaning: 'Laune / Befinden', jlpt: 'N4', category: 'Gefühle', partOfSpeech: 'Nomen' },
+
+  // Wetter
+  { id: 'v-hare', japanese: '晴れ', reading: 'はれ', meaning: 'sonnig / heiter', jlpt: 'N4', category: 'Wetter', partOfSpeech: 'Nomen' },
+  { id: 'v-kumori', japanese: '曇り', reading: 'くもり', meaning: 'bewölkt', jlpt: 'N4', category: 'Wetter', partOfSpeech: 'Nomen' },
+  { id: 'v-taifuu', japanese: '台風', reading: 'たいふう', meaning: 'Taifun', jlpt: 'N4', category: 'Wetter', partOfSpeech: 'Nomen' },
+  { id: 'v-kion', japanese: '気温', reading: 'きおん', meaning: 'Temperatur', jlpt: 'N4', category: 'Wetter', partOfSpeech: 'Nomen' },
+  { id: 'v-kaminari', japanese: '雷', reading: 'かみなり', meaning: 'Donner / Blitz', jlpt: 'N4', category: 'Wetter', partOfSpeech: 'Nomen' },
+  { id: 'v-kiri', japanese: '霧', reading: 'きり', meaning: 'Nebel', jlpt: 'N4', category: 'Wetter', partOfSpeech: 'Nomen' },
+
+  // Einkaufen
+  { id: 'v-okane', japanese: 'お金', reading: 'おかね', meaning: 'Geld', jlpt: 'N5', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+  { id: 'v-nedan', japanese: '値段', reading: 'ねだん', meaning: 'Preis', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+  { id: 'v-kaimono', japanese: '買い物', reading: 'かいもの', meaning: 'Einkauf', jlpt: 'N5', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+  { id: 'v-saifu', japanese: '財布', reading: 'さいふ', meaning: 'Geldbörse', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+  { id: 'v-reji', japanese: 'レジ', reading: 'レジ', meaning: 'Kasse', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+  { id: 'v-fukuro', japanese: '袋', reading: 'ふくろ', meaning: 'Tüte / Beutel', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+  { id: 'v-shouhin', japanese: '商品', reading: 'しょうひん', meaning: 'Ware / Produkt', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
+  { id: 'v-waribiki', japanese: '割引', reading: 'わりびき', meaning: 'Rabatt', jlpt: 'N4', category: 'Einkaufen', partOfSpeech: 'Nomen' },
 ]
 
 export const vocabCategories = [...new Set(vocabularyData.map(v => v.category))]
