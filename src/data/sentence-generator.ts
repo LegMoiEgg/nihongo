@@ -417,46 +417,79 @@ export function generateDynamicSentences(
 const vocabById = new Map(vocabularyData.map(v => [v.id, v]))
 
 /** Semantic groups: which nouns work as the object of which verb. */
-const EDIBLE = ['v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono']
-const DRINKABLE = ['v-mizu', 'v-ocha', 'v-nomimono']
+const EDIBLE = [
+  'v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono',
+  'v-pan', 'v-tamago', 'v-ringo', 'v-mikan', 'v-okashi', 'v-tamanegi', 'v-ryouri',
+]
+const DRINKABLE = ['v-mizu', 'v-ocha', 'v-nomimono', 'v-gyuunyuu', 'v-koohii', 'v-sake']
 const READABLE = ['v-hon-book', 'v-shinbun', 'v-jisho']
-const PLACES = ['v-gakkou', 'v-eki', 'v-byouin', 'v-mise', 'v-kaisha', 'v-uchi', 'v-umi', 'v-yama']
+const PLACES = [
+  'v-gakkou', 'v-eki', 'v-byouin', 'v-mise', 'v-kaisha', 'v-uchi', 'v-umi',
+  'v-yama', 'v-daigaku', 'v-kyoushitsu',
+]
 // Nouns that can be bought (object of 買う / kaufen).
 const BUYABLE = [
   'v-hon-book', 'v-kuruma', 'v-fuku', 'v-boushi', 'v-kutsu', 'v-pen',
   'v-tabemono', 'v-nomimono', 'v-kudamono', 'v-yasai', 'v-niku', 'v-sakana',
+  'v-pan', 'v-tamago', 'v-ringo', 'v-okashi', 'v-jitensha', 'v-shinbun',
+  'v-jisho', 'v-tokei', 'v-shatsu', 'v-kutsushita', 'v-koohii',
 ]
 // Concrete nouns that can be the object of 見る / sehen.
-const WATCHABLE = ['v-terebi', 'v-sora', 'v-yama', 'v-umi', 'v-hana-flower', 'v-tori', 'v-inu', 'v-neko']
+const WATCHABLE = [
+  'v-terebi', 'v-sora', 'v-yama', 'v-umi', 'v-hana-flower', 'v-tori', 'v-inu',
+  'v-neko', 'v-shinbun', 'v-densha', 'v-hikouki', 'v-uma',
+]
 // Living things → [Noun] が います ("Es gibt einen …").
 const LIVING = [
   'v-inu', 'v-neko', 'v-tori', 'v-uma', 'v-ushi', 'v-buta', 'v-sakana-animal',
   'v-okaasan', 'v-otousan', 'v-oniisan', 'v-oneesan', 'v-sensei', 'v-gakusei',
-  'v-tomodachi', 'v-kodomo',
+  'v-tomodachi', 'v-kodomo', 'v-otouto', 'v-imouto', 'v-sofu', 'v-sobo',
+  'v-kazoku', 'v-kare', 'v-kanojo',
 ]
 // Non-living things → [Noun] が あります ("Es gibt ein …").
 const INANIMATE_EXISTS = [
   'v-hon-book', 'v-kuruma', 'v-tsukue', 'v-isu', 'v-pen', 'v-kagi', 'v-tokei',
   'v-denwa', 'v-terebi', 'v-mado', 'v-kami', 'v-tabemono', 'v-nomimono',
-  'v-yama', 'v-kawa', 'v-umi', 'v-ki',
+  'v-yama', 'v-kawa', 'v-umi', 'v-ki', 'v-jitensha', 'v-shinbun', 'v-jisho',
+  'v-shukudai', 'v-tesuto', 'v-beddo', 'v-doa', 'v-heya',
 ]
 // Nouns that pair naturally with a possessor via の (mein/dein …).
 const POSSESSABLE = [
   'v-hon-book', 'v-kuruma', 'v-fuku', 'v-boushi', 'v-kutsu', 'v-pen', 'v-kagi',
   'v-tokei', 'v-inu', 'v-neko', 'v-heya', 'v-namae', 'v-tomodachi',
+  // Family / people — "Das ist meine Mutter" etc.
+  'v-okaasan', 'v-otousan', 'v-oniisan', 'v-oneesan', 'v-otouto', 'v-imouto',
+  'v-sofu', 'v-sobo', 'v-kodomo', 'v-kazoku', 'v-sensei',
+  // Body — "Das sind meine Augen" etc.
+  'v-atama', 'v-me', 'v-mimi', 'v-kuchi', 'v-te', 'v-ashi',
+  // Things
+  'v-jitensha', 'v-shatsu', 'v-jisho',
 ]
 // Nouns that can sensibly take a plain "[Noun] は [i-Adjective] です".
 const DESCRIBABLE = [
+  // food & drink
   'v-gohan', 'v-niku', 'v-sakana', 'v-kudamono', 'v-yasai', 'v-tabemono',
-  'v-mizu', 'v-ocha', 'v-hon-book', 'v-kuruma', 'v-inu', 'v-neko',
-  'v-gakkou', 'v-eki', 'v-heya', 'v-yama', 'v-umi', 'v-sora', 'v-hana-flower',
-  'v-tori', 'v-kutsu', 'v-fuku', 'v-tsukue', 'v-isu', 'v-kuruma',
-  'v-shukudai', 'v-tesuto', 'v-nihongo', 'v-uma', 'v-ushi',
+  'v-mizu', 'v-ocha', 'v-pan', 'v-ringo', 'v-koohii', 'v-ryouri', 'v-okashi',
+  // things / places
+  'v-hon-book', 'v-kuruma', 'v-gakkou', 'v-eki', 'v-heya', 'v-tsukue', 'v-isu',
+  'v-kutsu', 'v-fuku', 'v-tokei', 'v-jitensha', 'v-densha', 'v-mise',
+  'v-daigaku', 'v-kyoushitsu',
+  // nature / animals
+  'v-yama', 'v-umi', 'v-sora', 'v-kawa', 'v-hana-flower', 'v-ki',
+  'v-inu', 'v-neko', 'v-tori', 'v-uma', 'v-ushi',
+  // people
+  'v-okaasan', 'v-otousan', 'v-sensei', 'v-tomodachi', 'v-kodomo',
+  // body
+  'v-atama', 'v-me', 'v-te', 'v-ashi',
+  // school / abstract
+  'v-shukudai', 'v-tesuto', 'v-nihongo', 'v-shigoto',
 ]
 const I_ADJECTIVES = [
   'v-ookii', 'v-chiisai', 'v-oishii', 'v-takai', 'v-yasui', 'v-atarashii',
   'v-furui', 'v-ii', 'v-warui', 'v-atsui', 'v-samui', 'v-tanoshii',
   'v-muzukashii', 'v-yasashii', 'v-hayai', 'v-osoi',
+  'v-nagai', 'v-mijikai', 'v-hiroi', 'v-semai', 'v-omoi', 'v-karui',
+  'v-akarui', 'v-kurai', 'v-isogashii', 'v-omoshiroi',
 ]
 
 const SUBJECT_PRONOUNS = ['v-watashi', 'v-kare', 'v-kanojo']
