@@ -158,7 +158,7 @@ export const useUserStore = defineStore('user', () => {
   // Set when the user levels up (via addXp). App.vue watches this to show a
   // congratulations popup, then clears it. Persisted so it survives a reload
   // (e.g. if the app is closed right after a session).
-  const pendingLevelUp = ref<{ level: number; label: string } | null>(
+  const pendingLevelUp = ref<{ level: number; label: string; coins?: number } | null>(
     loadFromStorage('nihongo_pending_levelup', null)
   )
   function clearLevelUp() {
@@ -179,6 +179,23 @@ export const useUserStore = defineStore('user', () => {
   const equippedFrame = ref('')
   // Number of streak-freeze consumables held (auto-spent on a missed day).
   const streakFreezes = ref(0)
+
+  // ── Milestone coin rewards ──
+  // IDs of one-time milestones already paid out (e.g. 'hiragana', 'katakana',
+  // 'vocab-Familie', 'level-12'). Once an id is here it never pays again — so
+  // dropping below mastery and re-reaching it does NOT re-trigger a reward.
+  const claimedMilestones = ref<string[]>([])
+  // The level the user was at when milestone tracking started on this account.
+  // Level-up coins are only awarded for levels gained ABOVE this baseline, so a
+  // placement-test jump (or pre-existing level) never pays retroactively.
+  // -1 = baseline not yet set (set once by initMilestoneBaseline()).
+  const levelMilestoneBaseline = ref(-1)
+  // Set when a (non-level) milestone pays out. App.vue watches this to show a
+  // small toast. Not persisted — it's a transient UI signal.
+  const pendingMilestoneToast = ref<{ label: string; amount: number } | null>(null)
+  function clearMilestoneToast() {
+    pendingMilestoneToast.value = null
+  }
 
   // Set when the user earns the daily chest reward. App.vue watches this to
   // show the chest popup, then clears it. Persisted so it survives a reload.
@@ -294,6 +311,8 @@ export const useUserStore = defineStore('user', () => {
     equippedTheme.value = loadFromStorage('nihongo_equipped_theme', '')
     equippedFrame.value = loadFromStorage('nihongo_equipped_frame', '')
     streakFreezes.value = loadFromStorage('nihongo_streak_freezes', 0)
+    claimedMilestones.value = loadFromStorage('nihongo_claimed_milestones', [])
+    levelMilestoneBaseline.value = loadFromStorage('nihongo_level_milestone_baseline', -1)
 
     updateStreak()
   }
@@ -355,7 +374,27 @@ export const useUserStore = defineStore('user', () => {
     saveToStorage('nihongo_level_xp', levelXp.value)
 
     if (levelNum.value > levelBefore) {
-      pendingLevelUp.value = { level: currentLevel.value.level, label: currentLevel.value.label }
+      // Level-up coins: 10 per level gained, but ONLY for levels above the
+      // milestone baseline (so a placement jump / pre-existing level doesn't
+      // pay retroactively). The baseline is set once at startup; if it's not
+      // set yet (-1) we don't award here — initMilestoneBaseline handles that.
+      let levelCoins = 0
+      if (levelMilestoneBaseline.value >= 0) {
+        const from = Math.max(levelBefore, levelMilestoneBaseline.value)
+        const gained = Math.max(0, levelNum.value - from)
+        if (gained > 0) {
+          levelCoins = gained * 10
+          coins.value += levelCoins
+          saveToStorage('nihongo_coins', coins.value)
+          // Keep the baseline moving up so these levels can't pay again.
+          setLevelMilestoneBaseline(levelNum.value)
+        }
+      }
+      pendingLevelUp.value = {
+        level: currentLevel.value.level,
+        label: currentLevel.value.label,
+        coins: levelCoins,
+      }
       saveToStorage('nihongo_pending_levelup', pendingLevelUp.value)
     }
 
@@ -507,6 +546,45 @@ export const useUserStore = defineStore('user', () => {
     return true
   }
 
+  // ── Milestone actions ──
+  function hasClaimedMilestone(id: string): boolean {
+    return claimedMilestones.value.includes(id)
+  }
+
+  /**
+   * Mark a milestone as claimed WITHOUT paying coins. Used to establish the
+   * baseline on first run: everything already achieved is recorded so it can
+   * never pay retroactively.
+   */
+  function markMilestoneClaimed(id: string): void {
+    if (claimedMilestones.value.includes(id)) return
+    claimedMilestones.value = [...claimedMilestones.value, id]
+    saveToStorage('nihongo_claimed_milestones', claimedMilestones.value)
+  }
+
+  /**
+   * Claim a milestone and award its coins (once). Returns false if it was
+   * already claimed. `showToast` controls whether a toast signal is raised
+   * (level-ups show coins in the level-up popup instead, so they pass false).
+   */
+  function claimMilestone(id: string, amount: number, label: string, showToast = true): boolean {
+    if (claimedMilestones.value.includes(id)) return false
+    claimedMilestones.value = [...claimedMilestones.value, id]
+    saveToStorage('nihongo_claimed_milestones', claimedMilestones.value)
+    coins.value += amount
+    saveToStorage('nihongo_coins', coins.value)
+    if (showToast) {
+      pendingMilestoneToast.value = { label, amount }
+    }
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+    return true
+  }
+
+  function setLevelMilestoneBaseline(level: number): void {
+    levelMilestoneBaseline.value = level
+    saveToStorage('nihongo_level_milestone_baseline', level)
+  }
+
   function setPlacementLevel(level: number) {
     placementLevel.value = level
     saveToStorage('nihongo_placement_level', level)
@@ -544,6 +622,9 @@ export const useUserStore = defineStore('user', () => {
     equippedFrame,
     streakFreezes,
     pendingCoinReward,
+    claimedMilestones,
+    levelMilestoneBaseline,
+    pendingMilestoneToast,
     // Computed
     currentLevel,
     nextLevel,
@@ -571,6 +652,12 @@ export const useUserStore = defineStore('user', () => {
     buyItem,
     equipCosmetic,
     consumeStreakFreeze,
+    // Milestone actions
+    hasClaimedMilestone,
+    markMilestoneClaimed,
+    claimMilestone,
+    setLevelMilestoneBaseline,
+    clearMilestoneToast,
   }
 })
 

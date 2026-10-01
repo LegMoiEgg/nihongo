@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ level: number; label: string }>()
+defineProps<{ level: number; label: string; coins?: number }>()
 const emit = defineEmits<{ close: [] }>()
 </script>
 
@@ -10,6 +10,10 @@ const emit = defineEmits<{ close: [] }>()
       <p class="levelup-title">Level aufgestiegen!</p>
       <div class="levelup-badge">Lv. {{ level }}</div>
       <p class="levelup-label">{{ label }}</p>
+      <div v-if="coins && coins > 0" class="levelup-coins">
+        <span class="coin-emoji">🪙</span>
+        <span>+{{ coins }} Münzen</span>
+      </div>
       <button class="btn btn-primary levelup-btn" @click="emit('close')">
         Weiter so!
       </button>
@@ -69,6 +73,23 @@ const emit = defineEmits<{ close: [] }>()
 .levelup-label {
   font-size: 1rem;
   color: var(--text-secondary);
+}
+
+.levelup-coins {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--accent-gold);
+  background: rgba(255, 215, 0, 0.12);
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-top: 4px;
+}
+
+.levelup-coins .coin-emoji {
+  font-size: 1.2rem;
 }
 
 .levelup-btn {

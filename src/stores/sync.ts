@@ -30,6 +30,8 @@ interface CloudUserData {
   equippedTheme: string
   equippedFrame: string
   streakFreezes: number
+  claimedMilestones: string[]
+  levelMilestoneBaseline: number
   // learning store
   cardProgress: any[]
   // badges store
@@ -159,6 +161,17 @@ export async function saveToCloud(): Promise<void> {
       equippedTheme: progressBehind ? (cloud?.equippedTheme ?? userStore.equippedTheme) : userStore.equippedTheme,
       equippedFrame: progressBehind ? (cloud?.equippedFrame ?? userStore.equippedFrame) : userStore.equippedFrame,
       streakFreezes: progressBehind ? (cloud?.streakFreezes ?? userStore.streakFreezes) : userStore.streakFreezes,
+      // Milestones: union of claimed ids (never un-claim one), and the baseline
+      // only ever moves forward (Math.max) so a premature local baseline of 1
+      // right after login can't lower a real cloud baseline.
+      claimedMilestones: Array.from(new Set([
+        ...(cloud?.claimedMilestones ?? []),
+        ...userStore.claimedMilestones,
+      ])),
+      levelMilestoneBaseline: Math.max(
+        userStore.levelMilestoneBaseline,
+        cloud?.levelMilestoneBaseline ?? -1
+      ),
       cardProgress: progressBehind ? (cloud?.cardProgress ?? learningStore.cardProgress) : learningStore.cardProgress,
       earnedBadges: badgesStore.earnedBadges,
       lastSyncedAt: new Date().toISOString(),
@@ -355,6 +368,25 @@ function mergeCloudData(cloud: CloudUserData) {
   if ((cloud as any).equippedFrame !== undefined) {
     userStore.equippedFrame = (cloud as any).equippedFrame || ''
     localStorage.setItem('nihongo_equipped_frame', JSON.stringify(userStore.equippedFrame))
+  }
+
+  // ── Milestones ──
+  // claimedMilestones: union, so a milestone claimed on any device stays
+  // claimed (and thus can never pay again).
+  if (Array.isArray((cloud as any).claimedMilestones)) {
+    const union = Array.from(new Set([
+      ...userStore.claimedMilestones,
+      ...(cloud as any).claimedMilestones,
+    ]))
+    userStore.claimedMilestones = union
+    localStorage.setItem('nihongo_claimed_milestones', JSON.stringify(union))
+  }
+  // levelMilestoneBaseline: take the higher value. This also lets the real
+  // cloud baseline override a premature local baseline (e.g. a fresh "1" set
+  // right after login, before this merge ran).
+  if (typeof (cloud as any).levelMilestoneBaseline === 'number') {
+    const higher = Math.max(userStore.levelMilestoneBaseline, (cloud as any).levelMilestoneBaseline)
+    userStore.setLevelMilestoneBaseline(higher)
   }
 
   // ── Daily log: merge by date, take higher XP per day ──

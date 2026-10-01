@@ -12,6 +12,7 @@ import { useBadgesStore } from './stores/badges'
 import { loadFromCloud, registerFlushOnHide, resolveAuthSettled } from './stores/sync'
 import { useNotificationsStore } from './stores/notifications'
 import { applyCosmetics } from './composables/useCosmetics'
+import { initMilestoneBaseline, checkMilestones } from './composables/useMilestones'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -27,7 +28,7 @@ const ACTIVE_SESSION_ROUTES = new Set([
   'daily', 'learn-hiragana', 'learn-katakana', 'learn-kanji',
   'learn-vocabulary', 'sentences', 'test', 'placement',
 ])
-const levelUp = ref<{ level: number; label: string } | null>(null)
+const levelUp = ref<{ level: number; label: string; coins?: number } | null>(null)
 
 const currentRouteName = computed(() => router.currentRoute.value.name as string | undefined)
 
@@ -71,6 +72,28 @@ watch(levelUp, maybeShowChest)
 function closeChest() {
   chestReward.value = null
 }
+
+// ── Milestone check ──
+// Re-check mastery milestones whenever the user leaves an active exercise
+// (a session just ended). Covers kana + vocab-category completion in one place
+// without touching each session view. Pays at most once per milestone.
+watch(currentRouteName, (name, prev) => {
+  if (ACTIVE_SESSION_ROUTES.has(prev || '') && !ACTIVE_SESSION_ROUTES.has(name || '')) {
+    checkMilestones()
+  }
+})
+
+// ── Milestone toast ──
+const milestoneToast = ref<{ label: string; amount: number } | null>(null)
+let milestoneToastTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(() => userStore.pendingMilestoneToast, (val) => {
+  if (!val) return
+  milestoneToast.value = val
+  userStore.clearMilestoneToast()
+  if (milestoneToastTimer) clearTimeout(milestoneToastTimer)
+  milestoneToastTimer = setTimeout(() => (milestoneToast.value = null), 3500)
+})
 
 // ── Weekly test popup (Sundays only, once per week) ──
 const showWeeklyTest = ref(false)
@@ -126,12 +149,17 @@ let initialAuthHandled = false
     notifStore.syncTokenIfEnabled()
     const isReturningUser = await loadFromCloud()
     applyCosmetics()
+    initMilestoneBaseline()
     if (isReturningUser) {
       const currentRoute = router.currentRoute.value.name
       if (currentRoute === 'onboarding') {
         router.replace('/')
       }
     }
+  } else {
+    // Logged-out / local-only user: establish the baseline from local state
+    // so milestones work offline too.
+    initMilestoneBaseline()
   }
   // Initial state processed → future watcher fires are real session changes.
   initialAuthHandled = true
@@ -178,6 +206,7 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
     notifStore.syncTokenIfEnabled()
     const isReturningUser = await loadFromCloud()
     applyCosmetics()
+    initMilestoneBaseline()
     if (isReturningUser) {
       const currentRoute = router.currentRoute.value.name
       if (currentRoute === 'onboarding') {
@@ -204,8 +233,20 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
       v-if="levelUp"
       :level="levelUp.level"
       :label="levelUp.label"
+      :coins="levelUp.coins"
       @close="closeLevelUp"
     />
+
+    <!-- Milestone coin toast (kana / vocab-category mastery) -->
+    <transition name="fade">
+      <div v-if="milestoneToast" class="milestone-toast">
+        <span class="milestone-toast-icon">🏆</span>
+        <div class="milestone-toast-text">
+          <span class="milestone-toast-label">{{ milestoneToast.label }}</span>
+          <span class="milestone-toast-coins">🪙 +{{ milestoneToast.amount }}</span>
+        </div>
+      </div>
+    </transition>
 
     <!-- Daily coin chest popup (shown outside active exercises) -->
     <ChestPopup
@@ -250,5 +291,45 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Milestone coin toast */
+.milestone-toast {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  z-index: 2100;
+  box-shadow: var(--shadow-elevated);
+  max-width: calc(100% - 32px);
+}
+
+.milestone-toast-icon {
+  font-size: 1.8rem;
+}
+
+.milestone-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.milestone-toast-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.milestone-toast-coins {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-gold);
 }
 </style>
