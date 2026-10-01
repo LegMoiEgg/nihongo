@@ -9,7 +9,7 @@ import { playCorrectSound, playWrongSound } from '../composables/useSounds'
 import { vocabularyData, type VocabCard } from '../data/vocabulary'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { kanjiData, type KanjiCard } from '../data/kanji'
-import { generateSentencesFromVocab, type SentenceChallenge } from '../data/sentence-generator'
+import { generateSentencesFromVocab, buildParticleQuizFromSentence, type SentenceChallenge } from '../data/sentence-generator'
 import { particleData, allParticles, type ParticleCard, type ParticleQuiz } from '../data/particles'
 import { useSentenceBlocks } from '../composables/useSentenceBlocks'
 
@@ -119,6 +119,9 @@ function shuffle<T>(arr: T[]): T[] {
 function generateExercises(): Exercise[] {
   const result: Exercise[] = []
   const lvl = level.value
+  // Lesson sentences are reused to build particle fill-in-the-blanks that
+  // match the lesson instead of using unrelated fixed examples.
+  let lessonSentences: SentenceChallenge[] = []
 
   // ── Level 1-4: KANA ONLY, row-by-row curriculum ──
   // Beginners practise the SAME rows as their current Hiragana lesson, in the
@@ -250,6 +253,7 @@ function generateExercises(): Exercise[] {
     for (const sentence of generated) {
       result.push({ type: 'sentence', sentence })
     }
+    lessonSentences = generated
   }
 
   // Grammar particles (level 5+). New particles get a study card first, then
@@ -268,20 +272,44 @@ function generateExercises(): Exercise[] {
     for (const p of newParticles) {
       result.push({ type: 'particle-study', particle: p })
     }
-    // Build a small set of fill-in-the-blank quizzes (mix of new + known).
-    const quizPool: { quiz: ParticleQuiz; id: string }[] = []
-    for (const p of particleData) {
-      for (const q of p.quizzes) quizPool.push({ quiz: q, id: p.id })
-    }
     const quizCount = lvl >= 12 ? 4 : 3
-    for (const { quiz, id } of shuffle(quizPool).slice(0, quizCount)) {
-      const wrong = shuffle(allParticles.filter(pc => pc !== quiz.answer)).slice(0, 3)
+
+    // PREFER particle quizzes built from THIS lesson's own sentences, so the
+    // gap-fill uses the words we're practising (not an unrelated "Stift"-Satz).
+    const addedKeys = new Set<string>()
+    for (const s of shuffle(lessonSentences)) {
+      if (result.filter(e => e.type === 'particle-fill').length >= quizCount) break
+      const q = buildParticleQuizFromSentence(s)
+      if (!q) continue
+      const key = q.sentence + q.answer
+      if (addedKeys.has(key)) continue
+      addedKeys.add(key)
+      const wrong = shuffle(allParticles.filter(pc => pc !== q.answer)).slice(0, 3)
       result.push({
         type: 'particle-fill',
-        particle: particleData.find(p => p.id === id),
-        particleQuiz: quiz,
-        particleOptions: shuffle([quiz.answer, ...wrong]),
+        particle: particleData.find(p => p.particle === q.answer),
+        particleQuiz: q,
+        particleOptions: shuffle([q.answer, ...wrong]),
       })
+    }
+
+    // Fall back to the fixed curated quizzes only if the lesson didn't yield
+    // enough sentence-based ones (e.g. very early levels with few sentences).
+    if (result.filter(e => e.type === 'particle-fill').length < quizCount) {
+      const quizPool: { quiz: ParticleQuiz; id: string }[] = []
+      for (const p of particleData) {
+        for (const q of p.quizzes) quizPool.push({ quiz: q, id: p.id })
+      }
+      for (const { quiz, id } of shuffle(quizPool)) {
+        if (result.filter(e => e.type === 'particle-fill').length >= quizCount) break
+        const wrong = shuffle(allParticles.filter(pc => pc !== quiz.answer)).slice(0, 3)
+        result.push({
+          type: 'particle-fill',
+          particle: particleData.find(p => p.id === id),
+          particleQuiz: quiz,
+          particleOptions: shuffle([quiz.answer, ...wrong]),
+        })
+      }
     }
   }
 

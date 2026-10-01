@@ -919,3 +919,55 @@ export function generateSentencesFromVocab(
 
   return out.slice(0, count)
 }
+
+// ────────────────────────────────────────────────────────────────────────
+//  PARTICLE FILL-IN-THE-BLANK FROM LESSON SENTENCES
+//  Turns a generated lesson sentence into a "which particle fits the gap?"
+//  exercise, so particle practice uses the SAME words as the current lesson
+//  instead of unrelated fixed examples like "Ich schreibe mit einem Stift".
+// ────────────────────────────────────────────────────────────────────────
+
+/** Particles that appear as standalone blocks in generated sentences. */
+const PARTICLE_BLOCKS = ['は', 'を', 'に', 'で', 'の', 'が', 'へ']
+
+export interface GeneratedParticleQuiz {
+  sentence: string   // reading with the blank marked ＿
+  reading: string    // full reading
+  meaning: string    // German translation
+  answer: string     // the correct particle
+  why: string
+}
+
+const PARTICLE_WHY: Record<string, string> = {
+  'は': 'は markiert das Thema des Satzes.',
+  'を': 'を markiert das direkte Objekt.',
+  'に': 'に markiert Ziel, Zeitpunkt oder Ort des Seins.',
+  'で': 'で markiert den Ort einer Handlung oder das Mittel.',
+  'の': 'の verbindet zwei Nomen (Besitz/Zugehörigkeit).',
+  'が': 'が markiert das Subjekt.',
+  'へ': 'へ zeigt die Richtung einer Bewegung.',
+}
+
+/**
+ * Build a particle fill-in-the-blank from a generated sentence. Picks one of
+ * the sentence's particle blocks at random and blanks it out. Returns null if
+ * the sentence contains no particle block.
+ */
+export function buildParticleQuizFromSentence(s: SentenceChallenge): GeneratedParticleQuiz | null {
+  const particleIndices = s.correctOrder
+    .map((b, i) => (PARTICLE_BLOCKS.includes(b) ? i : -1))
+    .filter(i => i >= 0)
+  if (particleIndices.length === 0) return null
+
+  const idx = particleIndices[Math.floor(Math.random() * particleIndices.length)]
+  const answer = s.correctOrder[idx]
+  const blanked = s.correctOrder.map((b, i) => (i === idx ? '＿' : b)).join(' ')
+  const full = s.correctOrder.join(' ')
+  return {
+    sentence: blanked,
+    reading: full,
+    meaning: s.meaning,
+    answer,
+    why: PARTICLE_WHY[answer] ?? '',
+  }
+}
