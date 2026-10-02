@@ -263,6 +263,144 @@ const SENTENCE_TEMPLATES: SentenceTemplate[] = [
     hint: 'あした = morgen',
     difficulty: 'hard',
   },
+
+  // ───────────────────────── Erweiterung: mehr Themen ──
+  // ── Hobby ──
+  {
+    requiredVocab: ['v-watashi', 'v-ongaku', 'v-kiku'],
+    meaning: 'Ich höre Musik.',
+    blocks: ['わたし', 'は', 'おんがく', 'を', 'ききます'],
+    extraDistractors: ['みます', 'えいが'],
+    hint: 'おんがく = Musik, ききます = hören',
+    difficulty: 'medium',
+  },
+  {
+    requiredVocab: ['v-watashi', 'v-eiga2', 'v-miru'],
+    meaning: 'Ich schaue einen Film.',
+    blocks: ['わたし', 'は', 'えいが', 'を', 'みます'],
+    extraDistractors: ['ききます', 'おんがく'],
+    hint: 'えいが = Film, みます = sehen',
+    difficulty: 'medium',
+  },
+  // ── Wetter ──
+  {
+    requiredVocab: ['v-kyou', 'v-tenki', 'v-ii'],
+    meaning: 'Heute ist das Wetter gut.',
+    blocks: ['きょう', 'は', 'てんき', 'が', 'いい', 'です'],
+    extraDistractors: ['わるい', 'あした'],
+    hint: 'てんき = Wetter, いい = gut',
+    difficulty: 'medium',
+  },
+  {
+    requiredVocab: ['v-ashita', 'v-ame'],
+    meaning: 'Morgen regnet es.',
+    blocks: ['あした', 'は', 'あめ', 'です'],
+    extraDistractors: ['ゆき', 'きょう'],
+    hint: 'あめ = Regen',
+    difficulty: 'easy',
+  },
+
+  // ── Beruf ──
+  {
+    requiredVocab: ['v-kare', 'v-isha'],
+    meaning: 'Er ist Arzt.',
+    blocks: ['かれ', 'は', 'いしゃ', 'です'],
+    extraDistractors: ['せんせい', 'がくせい'],
+    hint: 'いしゃ = Arzt',
+    difficulty: 'easy',
+  },
+  {
+    requiredVocab: ['v-kanojo', 'v-sensei'],
+    meaning: 'Sie ist Lehrerin.',
+    blocks: ['かのじょ', 'は', 'せんせい', 'です'],
+    extraDistractors: ['いしゃ', 'かのじょ'],
+    hint: 'かのじょ = sie',
+    difficulty: 'easy',
+  },
+
+  // ── Tiere ──
+  {
+    requiredVocab: ['v-inu', 'v-iru'],
+    meaning: 'Es gibt einen Hund.',
+    blocks: ['いぬ', 'が', 'います'],
+    extraDistractors: ['あります', 'ねこ'],
+    hint: 'います = existieren (Lebewesen)',
+    difficulty: 'easy',
+  },
+  {
+    requiredVocab: ['v-neko', 'v-chiisai'],
+    meaning: 'Die Katze ist klein.',
+    blocks: ['ねこ', 'は', 'ちいさい', 'です'],
+    extraDistractors: ['おおきい', 'いぬ'],
+    hint: 'ちいさい = klein',
+    difficulty: 'easy',
+  },
+
+  // ── Transport ──
+  {
+    requiredVocab: ['v-watashi', 'v-densha', 'v-iku'],
+    meaning: 'Ich fahre mit dem Zug.',
+    blocks: ['わたし', 'は', 'でんしゃ', 'で', 'いきます'],
+    extraDistractors: ['くるま', 'きます'],
+    hint: 'で = Mittel (womit), でんしゃ = Zug',
+    difficulty: 'medium',
+  },
+  {
+    requiredVocab: ['v-watashi', 'v-kuruma', 'v-kau'],
+    meaning: 'Ich kaufe ein Auto.',
+    blocks: ['わたし', 'は', 'くるま', 'を', 'かいます'],
+    extraDistractors: ['のみます', 'でんしゃ'],
+    hint: 'くるま = Auto, かいます = kaufen',
+    difficulty: 'medium',
+  },
+
+  // ── Freunde / soziale Verben ──
+  {
+    requiredVocab: ['v-watashi', 'v-tomodachi', 'v-au'],
+    meaning: 'Ich treffe einen Freund.',
+    blocks: ['わたし', 'は', 'ともだち', 'に', 'あいます'],
+    extraDistractors: ['います', 'いきます'],
+    hint: 'に あいます = (jemanden) treffen',
+    difficulty: 'medium',
+  },
+
+  // ── Schule ──
+  {
+    requiredVocab: ['v-watashi', 'v-shukudai', 'v-suru'],
+    meaning: 'Ich mache Hausaufgaben.',
+    blocks: ['わたし', 'は', 'しゅくだい', 'を', 'します'],
+    extraDistractors: ['よみます', 'ほん'],
+    hint: 'しゅくだい = Hausaufgaben, します = tun',
+    difficulty: 'medium',
+  },
+
+  // ── Position ──
+  {
+    requiredVocab: ['v-neko', 'v-ue', 'v-iru'],
+    meaning: 'Die Katze ist auf dem Tisch.',
+    blocks: ['ねこ', 'は', 'つくえ', 'の', 'うえ', 'に', 'います'],
+    extraDistractors: ['した', 'あります'],
+    hint: 'の うえ に = oben auf, います = ist (Lebewesen)',
+    difficulty: 'hard',
+  },
+
+  // ── Hard: Zeit + Person は + Objekt + Verb ──
+  {
+    requiredVocab: ['v-watashi', 'v-maiasa', 'v-koohii', 'v-nomu'],
+    meaning: 'Ich trinke jeden Morgen Kaffee.',
+    blocks: ['わたし', 'は', 'まいあさ', 'コーヒー', 'を', 'のみます'],
+    extraDistractors: ['よる', 'たべます'],
+    hint: 'まいあさ = jeden Morgen, コーヒー = Kaffee',
+    difficulty: 'hard',
+  },
+  {
+    requiredVocab: ['v-watashi', 'v-mainichi', 'v-nihongo', 'v-benkyousuru'],
+    meaning: 'Ich lerne jeden Tag Japanisch.',
+    blocks: ['わたし', 'は', 'まいにち', 'にほんご', 'を', 'べんきょうします'],
+    extraDistractors: ['えいご', 'はなします'],
+    hint: 'まいにち = jeden Tag',
+    difficulty: 'hard',
+  },
 ]
 
 /**
@@ -320,6 +458,42 @@ const BLOCK_TRANSLATIONS: Record<string, string> = {
   'おいしい': 'lecker',
   'たかい': 'teuer / hoch',
   'やすい': 'günstig',
+  'いい': 'gut',
+  'わるい': 'schlecht',
+  'ちいさい': 'klein',
+  'おおきい': 'groß',
+  // More verbs (-masu)
+  'ききます': 'hören / fragen (höflich)',
+  'かいます': 'kaufen (höflich)',
+  'あいます': 'treffen (höflich)',
+  'します': 'tun / machen (höflich)',
+  'とります': 'nehmen / machen (Foto) (höflich)',
+  'います': 'existieren / da sein (Lebewesen)',
+  'あります': 'existieren / da sein (Dinge)',
+  // Existence / position
+  'うえ': 'oben / auf',
+  'した': 'unten / unter',
+  'つくえ': 'Schreibtisch',
+  // More nouns
+  'おんがく': 'Musik',
+  'えいが': 'Film',
+  'しゃしん': 'Foto',
+  'てんき': 'Wetter',
+  'あめ': 'Regen',
+  'ゆき': 'Schnee',
+  'いしゃ': 'Arzt',
+  'かれ': 'er',
+  'かのじょ': 'sie',
+  'いぬ': 'Hund',
+  'ねこ': 'Katze',
+  'でんしゃ': 'Zug',
+  'くるま': 'Auto',
+  'ともだち': 'Freund/-in',
+  'しゅくだい': 'Hausaufgaben',
+  'コーヒー': 'Kaffee',
+  // More time words
+  'まいあさ': 'jeden Morgen',
+  'まいにち': 'jeden Tag',
 }
 
 /** Returns a German translation for a single sentence block, if known. */
