@@ -27,6 +27,11 @@ const THEME_VARS = [
   '--accent-secondary',
   '--gradient-primary',
   '--gradient-xp',
+  // Text vars — needed so LIGHT themes can switch to dark text (and get
+  // cleanly reset back to the dark-theme defaults when unequipped).
+  '--text-primary',
+  '--text-secondary',
+  '--text-muted',
 ]
 
 export function applyCosmetics(): void {
