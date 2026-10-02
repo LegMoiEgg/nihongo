@@ -397,6 +397,307 @@ export const dialogueData: DialogueExercise[] = [
     correctDe: 'Auf dem Tisch.',
     wrong: ['みずを のみます。', 'がっこうに いきます。', 'ほんを よみます。'],
   },
+
+  // ═════════════════ Mehr Dialoge pro Thema ═════════════════
+  // ── Begrüßung ──
+  {
+    id: 'd-greet-5',
+    category: 'Begrüßung',
+    questionDe: 'Jemand sagt "おげんきですか" (Wie geht es dir?). Was antwortest du?',
+    questionJp: 'おげんきですか。',
+    correct: 'はい、げんきです。',
+    correctDe: 'Ja, mir geht es gut.',
+    wrong: ['さようなら。', 'ほんを よみます。', 'がっこうに いきます。'],
+  },
+  {
+    id: 'd-greet-6',
+    category: 'Begrüßung',
+    questionDe: 'Nach dem Essen – was sagt man?',
+    questionJp: '(たべた あと)',
+    correct: 'ごちそうさまでした。',
+    correctDe: 'Danke für das Essen.',
+    wrong: ['いただきます。', 'はじめまして。', 'おやすみなさい。'],
+  },
+
+  // ── Pronomen ──
+  {
+    id: 'd-pron-1',
+    category: 'Pronomen',
+    questionDe: 'Wer hat das gemacht? (du selbst)',
+    questionJp: 'だれが しましたか。',
+    correct: 'わたしです。',
+    correctDe: 'Ich war es.',
+    wrong: ['みずです。', 'がっこうです。', 'あかいです。'],
+  },
+
+  // ── Zahlen ──
+  {
+    id: 'd-num-1',
+    category: 'Zahlen',
+    questionDe: 'Wie viele Äpfel möchtest du?',
+    questionJp: 'りんごを いくつ ほしいですか。',
+    correct: 'みっつ ください。',
+    correctDe: 'Drei, bitte.',
+    wrong: ['あかいです。', 'がっこうです。', 'のみます。'],
+  },
+
+  // ── Familie ──
+  {
+    id: 'd-fam-4',
+    category: 'Familie',
+    questionDe: 'Wer ist der Mann auf dem Foto? (dein Vater)',
+    questionJp: 'このひとは だれですか。',
+    correct: 'わたしの ちちです。',
+    correctDe: 'Das ist mein Vater.',
+    wrong: ['わたしの いぬです。', 'わたしの くるまです。', 'わたしの ほんです。'],
+  },
+  {
+    id: 'd-fam-5',
+    category: 'Familie',
+    questionDe: 'Hast du eine ältere Schwester?',
+    questionJp: 'おねえさんが いますか。',
+    correct: 'はい、あねが います。',
+    correctDe: 'Ja, ich habe eine ältere Schwester.',
+    wrong: ['はい、みずを のみます。', 'はい、がっこうです。', 'はい、あかいです。'],
+  },
+
+  // ── Essen ──
+  {
+    id: 'd-food-5',
+    category: 'Essen',
+    questionDe: 'Was möchtest du zum Frühstück?',
+    questionJp: 'あさごはんに なにが いいですか。',
+    correct: 'パンを たべます。',
+    correctDe: 'Ich esse Brot.',
+    wrong: ['ほんを よみます。', 'でんしゃで いきます。', 'ねこが います。'],
+  },
+  {
+    id: 'd-food-6',
+    category: 'Essen',
+    questionDe: 'Magst du scharfes Essen?',
+    questionJp: 'からい たべものが すきですか。',
+    correct: 'はい、だいすきです。',
+    correctDe: 'Ja, sehr gern.',
+    wrong: ['はい、がっこうです。', 'はい、でんしゃです。', 'はい、あおいです。'],
+  },
+
+  // ── Orte ──
+  {
+    id: 'd-place-4',
+    category: 'Orte',
+    questionDe: 'Wo ist die Bank?',
+    questionJp: 'ぎんこうは どこですか。',
+    correct: 'えきの となりです。',
+    correctDe: 'Neben dem Bahnhof.',
+    wrong: ['みずを のみます。', 'あついです。', 'ほんを かいます。'],
+  },
+
+  // ── Zeit ──
+  {
+    id: 'd-time-4',
+    category: 'Zeit',
+    questionDe: 'Wie spät ist es jetzt?',
+    questionJp: 'いま なんじですか。',
+    correct: 'ごぜん くじです。',
+    correctDe: 'Es ist 9 Uhr vormittags.',
+    wrong: ['あかいです。', 'がっこうです。', 'みずです。'],
+  },
+
+  // ── Wochentage ──
+  {
+    id: 'd-week-3',
+    category: 'Wochentage',
+    questionDe: 'An welchem Tag hast du frei?',
+    questionJp: 'なんようびが やすみですか。',
+    correct: 'どようびです。',
+    correctDe: 'Am Samstag.',
+    wrong: ['みずです。', 'おいしいです。', 'がくせいです。'],
+  },
+
+  // ── Verben ──
+  {
+    id: 'd-verb-3',
+    category: 'Verben',
+    questionDe: 'Was machst du heute Abend?',
+    questionJp: 'こんばん なにを しますか。',
+    correct: 'テレビを みます。',
+    correctDe: 'Ich schaue fern.',
+    wrong: ['みずが あかいです。', 'ほんが たべます。', 'がっこうを のみます。'],
+  },
+  {
+    id: 'd-verb-4',
+    category: 'Verben',
+    questionDe: 'Kannst du schwimmen?',
+    questionJp: 'およげますか。',
+    correct: 'はい、およげます。',
+    correctDe: 'Ja, ich kann schwimmen.',
+    wrong: ['はい、たべものです。', 'はい、あかいです。', 'はい、がっこうです。'],
+  },
+
+  // ── Adjektive ──
+  {
+    id: 'd-adj-2',
+    category: 'Adjektive',
+    questionDe: 'Wie ist dein Zimmer?',
+    questionJp: 'へやは どうですか。',
+    correct: 'ひろいです。',
+    correctDe: 'Es ist groß/geräumig.',
+    wrong: ['のみます。', 'がっこうに いきます。', 'ねこが います。'],
+  },
+
+  // ── Farben ──
+  {
+    id: 'd-color-2',
+    category: 'Farben',
+    questionDe: 'Welche Farbe magst du?',
+    questionJp: 'なにいろが すきですか。',
+    correct: 'あおが すきです。',
+    correctDe: 'Ich mag Blau.',
+    wrong: ['みずを のみます。', 'がっこうです。', 'たべます。'],
+  },
+
+  // ── Körper ──
+  {
+    id: 'd-body-2',
+    category: 'Körper',
+    questionDe: 'Beim Arzt: Wo ist das Problem?',
+    questionJp: 'どう しましたか。',
+    correct: 'おなかが いたいです。',
+    correctDe: 'Mein Bauch tut weh.',
+    wrong: ['がっこうに いきます。', 'ほんを よみます。', 'でんしゃです。'],
+  },
+
+  // ── Gefühle ──
+  {
+    id: 'd-feel-2',
+    category: 'Gefühle',
+    questionDe: 'Dein Hund ist weggelaufen. Wie fühlst du dich?',
+    questionJp: 'どんな きもちですか。',
+    correct: 'とても かなしいです。',
+    correctDe: 'Ich bin sehr traurig.',
+    wrong: ['とても うれしいです。', 'がっこうに いきます。', 'みずを のみます。'],
+  },
+
+  // ── Wetter ──
+  {
+    id: 'd-weather-3',
+    category: 'Wetter',
+    questionDe: 'Wie wird das Wetter morgen?',
+    questionJp: 'あしたの てんきは どうですか。',
+    correct: 'くもりでしょう。',
+    correctDe: 'Es wird wohl bewölkt.',
+    wrong: ['がくせいでしょう。', 'ほんでしょう。', 'えきでしょう。'],
+  },
+
+  // ── Hobby ──
+  {
+    id: 'd-hobby-3',
+    category: 'Hobby',
+    questionDe: 'Treibst du Sport?',
+    questionJp: 'スポーツを しますか。',
+    correct: 'はい、サッカーを します。',
+    correctDe: 'Ja, ich spiele Fußball.',
+    wrong: ['はい、みずを よみます。', 'はい、ほんを のみます。', 'はい、がっこうです。'],
+  },
+
+  // ── Beruf ──
+  {
+    id: 'd-job-2',
+    category: 'Beruf',
+    questionDe: 'Wo arbeitest du?',
+    questionJp: 'どこで はたらいていますか。',
+    correct: 'かいしゃで はたらいています。',
+    correctDe: 'Ich arbeite in einer Firma.',
+    wrong: ['みずを のみます。', 'あかいです。', 'ねこが います。'],
+  },
+
+  // ── Einkaufen ──
+  {
+    id: 'd-shop-2',
+    category: 'Einkaufen',
+    questionDe: 'Bezahlen Sie bar oder mit Karte?',
+    questionJp: 'げんきんですか、カードですか。',
+    correct: 'げんきんで おねがいします。',
+    correctDe: 'Bar, bitte.',
+    wrong: ['がっこうで おねがいします。', 'あさで おねがいします。', 'あかいで おねがいします。'],
+  },
+
+  // ── Reisen ──
+  {
+    id: 'd-travel-2',
+    category: 'Reisen',
+    questionDe: 'Wie lange bleibst du?',
+    questionJp: 'どのくらい いますか。',
+    correct: 'みっか います。',
+    correctDe: 'Ich bleibe drei Tage.',
+    wrong: ['あかいです。', 'がっこうです。', 'のみます。'],
+  },
+
+  // ── Schule ──
+  {
+    id: 'd-school-2',
+    category: 'Schule',
+    questionDe: 'Welches Fach magst du?',
+    questionJp: 'なにの べんきょうが すきですか。',
+    correct: 'にほんごが すきです。',
+    correctDe: 'Ich mag Japanisch.',
+    wrong: ['みずが すきです。', 'でんしゃが たべます。', 'がっこうを のみます。'],
+  },
+
+  // ── Zuhause ──
+  {
+    id: 'd-home-2',
+    category: 'Zuhause',
+    questionDe: 'Was machst du in der Küche?',
+    questionJp: 'だいどころで なにを しますか。',
+    correct: 'りょうりを します。',
+    correctDe: 'Ich koche.',
+    wrong: ['ほんを よみます。', 'でんしゃで いきます。', 'ねこが います。'],
+  },
+
+  // ── Transport ──
+  {
+    id: 'd-trans-2',
+    category: 'Transport',
+    questionDe: 'Wie kommst du zur Arbeit?',
+    questionJp: 'なにで かいしゃに いきますか。',
+    correct: 'バスで いきます。',
+    correctDe: 'Ich fahre mit dem Bus.',
+    wrong: ['ほんで いきます。', 'みずで いきます。', 'ねこで いきます。'],
+  },
+
+  // ── Tiere ──
+  {
+    id: 'd-animal-2',
+    category: 'Tiere',
+    questionDe: 'Hast du ein Haustier?',
+    questionJp: 'ペットが いますか。',
+    correct: 'はい、いぬが います。',
+    correctDe: 'Ja, ich habe einen Hund.',
+    wrong: ['はい、くるまが あります。', 'はい、ほんを よみます。', 'はい、がっこうです。'],
+  },
+
+  // ── Küche ──
+  {
+    id: 'd-kitchen-1',
+    category: 'Küche',
+    questionDe: 'Womit isst man Sushi normalerweise?',
+    questionJp: 'なにで すしを たべますか。',
+    correct: 'おはしで たべます。',
+    correctDe: 'Mit Stäbchen.',
+    wrong: ['ほんで たべます。', 'みずで たべます。', 'くるまで たべます。'],
+  },
+
+  // ── Position ──
+  {
+    id: 'd-pos-2',
+    category: 'Position',
+    questionDe: 'Wo ist mein Handy?',
+    questionJp: 'でんわは どこですか。',
+    correct: 'かばんの なかです。',
+    correctDe: 'In der Tasche.',
+    wrong: ['みずを のみます。', 'あかいです。', 'がっこうに いきます。'],
+  },
 ]
 
 /** Dialogues whose category is in the given set (the current lesson theme). */
