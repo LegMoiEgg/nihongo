@@ -1044,7 +1044,12 @@ function buildComplexSentence(opts: DynOptions): SentenceChallenge | null {
   const pron = SUBJECT_PRONOUNS.filter(has)
   const pId = pron.length ? shuffle(pron)[0] : 'v-watashi'
   const pr = reading(pId) || 'わたし'
-  const verbDeIch = VERB_DE[verbId]?.ich ?? ''
+  // German subject + verb form MUST match the chosen Japanese pronoun — using
+  // the 1st-person form for かれ/かのじょ was the "Ich … / sie …" mismatch bug.
+  const vde = VERB_DE[verbId]
+  if (!vde) return null
+  const subjDe = PRONOUN_DE[pId] || 'Ich'
+  const verbDe = pId === 'v-watashi' ? vde.ich : vde.er
 
   // Assemble JP block order: [Time] [Pron] は [Place] で [Obj] を [Verb]
   const order: string[] = []
@@ -1058,10 +1063,11 @@ function buildComplexSentence(opts: DynOptions): SentenceChallenge | null {
     'v-gakkou': 'in der Schule', 'v-uchi': 'zu Hause', 'v-mise': 'im Geschäft',
     'v-kaisha': 'in der Firma', 'v-kyoushitsu': 'im Klassenzimmer', 'v-heya': 'im Zimmer',
   }
-  // German: "[Zeit] [verb] ich [Ort] [Objekt]."
+  // German word order: "[Zeit] [verb] [Subjekt] [Ort] [Objekt]."
+  //   e.g. "Heute isst sie zu Hause Essen."
   const parts: string[] = []
   if (timeId) parts.push(timeDeMap[timeId] ?? '')
-  parts.push(verbDeIch, 'ich')
+  parts.push(verbDe, subjDe.toLowerCase())
   if (placeId && placePhrase[placeId]) parts.push(placePhrase[placeId])
   parts.push(objDe.split(' /')[0])
   const meaning = parts.filter(Boolean).join(' ').replace(/^\w/, c => c.toUpperCase()) + '.'

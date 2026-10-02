@@ -92,7 +92,7 @@ export const kanjiData: KanjiCard[] = [
   { id: 'kj-sen', character: '先', meanings: ['Vorher', 'Spitze', 'voraus'], onyomi: ['セン'], kunyomi: ['さき'], jlpt: 'N5', strokes: 6, group: 'Schule', examples: [{ word: '先生', reading: 'せんせい', meaning: 'Lehrer' }, { word: '先週', reading: 'せんしゅう', meaning: 'letzte Woche' }] },
   { id: 'kj-bun', character: '文', meanings: ['Text', 'Satz', 'Schrift'], onyomi: ['ブン', 'モン'], kunyomi: ['ふみ'], jlpt: 'N5', strokes: 4, group: 'Schule', examples: [{ word: '文', reading: 'ぶん', meaning: 'Satz' }, { word: '作文', reading: 'さくぶん', meaning: 'Aufsatz' }] },
   { id: 'kj-dokugo', character: '語', meanings: ['Sprache', 'Wort'], onyomi: ['ゴ'], kunyomi: ['かた(る)'], jlpt: 'N5', strokes: 14, group: 'Schule', examples: [{ word: '日本語', reading: 'にほんご', meaning: 'Japanisch' }, { word: '英語', reading: 'えいご', meaning: 'Englisch' }] },
-  { id: 'kj-hon', character: '本', meanings: ['Buch', 'Ursprung', 'Haupt-'], onyomi: ['ホン'], kunyomi: ['もと'], jlpt: 'N5', strokes: 5, group: 'Schule', examples: [{ word: '本', reading: 'ほん', meaning: 'Buch' }, { word: '日本', reading: 'にほん', meaning: 'Japan' }] },
+  { id: 'kj-hon', character: '本', meanings: ['Buch', 'Ursprung', 'Haupt-'], onyomi: ['ホン'], kunyomi: ['ほん', 'もと'], jlpt: 'N5', strokes: 5, group: 'Schule', examples: [{ word: '本', reading: 'ほん', meaning: 'Buch' }, { word: '日本', reading: 'にほん', meaning: 'Japan' }] },
   { id: 'kj-mei', character: '名', meanings: ['Name', 'berühmt'], onyomi: ['メイ', 'ミョウ'], kunyomi: ['な'], jlpt: 'N5', strokes: 6, group: 'Schule', examples: [{ word: '名前', reading: 'なまえ', meaning: 'Name' }, { word: '有名', reading: 'ゆうめい', meaning: 'berühmt' }] },
 
   // Geld & Mengen
