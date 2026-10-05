@@ -1,19 +1,19 @@
 <script setup lang="ts">
-const props = defineProps<{ amount: number; streakBonus: number }>()
+const props = defineProps<{ amount: number; streakBonus: number; weeklyBonus?: number }>()
 const emit = defineEmits<{ close: [] }>()
 </script>
 
 <template>
   <div class="chest-overlay" @click.self="emit('close')">
     <div class="chest-card animate-pop">
-      <div class="chest-icon">🎁</div>
-      <p class="chest-title">Tagesziel geschafft!</p>
+      <div class="chest-icon">{{ props.weeklyBonus ? '🏆' : '🎁' }}</div>
+      <p class="chest-title">{{ props.weeklyBonus ? 'Perfekte Woche!' : 'Tagesziel geschafft!' }}</p>
       <div class="chest-coins">
         <span class="coin-emoji">🪙</span>
         <span class="coin-amount">+{{ props.amount }}</span>
       </div>
       <p class="chest-sub">
-        10 Münzen aus der Kiste<template v-if="props.streakBonus > 0"> · +{{ props.streakBonus }} Streak-Bonus 🔥</template>
+        10 Münzen aus der Kiste<template v-if="props.streakBonus > 0"> · +{{ props.streakBonus }} Streak-Bonus 🔥</template><template v-if="props.weeklyBonus"> · +{{ props.weeklyBonus }} perfekte Woche 🏆</template>
       </p>
       <button class="btn btn-primary chest-btn" @click="emit('close')">
         Einsammeln

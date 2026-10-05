@@ -200,7 +200,7 @@ export const useUserStore = defineStore('user', () => {
 
   // Set when the user earns the daily chest reward. App.vue watches this to
   // show the chest popup, then clears it. Persisted so it survives a reload.
-  const pendingCoinReward = ref<{ amount: number; streakBonus: number } | null>(
+  const pendingCoinReward = ref<{ amount: number; streakBonus: number; weeklyBonus?: number } | null>(
     loadFromStorage('nihongo_pending_coin_reward', null)
   )
   function clearCoinReward() {
@@ -350,6 +350,32 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  /**
+   * True only if `todayStr` is a SUNDAY and every day Mon–Sun of that week
+   * (Berlin dates) reached the daily XP goal — i.e. a "perfect week". Used to
+   * add a one-time bonus to the Sunday chest. The Monday after starts fresh,
+   * so this can only fire on the Sunday that completes the week.
+   */
+  function isPerfectWeek(todayStr: string): boolean {
+    // Parse the Berlin calendar date at noon UTC so getUTCDay() returns the
+    // weekday of that exact date (0 = Sunday … 6 = Saturday) without timezone
+    // drift. todayStr is already a Berlin YYYY-MM-DD.
+    const todayNoon = new Date(`${todayStr}T12:00:00Z`)
+    if (todayNoon.getUTCDay() !== 0) return false // only award on Sunday
+
+    // Walk back the 7 days of this week (Sun + the 6 preceding days = Mon–Sun)
+    // and require every one to have reached the daily goal.
+    const goal = dailyXpGoal.value
+    const byDate = new Map(dailyLog.value.map(d => [d.date, d.xpEarned]))
+    for (let back = 0; back < 7; back++) {
+      const d = new Date(todayNoon)
+      d.setUTCDate(d.getUTCDate() - back)
+      const key = berlinDateStr(d)
+      if ((byDate.get(key) ?? 0) < goal) return false
+    }
+    return true
+  }
+
   function addXp(amount: number, wordsLearned = 0) {
     const today = getToday()
 
@@ -451,12 +477,25 @@ export const useUserStore = defineStore('user', () => {
     if (crossedGoalNow && !alreadyAwarded) {
       const BASE_REWARD = 10
       const DAILY_CAP = 30
+      const PERFECT_WEEK_BONUS = 10
       const streakForBonus = Math.max(currentStreak.value, 1)
-      const total = Math.min(BASE_REWARD + streakForBonus, DAILY_CAP)
+      const daily = Math.min(BASE_REWARD + streakForBonus, DAILY_CAP)
+      // Perfect-week bonus: ONLY on Sunday, and ONLY if every day Mon–Sun of
+      // THIS week reached the daily goal. Added ON TOP of the capped daily
+      // reward (it's an extra reward the user genuinely earned). Mon again next
+      // week starts fresh — this only ever triggers on the Sunday that
+      // completes a perfect week.
+      const perfectWeek = isPerfectWeek(today)
+      const weeklyBonus = perfectWeek ? PERFECT_WEEK_BONUS : 0
+      const total = daily + weeklyBonus
       coins.value += total
       saveToStorage('nihongo_coins', coins.value)
       saveToStorage('nihongo_coins_awarded_date', today)
-      pendingCoinReward.value = { amount: total, streakBonus: total - BASE_REWARD }
+      pendingCoinReward.value = {
+        amount: total,
+        streakBonus: daily - BASE_REWARD,
+        weeklyBonus,
+      }
       saveToStorage('nihongo_pending_coin_reward', pendingCoinReward.value)
     }
 

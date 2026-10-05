@@ -53,7 +53,7 @@ function closeLevelUp() {
 // ── Daily coin chest popup ──
 // Same deferral rule as the level-up popup: don't interrupt an active
 // exercise; show it once the user is back on a normal screen.
-const chestReward = ref<{ amount: number; streakBonus: number } | null>(null)
+const chestReward = ref<{ amount: number; streakBonus: number; weeklyBonus?: number } | null>(null)
 
 function maybeShowChest() {
   const pending = userStore.pendingCoinReward
@@ -253,6 +253,7 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
       v-if="chestReward"
       :amount="chestReward.amount"
       :streak-bonus="chestReward.streakBonus"
+      :weekly-bonus="chestReward.weeklyBonus"
       @close="closeChest"
     />
 
