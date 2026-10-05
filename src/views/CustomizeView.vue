@@ -208,12 +208,14 @@ function randomize() {
 
 .item-grid {
   /* Horizontally scrollable row of uniform-size items (same as the shop), so
-     many owned items never make the whole page scroll sideways. */
+     many owned items never make the whole page scroll sideways. The vertical
+     padding gives the card's border + shadow room so they aren't clipped by
+     the horizontal scroll container. */
   display: flex;
   gap: 10px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 8px;
+  padding: 4px 2px 10px;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
 }

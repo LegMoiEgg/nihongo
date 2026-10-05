@@ -273,12 +273,13 @@ const freezeCount = computed(() => userStore.streakFreezes)
 
 .item-grid {
   /* Each category scrolls horizontally on its own — items keep a uniform size
-     and never wrap, so the whole page never becomes horizontally scrollable. */
+     and never wrap, so the whole page never becomes horizontally scrollable.
+     Vertical padding keeps the card border + shadow from being clipped. */
   display: flex;
   gap: 10px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 8px;
+  padding: 4px 2px 10px;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
 }
