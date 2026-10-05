@@ -47,6 +47,24 @@ function toggleEquip(item: ShopItem) {
   applyCosmetics()
   showToast(wasEquipped ? `${item.name} abgelegt` : `${item.name} ausgerüstet`)
 }
+
+/**
+ * "Überrasch mich": picks ONE random owned item per category (accent, theme,
+ * frame) and equips them all at once — a complete random look. Categories with
+ * nothing unlocked are skipped.
+ */
+function randomize() {
+  let equippedCount = 0
+  for (const group of groups.value) {
+    if (group.items.length === 0) continue
+    const pick = group.items[Math.floor(Math.random() * group.items.length)]
+    userStore.equipCosmetic(group.category, pick.id)
+    equippedCount++
+  }
+  if (equippedCount === 0) return
+  applyCosmetics()
+  showToast('Zufälliger Look ausgerüstet 🎲')
+}
 </script>
 
 <template>
@@ -54,6 +72,13 @@ function toggleEquip(item: ShopItem) {
     <header class="customize-header">
       <button class="btn-ghost back-btn" aria-label="Zurück" @click="router.back()">←</button>
       <h1>Anpassen</h1>
+      <button
+        v-if="hasAnything"
+        class="btn-ghost random-btn"
+        aria-label="Zufälliger Look"
+        title="Zufälliger Look"
+        @click="randomize"
+      >🎲</button>
     </header>
 
     <p class="customize-intro">
@@ -132,10 +157,17 @@ function toggleEquip(item: ShopItem) {
 
 .customize-header h1 {
   font-size: 1.4rem;
+  flex: 1;
 }
 
 .back-btn {
   font-size: 1.4rem;
+  line-height: 1;
+  padding: 4px 10px;
+}
+
+.random-btn {
+  font-size: 1.3rem;
   line-height: 1;
   padding: 4px 10px;
 }
@@ -175,12 +207,29 @@ function toggleEquip(item: ShopItem) {
 }
 
 .item-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Horizontally scrollable row of uniform-size items (same as the shop), so
+     many owned items never make the whole page scroll sideways. */
+  display: flex;
   gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.item-grid::-webkit-scrollbar {
+  height: 6px;
+}
+.item-grid::-webkit-scrollbar-thumb {
+  background: var(--bg-accent);
+  border-radius: 999px;
 }
 
 .item-card {
+  flex: 0 0 150px;
+  width: 150px;
+  min-height: 170px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -190,6 +239,7 @@ function toggleEquip(item: ShopItem) {
   cursor: pointer;
   transition: border-color var(--transition-fast);
   border: 2px solid transparent;
+  scroll-snap-align: start;
 }
 
 .item-card.equipped {

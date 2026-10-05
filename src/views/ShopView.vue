@@ -272,13 +272,31 @@ const freezeCount = computed(() => userStore.streakFreezes)
 }
 
 .item-grid {
-  display: grid;
-  /* Fixed 3 columns per category (as requested) — never 2+1. */
-  grid-template-columns: repeat(3, 1fr);
+  /* Each category scrolls horizontally on its own — items keep a uniform size
+     and never wrap, so the whole page never becomes horizontally scrollable. */
+  display: flex;
   gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Slim, unobtrusive horizontal scrollbar. */
+.item-grid::-webkit-scrollbar {
+  height: 6px;
+}
+.item-grid::-webkit-scrollbar-thumb {
+  background: var(--bg-accent);
+  border-radius: 999px;
 }
 
 .item-card {
+  /* Fixed, uniform size for every item regardless of category. */
+  flex: 0 0 150px;
+  width: 150px;
+  min-height: 210px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -287,6 +305,7 @@ const freezeCount = computed(() => userStore.streakFreezes)
   text-align: center;
   transition: border-color var(--transition-fast);
   border: 2px solid transparent;
+  scroll-snap-align: start;
 }
 
 .item-card.equipped {
