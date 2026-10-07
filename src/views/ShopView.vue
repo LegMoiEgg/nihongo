@@ -94,6 +94,38 @@ function toggleEquip(item: ShopItem) {
 }
 
 const freezeCount = computed(() => userStore.streakFreezes)
+
+// ── Preview popup ──
+// Tapping an item opens a preview showing how the cosmetic looks in use.
+const previewItem = ref<ShopItem | null>(null)
+function openPreview(item: ShopItem) {
+  previewItem.value = item
+}
+function closePreview() {
+  previewItem.value = null
+}
+
+/** CSS variable overrides for a theme/accent mock preview. */
+function previewVars(item: ShopItem): Record<string, string> {
+  if (item.category === 'theme' && item.theme) {
+    return { ...item.theme }
+  }
+  if (item.category === 'accent' && item.accent) {
+    return {
+      '--accent-primary': item.accent,
+      '--gradient-primary': `linear-gradient(135deg, ${item.accent}, ${item.accent})`,
+    }
+  }
+  return {}
+}
+
+/** Buy from inside the preview, then keep the popup open to show the result. */
+function buyFromPreview(item: ShopItem) {
+  buy(item)
+}
+function equipFromPreview(item: ShopItem) {
+  toggleEquip(item)
+}
 </script>
 
 <template>
@@ -123,15 +155,15 @@ const freezeCount = computed(() => userStore.streakFreezes)
       <p v-else class="rotation-hint">Täglich wechselndes Angebot 🔄</p>
 
       <div class="item-grid">
-        <div
+        <button
           v-for="item in group.items"
           :key="item.id"
           class="item-card card"
           :class="{ equipped: equipped(item) }"
+          @click="openPreview(item)"
         >
-          <!-- Preview -->
+          <!-- Preview thumbnail -->
           <div class="item-preview">
-            <!-- Frame preview: ring around a dummy avatar -->
             <span
               v-if="item.category === 'frame'"
               class="frame-preview"
@@ -139,62 +171,109 @@ const freezeCount = computed(() => userStore.streakFreezes)
             >
               <span class="frame-inner">{{ item.icon }}</span>
             </span>
-            <!-- Accent preview: color swatch -->
             <span
               v-else-if="item.category === 'accent'"
               class="accent-swatch"
               :style="{ background: item.accent }"
             >{{ item.icon }}</span>
-            <!-- Theme / utility: emoji -->
             <span v-else class="item-emoji">{{ item.icon }}</span>
           </div>
 
           <div class="item-body">
             <p class="item-name">{{ item.name }}</p>
-            <p class="item-desc">{{ item.description }}</p>
           </div>
 
-          <!-- Actions -->
-          <div class="item-actions">
-            <!-- Consumable: buyable until the max is reached -->
-            <template v-if="item.id === STREAK_FREEZE_ID">
+          <!-- Status line: owned/equipped or price -->
+          <span class="item-status">
+            <template v-if="equipped(item)">Ausgerüstet ✓</template>
+            <template v-else-if="owned(item)">Besitzt</template>
+            <template v-else>🪙 {{ item.price }}</template>
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <div class="bottom-spacer" />
+
+    <!-- ══════════ Preview popup ══════════ -->
+    <transition name="fade">
+      <div v-if="previewItem" class="preview-overlay" @click.self="closePreview">
+        <div class="preview-card card">
+          <button class="preview-close" aria-label="Schließen" @click="closePreview">✕</button>
+          <h3 class="preview-title">{{ previewItem.name }}</h3>
+          <p class="preview-desc">{{ previewItem.description }}</p>
+
+          <!-- Theme / Accent: mini mock of the app look in use -->
+          <div
+            v-if="previewItem.category === 'theme' || previewItem.category === 'accent'"
+            class="theme-mock"
+            :style="previewVars(previewItem)"
+          >
+            <div class="mock-topbar">
+              <span class="mock-dot" />
+              <span class="mock-title">NihonGo</span>
+            </div>
+            <p class="mock-text">So sieht die App mit diesem Design aus.</p>
+            <div class="mock-xpbar"><span class="mock-xpfill" /></div>
+            <button class="mock-btn" type="button">Beispiel-Button</button>
+          </div>
+
+          <!-- Frame: example avatar as it appears in the Social tab -->
+          <div v-else-if="previewItem.category === 'frame'" class="frame-mock">
+            <span class="frame-mock-ring" :style="frameStyle(previewItem.id) || {}">
+              <span class="frame-mock-avatar">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                  <path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6" fill="currentColor"/>
+                </svg>
+              </span>
+            </span>
+            <div class="frame-mock-info">
+              <span class="frame-mock-name">Du</span>
+              <span class="frame-mock-meta">Lv. {{ userStore.currentLevel.level }} · 🔥 {{ userStore.currentStreak }}</span>
+            </div>
+            <span class="frame-mock-xp">{{ userStore.totalXp }} XP</span>
+          </div>
+
+          <!-- Utility (Streak-Freeze): just the icon -->
+          <div v-else class="util-mock">
+            <span class="util-mock-icon">{{ previewItem.icon }}</span>
+          </div>
+
+          <!-- Action -->
+          <div class="preview-action">
+            <template v-if="previewItem.id === STREAK_FREEZE_ID">
               <button
-                class="btn btn-primary buy-btn"
-                :disabled="!canAfford(item) || freezeAtMax"
-                @click="buy(item)"
+                class="btn btn-primary preview-btn"
+                :disabled="!canAfford(previewItem) || freezeAtMax"
+                @click="buyFromPreview(previewItem)"
               >
                 <template v-if="freezeAtMax">Max. erreicht ({{ MAX_STREAK_FREEZES }}/{{ MAX_STREAK_FREEZES }})</template>
-                <template v-else>🪙 {{ item.price }}</template>
+                <template v-else>Kaufen · 🪙 {{ previewItem.price }}</template>
               </button>
             </template>
-
-            <!-- Cosmetic owned: equip / unequip toggle -->
-            <template v-else-if="owned(item)">
+            <template v-else-if="owned(previewItem)">
               <button
-                class="btn equip-btn"
-                :class="equipped(item) ? 'btn-ghost' : 'btn-primary'"
-                @click="toggleEquip(item)"
+                class="btn preview-btn"
+                :class="equipped(previewItem) ? 'btn-ghost' : 'btn-primary'"
+                @click="equipFromPreview(previewItem)"
               >
-                {{ equipped(item) ? 'Ausgerüstet ✓' : 'Ausrüsten' }}
+                {{ equipped(previewItem) ? 'Ablegen' : 'Ausrüsten' }}
               </button>
             </template>
-
-            <!-- Cosmetic not owned: buy -->
             <template v-else>
               <button
-                class="btn btn-primary buy-btn"
-                :disabled="!canAfford(item)"
-                @click="buy(item)"
+                class="btn btn-primary preview-btn"
+                :disabled="!canAfford(previewItem)"
+                @click="buyFromPreview(previewItem)"
               >
-                🪙 {{ item.price }}
+                Kaufen · 🪙 {{ previewItem.price }}
               </button>
             </template>
           </div>
         </div>
       </div>
-    </section>
-
-    <div class="bottom-spacer" />
+    </transition>
 
     <transition name="fade">
       <div v-if="toast" class="shop-toast">{{ toast }}</div>
@@ -295,22 +374,40 @@ const freezeCount = computed(() => userStore.streakFreezes)
 
 .item-card {
   /* Fixed, uniform size for every item regardless of category. */
-  flex: 0 0 150px;
-  width: 150px;
-  min-height: 210px;
+  flex: 0 0 130px;
+  width: 130px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 12px 8px;
+  padding: 14px 8px;
   text-align: center;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
   border: 2px solid transparent;
   scroll-snap-align: start;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.item-card:active {
+  transform: scale(0.97);
 }
 
 .item-card.equipped {
   border-color: var(--accent-primary);
+}
+
+.item-status {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  margin-top: auto;
+}
+
+.item-card.equipped .item-status {
+  color: var(--accent-primary);
 }
 
 .item-preview {
@@ -417,5 +514,195 @@ const freezeCount = computed(() => userStore.streakFreezes)
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* ══════════ Preview popup ══════════ */
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+  backdrop-filter: blur(2px);
+}
+
+.preview-card {
+  position: relative;
+  max-width: 340px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.preview-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.preview-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.preview-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ── Theme / accent mock ── */
+.theme-mock {
+  width: 100%;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--bg-accent);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.mock-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mock-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.mock-title {
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.mock-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.mock-xpbar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg-accent);
+  overflow: hidden;
+}
+
+.mock-xpfill {
+  display: block;
+  width: 65%;
+  height: 100%;
+  background: var(--gradient-primary);
+}
+
+.mock-btn {
+  align-self: flex-start;
+  background: var(--gradient-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: default;
+}
+
+/* ── Frame mock (Social-tab style row) ── */
+.frame-mock {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card-hover);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.frame-mock-ring {
+  flex-shrink: 0;
+  display: inline-flex;
+  border-radius: 50%;
+  padding: 3px;
+}
+
+.frame-mock-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.frame-mock-avatar svg {
+  width: 26px;
+  height: 26px;
+}
+
+.frame-mock-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.frame-mock-name {
+  font-weight: 700;
+}
+
+.frame-mock-meta {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.frame-mock-xp {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+/* ── Utility mock ── */
+.util-mock-icon {
+  font-size: 3.4rem;
+  line-height: 1;
+}
+
+.preview-action {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.preview-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.preview-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 </style>
