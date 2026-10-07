@@ -41,12 +41,21 @@ export function applyCosmetics(): void {
 
   // Reset anything we might have set before, so switching/unequipping is clean.
   for (const v of THEME_VARS) root.style.removeProperty(v)
+  // Reset the themed body background (falls back to the global default).
+  document.body.style.removeProperty('background')
+  document.body.style.removeProperty('background-attachment')
 
   // 1) Theme (full background + accent set).
   const theme = userStore.equippedTheme ? getShopItem(userStore.equippedTheme) : undefined
   if (theme?.theme) {
     for (const [key, value] of Object.entries(theme.theme)) {
       root.style.setProperty(key, value)
+    }
+    // Rich layered background (gradients + faint emoji pattern) on the body,
+    // so the themed look fills the whole screen behind the UI.
+    if (theme.themeBackground) {
+      document.body.style.setProperty('background', theme.themeBackground)
+      document.body.style.setProperty('background-attachment', 'fixed')
     }
   }
 
@@ -60,13 +69,38 @@ export function applyCosmetics(): void {
   }
 }
 
-/** Frame styling (CSS values) for a given frame item id, or null if none. */
+/**
+ * Styling for the small avatar RING (shop/profile preview thumbnails).
+ * Returns a gradient background + soft glow, or null if no frame.
+ */
 export function frameStyle(frameId: string | undefined | null): { background: string; boxShadow: string } | null {
   if (!frameId) return null
   const item = getShopItem(frameId)
   if (!item?.frame) return null
   return {
     background: item.frame.ring,
-    boxShadow: item.frame.glow ? `0 0 10px ${item.frame.glow}` : 'none',
+    boxShadow: `0 0 10px ${item.frame.glow}`,
+  }
+}
+
+/**
+ * Styling for a WHOLE user ROW (Social-tab leaderboard entry). Uses the
+ * frame's gradient as a border-image around the entire row plus a coloured
+ * glow. Returns null if the user has no frame equipped.
+ */
+export function frameRowStyle(frameId: string | undefined | null): Record<string, string> | null {
+  if (!frameId) return null
+  const item = getShopItem(frameId)
+  if (!item?.frame) return null
+  // Gradient border that KEEPS the row's rounded corners: paint the card
+  // colour as a padding-box layer and the frame gradient as a border-box
+  // layer, with a transparent 2px border acting as the window for the
+  // gradient. A coloured glow lifts the whole row.
+  return {
+    border: '2px solid transparent',
+    background:
+      'linear-gradient(var(--bg-card), var(--bg-card)) padding-box, ' +
+      `${item.frame.rowBorder} border-box`,
+    boxShadow: `0 0 12px ${item.frame.glow}`,
   }
 }

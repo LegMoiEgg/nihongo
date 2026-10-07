@@ -25,12 +25,43 @@ export interface ShopItem {
   /**
    * Cosmetic payload consumed by applyCosmetics():
    *  - accent: { accent } hex color for --accent-primary
-   *  - theme : a set of CSS variable overrides keyed by var name
-   *  - frame : { frame } CSS gradient/color for the avatar ring + a glow flag
+   *  - theme : a set of CSS variable overrides keyed by var name, plus an
+   *            optional bodyBackground (layered gradients + faint emoji/pattern)
+   *            applied to document.body for a richer look.
+   *  - frame : ring  = gradient for the small avatar ring (shop/profile preview)
+   *            rowBorder = gradient used as a border-image around the WHOLE
+   *                        user row in the Social tab
+   *            glow  = coloured glow (box-shadow) around the row/avatar
    */
   accent?: string
   theme?: Record<string, string>
-  frame?: { ring: string; glow?: string }
+  themeBackground?: string
+  frame?: { ring: string; rowBorder: string; glow: string }
+}
+
+/**
+ * Builds a faint, tiled emoji pattern as an SVG data-URI background layer.
+ * `opacity` keeps it subtle so it sits behind the UI without hurting contrast.
+ */
+function emojiPattern(emoji: string, opacity = 0.06, size = 90): string {
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>` +
+    `<text x='50%' y='50%' font-size='34' opacity='${opacity}' ` +
+    `text-anchor='middle' dominant-baseline='central'>${emoji}</text></svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
+}
+
+/**
+ * Composes a theme body background: a faint emoji tile on top of two soft
+ * radial glows plus the base colour. Layer order = top → bottom in CSS.
+ */
+function themeBg(emoji: string, glowA: string, glowB: string, base: string): string {
+  return (
+    `${emojiPattern(emoji)}, ` +
+    `radial-gradient(circle at 15% 15%, ${glowA}, transparent 45%), ` +
+    `radial-gradient(circle at 85% 80%, ${glowB}, transparent 50%), ` +
+    `${base}`
+  )
 }
 
 // ────────────────────────────────────────────────────────────────────────
@@ -136,10 +167,11 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-sakura',
     name: 'Sakura',
-    description: 'Helles, verträumtes Kirschblüten-Theme.',
+    description: 'Verträumtes Kirschblüten-Theme mit blassen Blüten im Hintergrund.',
     price: 1000,
     category: 'theme',
     icon: '🌸',
+    themeBackground: themeBg('🌸', 'rgba(255,92,138,0.18)', 'rgba(200,107,156,0.16)', '#2b1b24'),
     theme: {
       '--bg-primary': '#2b1b24',
       '--bg-secondary': '#3a2531',
@@ -155,10 +187,11 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-matcha',
     name: 'Matcha',
-    description: 'Beruhigendes Grüntee-Theme.',
+    description: 'Beruhigendes Grüntee-Theme mit sanften Teeschalen im Hintergrund.',
     price: 1000,
     category: 'theme',
     icon: '🍵',
+    themeBackground: themeBg('🍵', 'rgba(63,163,77,0.18)', 'rgba(123,211,137,0.14)', '#10261a'),
     theme: {
       '--bg-primary': '#10261a',
       '--bg-secondary': '#163626',
@@ -174,10 +207,11 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-ocean',
     name: 'Dark Ocean',
-    description: 'Tiefes Blau wie die See bei Nacht.',
+    description: 'Tiefes Nachtblau mit Wellen, die leise im Hintergrund schimmern.',
     price: 1000,
     category: 'theme',
     icon: '🌊',
+    themeBackground: themeBg('🌊', 'rgba(25,195,201,0.20)', 'rgba(47,110,191,0.18)', '#071a2b'),
     theme: {
       '--bg-primary': '#071a2b',
       '--bg-secondary': '#0b2540',
@@ -193,10 +227,11 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-sunset',
     name: 'Sonnenuntergang',
-    description: 'Warmes Abendrot in Orange und Violett.',
+    description: 'Warmes Abendrot in Orange und Violett mit Sonnen-Schimmer.',
     price: 1000,
     category: 'theme',
     icon: '🌇',
+    themeBackground: themeBg('🌇', 'rgba(255,123,84,0.22)', 'rgba(177,75,138,0.20)', '#2a1120'),
     theme: {
       '--bg-primary': '#2a1120',
       '--bg-secondary': '#3b1a2a',
@@ -212,10 +247,11 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-forest',
     name: 'Wald',
-    description: 'Dunkles Tannengrün mit Moosakzent.',
+    description: 'Dunkles Tannengrün mit stillen Bäumen im Hintergrund.',
     price: 1000,
     category: 'theme',
     icon: '🌲',
+    themeBackground: themeBg('🌲', 'rgba(95,185,138,0.18)', 'rgba(138,154,63,0.16)', '#0c1f17'),
     theme: {
       '--bg-primary': '#0c1f17',
       '--bg-secondary': '#122b20',
@@ -231,10 +267,11 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-midnight',
     name: 'Mitternacht',
-    description: 'Fast schwarzes Blau für den Nachtmodus.',
+    description: 'Fast schwarzes Blau mit funkelnden Sternen im Hintergrund.',
     price: 1000,
     category: 'theme',
-    icon: '🌑',
+    icon: '🌙',
+    themeBackground: themeBg('✨', 'rgba(108,123,255,0.18)', 'rgba(63,74,138,0.18)', '#05060f'),
     theme: {
       '--bg-primary': '#05060f',
       '--bg-secondary': '#0b0d1a',
@@ -251,10 +288,15 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-sakura-light',
     name: 'Sakura Hell',
-    description: 'Helles Theme in zartem Kirschblüten-Rosa.',
+    description: 'Helles Kirschblüten-Theme mit zarten Blüten im Hintergrund.',
     price: 1000,
     category: 'theme',
     icon: '🌸',
+    themeBackground:
+      `${emojiPattern('🌸', 0.1)}, ` +
+      'radial-gradient(circle at 15% 15%, rgba(229,68,125,0.12), transparent 45%), ' +
+      'radial-gradient(circle at 85% 80%, rgba(255,158,192,0.14), transparent 50%), ' +
+      '#fff5f8',
     theme: {
       '--bg-primary': '#fff5f8',
       '--bg-secondary': '#ffe9f0',
@@ -273,10 +315,15 @@ const THEMES: ShopItem[] = [
   {
     id: 'theme-washi',
     name: 'Washi',
-    description: 'Helles, papierfarbenes Theme – ruhig und klar.',
+    description: 'Papierfarbenes Theme mit blassen Schriftzeichen im Hintergrund.',
     price: 1000,
     category: 'theme',
     icon: '📜',
+    themeBackground:
+      `${emojiPattern('あ', 0.08)}, ` +
+      'radial-gradient(circle at 15% 15%, rgba(192,86,47,0.10), transparent 45%), ' +
+      'radial-gradient(circle at 85% 80%, rgba(138,109,59,0.12), transparent 50%), ' +
+      '#f6f1e7',
     theme: {
       '--bg-primary': '#f6f1e7',
       '--bg-secondary': '#efe7d6',
@@ -301,74 +348,106 @@ const FRAMES: ShopItem[] = [
   {
     id: 'frame-gold',
     name: 'Goldrahmen',
-    description: 'Edler goldener Rahmen um deinen Avatar.',
+    description: 'Edler goldener Rahmen mit Glanz rund um deine ganze Zeile.',
     price: 500,
     category: 'frame',
     icon: '🥇',
-    frame: { ring: 'linear-gradient(135deg, #ffd700, #ffb300)', glow: 'rgba(255, 215, 0, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #fff3b0, #ffd700, #b8860b, #ffd700)',
+      rowBorder: 'linear-gradient(135deg, #fff3b0, #ffd700 40%, #b8860b 70%, #ffd700)',
+      glow: 'rgba(255, 200, 0, 0.55)',
+    },
   },
   {
     id: 'frame-neon',
     name: 'Neonrahmen',
-    description: 'Leuchtender Neon-Rahmen.',
+    description: 'Leuchtender Neon-Verlauf, der deine Zeile pulsieren lässt.',
     price: 500,
     category: 'frame',
     icon: '💠',
-    frame: { ring: 'linear-gradient(135deg, #19c3c9, #8b5cf6)', glow: 'rgba(25, 195, 201, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #00f0ff, #19c3c9, #8b5cf6, #00f0ff)',
+      rowBorder: 'linear-gradient(120deg, #00f0ff, #19c3c9 45%, #8b5cf6 100%)',
+      glow: 'rgba(25, 220, 230, 0.6)',
+    },
   },
   {
     id: 'frame-sakura',
     name: 'Sakura-Rahmen',
-    description: 'Rosa Kirschblüten-Rahmen.',
+    description: 'Zarter Kirschblüten-Verlauf in Rosatönen.',
     price: 500,
     category: 'frame',
     icon: '🌸',
-    frame: { ring: 'linear-gradient(135deg, #ff5c8a, #ffa0c0)', glow: 'rgba(255, 92, 138, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #ffd1e3, #ff5c8a, #ff85a1, #ffd1e3)',
+      rowBorder: 'linear-gradient(120deg, #ffd1e3, #ff5c8a 50%, #ff85a1 100%)',
+      glow: 'rgba(255, 92, 138, 0.55)',
+    },
   },
   {
     id: 'frame-silver',
     name: 'Silberrahmen',
-    description: 'Klarer silberner Rahmen.',
+    description: 'Kühler, polierter Silber-Verlauf mit Metallglanz.',
     price: 500,
     category: 'frame',
     icon: '🔘',
-    frame: { ring: 'linear-gradient(135deg, #e0e0e0, #a8b2bd)', glow: 'rgba(200, 210, 220, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #ffffff, #c7ced6, #8a97a5, #e3e8ee)',
+      rowBorder: 'linear-gradient(120deg, #ffffff, #c7ced6 45%, #8a97a5 100%)',
+      glow: 'rgba(200, 210, 220, 0.5)',
+    },
   },
   {
     id: 'frame-fire',
     name: 'Feuerrahmen',
-    description: 'Loderndes Rot-Orange.',
+    description: 'Loderndes Rot-Orange mit heißem Glühen.',
     price: 500,
     category: 'frame',
     icon: '🔥',
-    frame: { ring: 'linear-gradient(135deg, #ff512f, #f09819)', glow: 'rgba(255, 81, 47, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #ffd500, #ff8c00, #ff512f, #c1121f)',
+      rowBorder: 'linear-gradient(120deg, #ffd500, #ff8c00 40%, #ff512f 75%, #c1121f 100%)',
+      glow: 'rgba(255, 90, 30, 0.6)',
+    },
   },
   {
     id: 'frame-rainbow',
     name: 'Regenbogenrahmen',
-    description: 'Schillernder Regenbogen-Rahmen.',
+    description: 'Schillernder Regenbogen über die ganze Zeile.',
     price: 500,
     category: 'frame',
     icon: '🌈',
-    frame: { ring: 'linear-gradient(135deg, #ff5c8a, #ffd700, #19c3c9, #8b5cf6)', glow: 'rgba(139, 92, 246, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #ff5c8a, #ffd700, #2ecc71, #19c3c9, #8b5cf6)',
+      rowBorder: 'linear-gradient(120deg, #ff5c8a, #ffd700 25%, #2ecc71 50%, #19c3c9 75%, #8b5cf6 100%)',
+      glow: 'rgba(139, 92, 246, 0.55)',
+    },
   },
   {
     id: 'frame-emerald',
     name: 'Smaragdrahmen',
-    description: 'Edles Smaragdgrün.',
+    description: 'Tiefes Smaragdgrün mit edlem Schimmer.',
     price: 500,
     category: 'frame',
     icon: '💚',
-    frame: { ring: 'linear-gradient(135deg, #2ecc71, #0f8a5f)', glow: 'rgba(46, 204, 113, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #a8ffce, #2ecc71, #0f8a5f, #2ecc71)',
+      rowBorder: 'linear-gradient(120deg, #a8ffce, #2ecc71 45%, #0f8a5f 100%)',
+      glow: 'rgba(46, 204, 113, 0.55)',
+    },
   },
   {
     id: 'frame-royal',
     name: 'Royal-Rahmen',
-    description: 'Königliches Violett mit Goldstich.',
+    description: 'Königliches Violett mit goldenem Einschlag.',
     price: 500,
     category: 'frame',
     icon: '👑',
-    frame: { ring: 'linear-gradient(135deg, #6a3093, #a044ff)', glow: 'rgba(160, 68, 255, 0.5)' },
+    frame: {
+      ring: 'linear-gradient(135deg, #ffd700, #a044ff, #6a3093, #a044ff)',
+      rowBorder: 'linear-gradient(120deg, #ffd700, #a044ff 40%, #6a3093 100%)',
+      glow: 'rgba(160, 68, 255, 0.55)',
+    },
   },
 ]
 

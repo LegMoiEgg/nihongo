@@ -12,7 +12,7 @@ import {
   type ShopItem,
   type ShopCategory,
 } from '../data/shop'
-import { applyCosmetics, frameStyle } from '../composables/useCosmetics'
+import { applyCosmetics, frameStyle, frameRowStyle } from '../composables/useCosmetics'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -105,10 +105,13 @@ function closePreview() {
   previewItem.value = null
 }
 
-/** CSS variable overrides for a theme/accent mock preview. */
+/** CSS variable overrides (+ themed background) for a theme/accent mock. */
 function previewVars(item: ShopItem): Record<string, string> {
   if (item.category === 'theme' && item.theme) {
-    return { ...item.theme }
+    const vars: Record<string, string> = { ...item.theme }
+    // Show the rich layered backdrop (gradients + faint emoji) in the mock.
+    if (item.themeBackground) vars.background = item.themeBackground
+    return vars
   }
   if (item.category === 'accent' && item.accent) {
     return {
@@ -218,21 +221,23 @@ function equipFromPreview(item: ShopItem) {
             <button class="mock-btn" type="button">Beispiel-Button</button>
           </div>
 
-          <!-- Frame: example avatar as it appears in the Social tab -->
-          <div v-else-if="previewItem.category === 'frame'" class="frame-mock">
-            <span class="frame-mock-ring" :style="frameStyle(previewItem.id) || {}">
+          <!-- Frame: a whole example row as it appears in the Social tab -->
+          <div v-else-if="previewItem.category === 'frame'" class="frame-mock-wrap">
+            <p class="frame-mock-hint">So sieht deine Zeile im Social-Tab aus:</p>
+            <div class="frame-mock-row" :style="frameRowStyle(previewItem.id) || {}">
+              <span class="frame-mock-rank">4</span>
               <span class="frame-mock-avatar">
                 <svg viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="8" r="4" fill="currentColor"/>
                   <path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6" fill="currentColor"/>
                 </svg>
               </span>
-            </span>
-            <div class="frame-mock-info">
-              <span class="frame-mock-name">Du</span>
-              <span class="frame-mock-meta">Lv. {{ userStore.currentLevel.level }} · 🔥 {{ userStore.currentStreak }}</span>
+              <div class="frame-mock-info">
+                <span class="frame-mock-name">Du</span>
+                <span class="frame-mock-meta">Lv. {{ userStore.currentLevel.level }} · 🔥 {{ userStore.currentStreak }}</span>
+              </div>
+              <span class="frame-mock-xp">{{ userStore.totalXp }} XP</span>
             </div>
-            <span class="frame-mock-xp">{{ userStore.totalXp }} XP</span>
           </div>
 
           <!-- Utility (Streak-Freeze): just the icon -->
@@ -627,33 +632,46 @@ function equipFromPreview(item: ShopItem) {
   cursor: default;
 }
 
-/* ── Frame mock (Social-tab style row) ── */
-.frame-mock {
+/* ── Frame mock (whole Social-tab row) ── */
+.frame-mock-wrap {
+  width: 100%;
+}
+
+.frame-mock-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.frame-mock-row {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: var(--bg-card-hover);
+  gap: 10px;
+  background: var(--bg-card);
   border-radius: var(--radius-md);
   padding: 12px;
 }
 
-.frame-mock-ring {
+.frame-mock-rank {
+  width: 24px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-muted);
   flex-shrink: 0;
-  display: inline-flex;
-  border-radius: 50%;
-  padding: 3px;
 }
 
 .frame-mock-avatar {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--bg-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .frame-mock-avatar svg {

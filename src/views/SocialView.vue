@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/auth'
 import { useSocialStore } from '../stores/social'
 import { useUserStore } from '../stores/user'
 import { flushSave } from '../stores/sync'
-import { frameStyle } from '../composables/useCosmetics'
+import { frameRowStyle } from '../composables/useCosmetics'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -285,7 +285,9 @@ function openMemberProfile(uid: string) {
               'top-1': index === 0,
               'top-2': index === 1,
               'top-3': index === 2,
+              'has-frame': !!frameRowStyle(member.equippedFrame),
             }"
+            :style="frameRowStyle(member.equippedFrame) || {}"
             @click="openMemberProfile(member.uid)"
           >
             <span class="rank">
@@ -294,24 +296,18 @@ function openMemberProfile(uid: string) {
               <template v-else-if="index === 2">🥉</template>
               <template v-else>{{ index + 1 }}</template>
             </span>
-            <span
-              class="member-avatar-frame"
-              :class="{ framed: !!frameStyle(member.equippedFrame) }"
-              :style="frameStyle(member.equippedFrame) || {}"
-            >
-              <img
-                v-if="member.avatarDataUrl"
-                :src="member.avatarDataUrl"
-                alt=""
-                class="member-avatar"
-              />
-              <div v-else class="member-avatar-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" class="member-avatar-icon">
-                  <circle cx="12" cy="8" r="4" fill="currentColor"/>
-                  <path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6" fill="currentColor"/>
-                </svg>
-              </div>
-            </span>
+            <img
+              v-if="member.avatarDataUrl"
+              :src="member.avatarDataUrl"
+              alt=""
+              class="member-avatar"
+            />
+            <div v-else class="member-avatar-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" class="member-avatar-icon">
+                <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                <path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6" fill="currentColor"/>
+              </svg>
+            </div>
             <div class="member-info">
               <span class="member-name">{{ member.displayName }}</span>
               <span class="member-meta">
@@ -785,19 +781,9 @@ function openMemberProfile(uid: string) {
   flex-shrink: 0;
 }
 
-.member-avatar-frame {
-  flex-shrink: 0;
-  display: inline-flex;
-  border-radius: 50%;
-}
-
-/* Only pad into a visible ring when a frame cosmetic is equipped. */
-.member-avatar-frame.framed {
-  padding: 2px;
-}
-
-.member-avatar-frame.framed .member-avatar,
-.member-avatar-frame.framed .member-avatar-placeholder {
+/* A framed row paints its own gradient border via inline styles; don't let
+   hover/is-me/top border-color rules fight it. */
+.leaderboard-row.has-frame.clickable:hover {
   border-color: transparent;
 }
 
