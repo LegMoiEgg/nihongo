@@ -36,17 +36,25 @@ export interface ShopItem {
   accent?: string
   theme?: Record<string, string>
   themeBackground?: string
-  frame?: { ring: string; rowBorder: string; glow: string }
+  frame?: {
+    ring: string
+    rowBorder: string
+    glow: string
+    /** Faint emoji tiled inside the row to match the frame's theme. */
+    rowEmoji: string
+    /** Soft tint behind the emoji pattern (rgba), layered over the card bg. */
+    rowTint: string
+  }
 }
 
 /**
  * Builds a faint, tiled emoji pattern as an SVG data-URI background layer.
  * `opacity` keeps it subtle so it sits behind the UI without hurting contrast.
  */
-function emojiPattern(emoji: string, opacity = 0.06, size = 90): string {
+export function emojiPattern(emoji: string, opacity = 0.14, size = 76): string {
   const svg =
     `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>` +
-    `<text x='50%' y='50%' font-size='34' opacity='${opacity}' ` +
+    `<text x='50%' y='50%' font-size='30' opacity='${opacity}' ` +
     `text-anchor='middle' dominant-baseline='central'>${emoji}</text></svg>`
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
 }
@@ -293,7 +301,7 @@ const THEMES: ShopItem[] = [
     category: 'theme',
     icon: '🌸',
     themeBackground:
-      `${emojiPattern('🌸', 0.1)}, ` +
+      `${emojiPattern('🌸', 0.16)}, ` +
       'radial-gradient(circle at 15% 15%, rgba(229,68,125,0.12), transparent 45%), ' +
       'radial-gradient(circle at 85% 80%, rgba(255,158,192,0.14), transparent 50%), ' +
       '#fff5f8',
@@ -320,7 +328,7 @@ const THEMES: ShopItem[] = [
     category: 'theme',
     icon: '📜',
     themeBackground:
-      `${emojiPattern('あ', 0.08)}, ` +
+      `${emojiPattern('あ', 0.13)}, ` +
       'radial-gradient(circle at 15% 15%, rgba(192,86,47,0.10), transparent 45%), ' +
       'radial-gradient(circle at 85% 80%, rgba(138,109,59,0.12), transparent 50%), ' +
       '#f6f1e7',
@@ -356,6 +364,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #fff3b0, #ffd700, #b8860b, #ffd700)',
       rowBorder: 'linear-gradient(135deg, #fff3b0, #ffd700 40%, #b8860b 70%, #ffd700)',
       glow: 'rgba(255, 200, 0, 0.55)',
+      rowEmoji: '⭐',
+      rowTint: 'rgba(255, 200, 0, 0.12)',
     },
   },
   {
@@ -369,6 +379,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #00f0ff, #19c3c9, #8b5cf6, #00f0ff)',
       rowBorder: 'linear-gradient(120deg, #00f0ff, #19c3c9 45%, #8b5cf6 100%)',
       glow: 'rgba(25, 220, 230, 0.6)',
+      rowEmoji: '💠',
+      rowTint: 'rgba(25, 220, 230, 0.12)',
     },
   },
   {
@@ -382,6 +394,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #ffd1e3, #ff5c8a, #ff85a1, #ffd1e3)',
       rowBorder: 'linear-gradient(120deg, #ffd1e3, #ff5c8a 50%, #ff85a1 100%)',
       glow: 'rgba(255, 92, 138, 0.55)',
+      rowEmoji: '🌸',
+      rowTint: 'rgba(255, 92, 138, 0.12)',
     },
   },
   {
@@ -395,6 +409,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #ffffff, #c7ced6, #8a97a5, #e3e8ee)',
       rowBorder: 'linear-gradient(120deg, #ffffff, #c7ced6 45%, #8a97a5 100%)',
       glow: 'rgba(200, 210, 220, 0.5)',
+      rowEmoji: '✦',
+      rowTint: 'rgba(200, 210, 220, 0.12)',
     },
   },
   {
@@ -408,6 +424,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #ffd500, #ff8c00, #ff512f, #c1121f)',
       rowBorder: 'linear-gradient(120deg, #ffd500, #ff8c00 40%, #ff512f 75%, #c1121f 100%)',
       glow: 'rgba(255, 90, 30, 0.6)',
+      rowEmoji: '🔥',
+      rowTint: 'rgba(255, 90, 30, 0.13)',
     },
   },
   {
@@ -421,6 +439,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #ff5c8a, #ffd700, #2ecc71, #19c3c9, #8b5cf6)',
       rowBorder: 'linear-gradient(120deg, #ff5c8a, #ffd700 25%, #2ecc71 50%, #19c3c9 75%, #8b5cf6 100%)',
       glow: 'rgba(139, 92, 246, 0.55)',
+      rowEmoji: '🌈',
+      rowTint: 'rgba(139, 92, 246, 0.12)',
     },
   },
   {
@@ -434,6 +454,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #a8ffce, #2ecc71, #0f8a5f, #2ecc71)',
       rowBorder: 'linear-gradient(120deg, #a8ffce, #2ecc71 45%, #0f8a5f 100%)',
       glow: 'rgba(46, 204, 113, 0.55)',
+      rowEmoji: '💎',
+      rowTint: 'rgba(46, 204, 113, 0.12)',
     },
   },
   {
@@ -447,6 +469,8 @@ const FRAMES: ShopItem[] = [
       ring: 'linear-gradient(135deg, #ffd700, #a044ff, #6a3093, #a044ff)',
       rowBorder: 'linear-gradient(120deg, #ffd700, #a044ff 40%, #6a3093 100%)',
       glow: 'rgba(160, 68, 255, 0.55)',
+      rowEmoji: '👑',
+      rowTint: 'rgba(160, 68, 255, 0.12)',
     },
   },
 ]

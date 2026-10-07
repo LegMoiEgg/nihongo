@@ -12,7 +12,7 @@
  * Frames are NOT applied here — they're rendered per-avatar in the Social tab
  * (and on the profile) from the equipped frame id.
  */
-import { getShopItem } from '../data/shop'
+import { getShopItem, emojiPattern } from '../data/shop'
 import { useUserStore } from '../stores/user'
 
 // The theme variables we may override, so we can cleanly RESET them when the
@@ -92,15 +92,18 @@ export function frameRowStyle(frameId: string | undefined | null): Record<string
   if (!frameId) return null
   const item = getShopItem(frameId)
   if (!item?.frame) return null
-  // Gradient border that KEEPS the row's rounded corners: paint the card
-  // colour as a padding-box layer and the frame gradient as a border-box
-  // layer, with a transparent 2px border acting as the window for the
-  // gradient. A coloured glow lifts the whole row.
+  const f = item.frame
+  // Row interior = a faint tiled emoji pattern over a soft colour tint over the
+  // card colour (all padding-box). The frame gradient paints the border via a
+  // border-box layer. Rounded corners are preserved; a coloured glow lifts it.
+  const pattern = emojiPattern(f.rowEmoji, 0.1, 64)
   return {
     border: '2px solid transparent',
     background:
+      `${pattern} padding-box, ` +
+      `linear-gradient(${f.rowTint}, ${f.rowTint}) padding-box, ` +
       'linear-gradient(var(--bg-card), var(--bg-card)) padding-box, ' +
-      `${item.frame.rowBorder} border-box`,
-    boxShadow: `0 0 12px ${item.frame.glow}`,
+      `${f.rowBorder} border-box`,
+    boxShadow: `0 0 12px ${f.glow}`,
   }
 }
