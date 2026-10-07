@@ -47,15 +47,56 @@ export interface ShopItem {
   }
 }
 
+/** Tiny deterministic PRNG (mulberry32) so a pattern looks the same every time. */
+function seededRng(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a |= 0
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** Deterministic numeric seed from a string (so each emoji maps to a layout). */
+function seedFromString(str: string): number {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
 /**
- * Builds a faint, tiled emoji pattern as an SVG data-URI background layer.
- * `opacity` keeps it subtle so it sits behind the UI without hurting contrast.
+ * Builds a faint, SCATTERED emoji pattern as a repeating SVG data-URI layer.
+ * Instead of one emoji in a strict grid, a large tile holds several emojis at
+ * pseudo-random positions, sizes and rotations — so the background looks
+ * randomly sprinkled, not gridded. The layout is deterministic (seeded from
+ * the emoji) so it never changes between reloads.
+ *
+ * `opacity` keeps it subtle; `size` is the tile edge (bigger = more spread out,
+ * less obvious repetition).
  */
-export function emojiPattern(emoji: string, opacity = 0.14, size = 76): string {
+export function emojiPattern(emoji: string, opacity = 0.14, size = 300): string {
+  const rng = seededRng(seedFromString(emoji))
+  const count = 11 // emojis per tile
+  const margin = 24 // keep emojis off the hard edges
+  let items = ''
+  for (let i = 0; i < count; i++) {
+    const x = Math.round(margin + rng() * (size - margin * 2))
+    const y = Math.round(margin + rng() * (size - margin * 2))
+    const fontSize = Math.round(22 + rng() * 20) // 22–42px
+    const rot = Math.round(-35 + rng() * 70)     // −35°…+35°
+    const op = (opacity * (0.75 + rng() * 0.5)).toFixed(3) // vary each a bit
+    items +=
+      `<text x='${x}' y='${y}' font-size='${fontSize}' opacity='${op}' ` +
+      `text-anchor='middle' dominant-baseline='central' ` +
+      `transform='rotate(${rot} ${x} ${y})'>${emoji}</text>`
+  }
   const svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>` +
-    `<text x='50%' y='50%' font-size='30' opacity='${opacity}' ` +
-    `text-anchor='middle' dominant-baseline='central'>${emoji}</text></svg>`
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>${items}</svg>`
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
 }
 

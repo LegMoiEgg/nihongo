@@ -96,7 +96,7 @@ export function frameRowStyle(frameId: string | undefined | null): Record<string
   // Row interior = a faint tiled emoji pattern over a soft colour tint over the
   // card colour (all padding-box). The frame gradient paints the border via a
   // border-box layer. Rounded corners are preserved; a coloured glow lifts it.
-  const pattern = emojiPattern(f.rowEmoji, 0.1, 64)
+  const pattern = emojiPattern(f.rowEmoji, 0.1, 220)
   return {
     border: '2px solid transparent',
     background:
