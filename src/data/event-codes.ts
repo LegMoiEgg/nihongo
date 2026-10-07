@@ -41,7 +41,7 @@ export const EVENT_CODES: EventCode[] = [
 
 export type RedeemResult =
   | { ok: true; reward: number; label: string; normalized: string }
-  | { ok: false; reason: 'unknown' | 'expired' | 'not-yet' | 'already' }
+  | { ok: false; reason: 'unknown' | 'expired' | 'already' }
 
 /**
  * Validate a typed code against the catalog, the validity window and the set
@@ -57,11 +57,15 @@ export function checkEventCode(
   const entry = EVENT_CODES.find(c => c.code.toLowerCase() === typed)
   if (!entry) return { ok: false, reason: 'unknown' }
 
+  // A code whose start date is still in the future is treated exactly like an
+  // unknown code — so an unreleased code never hints that it exists / will
+  // become valid later (no spoiler).
+  if (entry.from && todayStr < entry.from) return { ok: false, reason: 'unknown' }
+
   const normalized = entry.code.toLowerCase()
   if (redeemed.map(r => r.toLowerCase()).includes(normalized)) {
     return { ok: false, reason: 'already' }
   }
-  if (entry.from && todayStr < entry.from) return { ok: false, reason: 'not-yet' }
   if (entry.until && todayStr > entry.until) return { ok: false, reason: 'expired' }
 
   return { ok: true, reward: entry.reward, label: entry.label, normalized }

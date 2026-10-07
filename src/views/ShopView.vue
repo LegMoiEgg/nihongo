@@ -135,7 +135,6 @@ function redeemCode() {
     const msg: Record<string, string> = {
       unknown: 'Code ungültig.',
       expired: 'Dieser Code ist abgelaufen.',
-      'not-yet': 'Dieser Code ist noch nicht aktiv.',
       already: 'Code bereits eingelöst.',
     }
     showToast(msg[res.reason] ?? 'Code ungültig.')
