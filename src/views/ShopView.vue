@@ -122,6 +122,26 @@ function previewVars(item: ShopItem): Record<string, string> {
   return {}
 }
 
+// ── Event codes ──
+const codeInput = ref('')
+function redeemCode() {
+  const typed = codeInput.value.trim()
+  if (!typed) return
+  const res = userStore.redeemEventCode(typed)
+  if (res.ok) {
+    showToast(`${res.label}: +${res.reward} 🪙`)
+    codeInput.value = ''
+  } else {
+    const msg: Record<string, string> = {
+      unknown: 'Code ungültig.',
+      expired: 'Dieser Code ist abgelaufen.',
+      'not-yet': 'Dieser Code ist noch nicht aktiv.',
+      already: 'Code bereits eingelöst.',
+    }
+    showToast(msg[res.reason] ?? 'Code ungültig.')
+  }
+}
+
 /** Buy from inside the preview, then keep the popup open to show the result. */
 function buyFromPreview(item: ShopItem) {
   buy(item)
@@ -194,6 +214,27 @@ function equipFromPreview(item: ShopItem) {
           </span>
         </button>
       </div>
+    </section>
+
+    <!-- ══════════ Event code redemption ══════════ -->
+    <section class="code-section">
+      <h2 class="section-title">Code einlösen</h2>
+      <p class="code-hint">Hast du einen Aktionscode? Gib ihn hier ein.</p>
+      <form class="code-form" @submit.prevent="redeemCode">
+        <input
+          v-model="codeInput"
+          class="code-input"
+          type="text"
+          placeholder="z. B. NihonGo"
+          autocapitalize="off"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Aktionscode"
+        />
+        <button class="btn btn-primary code-btn" type="submit" :disabled="!codeInput.trim()">
+          Einlösen
+        </button>
+      </form>
     </section>
 
     <div class="bottom-spacer" />
@@ -488,6 +529,51 @@ function equipFromPreview(item: ShopItem) {
 }
 
 .buy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Event code ── */
+.code-section {
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+.code-hint {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.code-form {
+  display: flex;
+  gap: 10px;
+}
+
+.code-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-accent);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.code-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.code-btn {
+  padding: 11px 18px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.code-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }

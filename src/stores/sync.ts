@@ -32,6 +32,7 @@ interface CloudUserData {
   streakFreezes: number
   claimedMilestones: string[]
   levelMilestoneBaseline: number
+  redeemedCodes: string[]
   // learning store
   cardProgress: any[]
   // badges store
@@ -172,6 +173,11 @@ export async function saveToCloud(): Promise<void> {
         userStore.levelMilestoneBaseline,
         cloud?.levelMilestoneBaseline ?? -1
       ),
+      // redeemedCodes: union, so a code redeemed on any device stays redeemed.
+      redeemedCodes: Array.from(new Set([
+        ...(cloud?.redeemedCodes ?? []),
+        ...userStore.redeemedCodes,
+      ])),
       cardProgress: progressBehind ? (cloud?.cardProgress ?? learningStore.cardProgress) : learningStore.cardProgress,
       earnedBadges: badgesStore.earnedBadges,
       lastSyncedAt: new Date().toISOString(),
@@ -380,6 +386,15 @@ function mergeCloudData(cloud: CloudUserData) {
     ]))
     userStore.claimedMilestones = union
     localStorage.setItem('nihongo_claimed_milestones', JSON.stringify(union))
+  }
+  // redeemedCodes: union too, so a redeemed code can't be used again elsewhere.
+  if (Array.isArray((cloud as any).redeemedCodes)) {
+    const union = Array.from(new Set([
+      ...userStore.redeemedCodes,
+      ...(cloud as any).redeemedCodes,
+    ]))
+    userStore.redeemedCodes = union
+    localStorage.setItem('nihongo_redeemed_codes', JSON.stringify(union))
   }
   // levelMilestoneBaseline: take the higher value. This also lets the real
   // cloud baseline override a premature local baseline (e.g. a fresh "1" set

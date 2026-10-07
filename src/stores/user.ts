@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { MAX_STREAK_FREEZES } from '../data/shop'
+import { checkEventCode } from '../data/event-codes'
 
 export interface DailyLog {
   date: string // YYYY-MM-DD
@@ -186,6 +187,9 @@ export const useUserStore = defineStore('user', () => {
   // 'vocab-Familie', 'level-12'). Once an id is here it never pays again — so
   // dropping below mastery and re-reaching it does NOT re-trigger a reward.
   const claimedMilestones = ref<string[]>([])
+  // Event codes already redeemed (canonical lowercase ids). Synced like
+  // claimedMilestones so a code can't be redeemed twice across devices.
+  const redeemedCodes = ref<string[]>([])
   // The level the user was at when milestone tracking started on this account.
   // Level-up coins are only awarded for levels gained ABOVE this baseline, so a
   // placement-test jump (or pre-existing level) never pays retroactively.
@@ -314,6 +318,7 @@ export const useUserStore = defineStore('user', () => {
     streakFreezes.value = loadFromStorage('nihongo_streak_freezes', 0)
     claimedMilestones.value = loadFromStorage('nihongo_claimed_milestones', [])
     levelMilestoneBaseline.value = loadFromStorage('nihongo_level_milestone_baseline', -1)
+    redeemedCodes.value = loadFromStorage('nihongo_redeemed_codes', [])
 
     updateStreak()
   }
@@ -401,16 +406,19 @@ export const useUserStore = defineStore('user', () => {
     saveToStorage('nihongo_level_xp', levelXp.value)
 
     if (levelNum.value > levelBefore) {
-      // Level-up coins: 10 per level gained, but ONLY for levels above the
-      // milestone baseline (so a placement jump / pre-existing level doesn't
-      // pay retroactively). The baseline is set once at startup; if it's not
-      // set yet (-1) we don't award here — initMilestoneBaseline handles that.
+      // Level-up coins: normally 10 per level gained, but a "milestone" level
+      // that is a multiple of 10 (10, 20, 30 …) pays level × 10 (so Lvl 10 =
+      // 100, Lvl 20 = 200 …). Only for levels ABOVE the milestone baseline, so
+      // a placement jump / pre-existing level never pays retroactively. The
+      // baseline is set once at startup; if unset (-1) we don't award here.
       let levelCoins = 0
       if (levelMilestoneBaseline.value >= 0) {
         const from = Math.max(levelBefore, levelMilestoneBaseline.value)
-        const gained = Math.max(0, levelNum.value - from)
-        if (gained > 0) {
-          levelCoins = gained * 10
+        // Walk each individual level gained so milestone levels can be bonused.
+        for (let lvl = from + 1; lvl <= levelNum.value; lvl++) {
+          levelCoins += lvl % 10 === 0 ? lvl * 10 : 10
+        }
+        if (levelCoins > 0) {
           coins.value += levelCoins
           saveToStorage('nihongo_coins', coins.value)
           // Keep the baseline moving up so these levels can't pay again.
@@ -627,6 +635,23 @@ export const useUserStore = defineStore('user', () => {
     saveToStorage('nihongo_level_milestone_baseline', level)
   }
 
+  /**
+   * Redeem an event code. Validates against the catalog + validity window +
+   * already-redeemed set, awards coins and records the code on success.
+   * Returns the result so the UI can show the right message.
+   */
+  function redeemEventCode(input: string) {
+    const result = checkEventCode(input, getToday(), redeemedCodes.value)
+    if (result.ok) {
+      redeemedCodes.value = [...redeemedCodes.value, result.normalized]
+      saveToStorage('nihongo_redeemed_codes', redeemedCodes.value)
+      coins.value += result.reward
+      saveToStorage('nihongo_coins', coins.value)
+      import('./sync').then(m => m.scheduleSave()).catch(() => {})
+    }
+    return result
+  }
+
   function setPlacementLevel(level: number) {
     placementLevel.value = level
     saveToStorage('nihongo_placement_level', level)
@@ -666,6 +691,7 @@ export const useUserStore = defineStore('user', () => {
     pendingCoinReward,
     claimedMilestones,
     levelMilestoneBaseline,
+    redeemedCodes,
     pendingMilestoneToast,
     // Computed
     currentLevel,
@@ -699,6 +725,7 @@ export const useUserStore = defineStore('user', () => {
     markMilestoneClaimed,
     claimMilestone,
     setLevelMilestoneBaseline,
+    redeemEventCode,
     clearMilestoneToast,
   }
 })
