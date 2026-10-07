@@ -207,6 +207,25 @@ const ACCENTS: ShopItem[] = [
     icon: '🪸',
     accent: '#ff6f61',
   },
+  // ── Charakter-Akzente ──
+  {
+    id: 'accent-power',
+    name: 'Power-Pink',
+    description: 'Grelles Blut-Pink des Blut-Teufels.',
+    price: 100,
+    category: 'accent',
+    icon: '😈',
+    accent: '#ff3d84',
+  },
+  {
+    id: 'accent-miku',
+    name: 'Miku-Türkis',
+    description: 'Das ikonische Vocaloid-Türkis.',
+    price: 100,
+    category: 'accent',
+    icon: '🎤',
+    accent: '#39c5bb',
+  },
 ]
 
 // ────────────────────────────────────────────────────────────────────────
@@ -388,6 +407,47 @@ const THEMES: ShopItem[] = [
       '--gradient-xp': 'linear-gradient(90deg, #c0562f, #e0a87a)',
     },
   },
+  // ── Charakter-Themes ──
+  {
+    id: 'theme-power',
+    name: 'Power',
+    description: 'Blut-Teufel-Theme in grellem Pink mit roten Akzenten.',
+    price: 1000,
+    category: 'theme',
+    icon: '😈',
+    themeBackground: themeBg('🩸', 'rgba(255,61,132,0.22)', 'rgba(214,40,70,0.20)', '#26101a'),
+    theme: {
+      '--bg-primary': '#26101a',
+      '--bg-secondary': '#361524',
+      '--bg-card': '#431a2d',
+      '--bg-card-hover': '#552138',
+      '--bg-accent': '#6b2546',
+      '--accent-primary': '#ff3d84',
+      '--accent-secondary': '#e02846',
+      '--gradient-primary': 'linear-gradient(135deg, #ff3d84, #e02846)',
+      '--gradient-xp': 'linear-gradient(90deg, #ff3d84, #ffd23f)',
+    },
+  },
+  {
+    id: 'theme-miku',
+    name: 'Hatsune Miku',
+    description: 'Vocaloid-Theme in Türkis und tiefem Nachtblau.',
+    price: 1000,
+    category: 'theme',
+    icon: '🎤',
+    themeBackground: themeBg('🎵', 'rgba(57,197,187,0.22)', 'rgba(45,110,160,0.20)', '#071a22'),
+    theme: {
+      '--bg-primary': '#071a22',
+      '--bg-secondary': '#0c2630',
+      '--bg-card': '#103240',
+      '--bg-card-hover': '#164250',
+      '--bg-accent': '#1c5565',
+      '--accent-primary': '#39c5bb',
+      '--accent-secondary': '#2d6ea0',
+      '--gradient-primary': 'linear-gradient(135deg, #39c5bb, #2d6ea0)',
+      '--gradient-xp': 'linear-gradient(90deg, #39c5bb, #86f0e8)',
+    },
+  },
 ]
 
 // ────────────────────────────────────────────────────────────────────────
@@ -512,6 +572,37 @@ const FRAMES: ShopItem[] = [
       glow: 'rgba(160, 68, 255, 0.55)',
       rowEmoji: '👑',
       rowTint: 'rgba(160, 68, 255, 0.12)',
+    },
+  },
+  // ── Charakter-Rahmen ──
+  {
+    id: 'frame-power',
+    name: 'Power-Rahmen',
+    description: 'Blut-Teufel-Rahmen in Pink mit roten Hörnern.',
+    price: 500,
+    category: 'frame',
+    icon: '😈',
+    frame: {
+      ring: 'linear-gradient(135deg, #ffd23f, #ff3d84, #e02846, #ff3d84)',
+      rowBorder: 'linear-gradient(120deg, #ffd23f, #ff3d84 45%, #e02846 100%)',
+      glow: 'rgba(255, 61, 132, 0.6)',
+      rowEmoji: '😈',
+      rowTint: 'rgba(255, 61, 132, 0.13)',
+    },
+  },
+  {
+    id: 'frame-miku',
+    name: 'Miku-Rahmen',
+    description: 'Vocaloid-Rahmen in leuchtendem Türkis.',
+    price: 500,
+    category: 'frame',
+    icon: '🎤',
+    frame: {
+      ring: 'linear-gradient(135deg, #86f0e8, #39c5bb, #2d6ea0, #39c5bb)',
+      rowBorder: 'linear-gradient(120deg, #86f0e8, #39c5bb 45%, #2d6ea0 100%)',
+      glow: 'rgba(57, 197, 187, 0.6)',
+      rowEmoji: '🎵',
+      rowTint: 'rgba(57, 197, 187, 0.13)',
     },
   },
 ]
