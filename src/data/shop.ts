@@ -226,6 +226,15 @@ const ACCENTS: ShopItem[] = [
     icon: '🎤',
     accent: '#39c5bb',
   },
+  {
+    id: 'accent-frieren',
+    name: 'Frieren-Mint',
+    description: 'Das kühle Mintgrün von Frierens Augen.',
+    price: 100,
+    category: 'accent',
+    icon: '🧝',
+    accent: '#6fcf97',
+  },
 ]
 
 // ────────────────────────────────────────────────────────────────────────
@@ -448,6 +457,26 @@ const THEMES: ShopItem[] = [
       '--gradient-xp': 'linear-gradient(90deg, #39c5bb, #86f0e8)',
     },
   },
+  {
+    id: 'theme-frieren',
+    name: 'Frieren',
+    description: 'Ruhiges Magier-Theme in Mint und Silber mit zartem Funkeln.',
+    price: 1000,
+    category: 'theme',
+    icon: '🧝',
+    themeBackground: themeBg('✨', 'rgba(111,207,151,0.20)', 'rgba(174,198,207,0.16)', '#111c1a'),
+    theme: {
+      '--bg-primary': '#111c1a',
+      '--bg-secondary': '#182824',
+      '--bg-card': '#1d322d',
+      '--bg-card-hover': '#264139',
+      '--bg-accent': '#315049',
+      '--accent-primary': '#6fcf97',
+      '--accent-secondary': '#aec6cf',
+      '--gradient-primary': 'linear-gradient(135deg, #6fcf97, #aec6cf)',
+      '--gradient-xp': 'linear-gradient(90deg, #6fcf97, #d6ead9)',
+    },
+  },
 ]
 
 // ────────────────────────────────────────────────────────────────────────
@@ -603,6 +632,21 @@ const FRAMES: ShopItem[] = [
       glow: 'rgba(57, 197, 187, 0.6)',
       rowEmoji: '🎵',
       rowTint: 'rgba(57, 197, 187, 0.13)',
+    },
+  },
+  {
+    id: 'frame-frieren',
+    name: 'Frieren-Rahmen',
+    description: 'Magier-Rahmen in Mint und Silber mit sanftem Funkeln.',
+    price: 500,
+    category: 'frame',
+    icon: '🧝',
+    frame: {
+      ring: 'linear-gradient(135deg, #d6ead9, #6fcf97, #aec6cf, #6fcf97)',
+      rowBorder: 'linear-gradient(120deg, #d6ead9, #6fcf97 45%, #aec6cf 100%)',
+      glow: 'rgba(111, 207, 151, 0.6)',
+      rowEmoji: '✨',
+      rowTint: 'rgba(111, 207, 151, 0.13)',
     },
   },
 ]
