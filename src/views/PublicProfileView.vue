@@ -2,7 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSocialStore } from '../stores/social'
-import { frameStyle } from '../composables/useCosmetics'
+import { frameStyle, frameRowStyle } from '../composables/useCosmetics'
 import { levelInfoForXp } from '../stores/user'
 import { ALL_BADGES, type BadgeDefinition } from '../stores/badges'
 import { hiraganaData } from '../data/hiragana'
@@ -109,7 +109,11 @@ function goBack() {
 
     <template v-else-if="profile && levelInfo">
       <!-- Profile Header -->
-      <section class="profile-header">
+      <section
+        class="profile-header"
+        :class="{ 'has-frame': !!frameRowStyle(profile.equippedFrame) }"
+        :style="frameRowStyle(profile.equippedFrame) || {}"
+      >
         <div
           class="avatar-wrapper-static"
           :class="{ framed: !!frameStyle(profile.equippedFrame) }"
@@ -316,6 +320,14 @@ function goBack() {
   align-items: center;
   gap: 12px;
   padding: 12px 0 20px;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+/* Equipped frame: gradient border + glow + faint pattern around the whole
+   header (via inline frameRowStyle). Inner padding keeps content off the edge. */
+.profile-header.has-frame {
+  padding: 16px 16px 20px;
 }
 
 .avatar-wrapper-static {
