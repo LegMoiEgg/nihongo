@@ -8,6 +8,7 @@ import {
   type ShopItem,
 } from '../data/shop'
 import { applyCosmetics, frameStyle } from '../composables/useCosmetics'
+import { shopIconUrl } from '../data/shop-icons'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -114,14 +115,23 @@ function randomize() {
                 class="frame-preview"
                 :style="frameStyle(item.id) || {}"
               >
-                <span class="frame-inner">{{ item.icon }}</span>
+                <span class="frame-inner">
+                  <img v-if="shopIconUrl(item.iconImage)" :src="shopIconUrl(item.iconImage)!" :alt="item.name" class="item-icon-img" />
+                  <template v-else>{{ item.icon }}</template>
+                </span>
               </span>
               <span
                 v-else-if="item.category === 'accent'"
                 class="accent-swatch"
                 :style="{ background: item.accent }"
-              >{{ item.icon }}</span>
-              <span v-else class="item-emoji">{{ item.icon }}</span>
+              >
+                <img v-if="shopIconUrl(item.iconImage)" :src="shopIconUrl(item.iconImage)!" :alt="item.name" class="item-icon-img" />
+                <template v-else>{{ item.icon }}</template>
+              </span>
+              <template v-else>
+                <img v-if="shopIconUrl(item.iconImage)" :src="shopIconUrl(item.iconImage)!" :alt="item.name" class="item-icon-img item-icon-img-lg" />
+                <span v-else class="item-emoji">{{ item.icon }}</span>
+              </template>
             </div>
 
             <p class="item-name">{{ item.name }}</p>
@@ -258,6 +268,17 @@ function randomize() {
 .item-emoji {
   font-size: 2.6rem;
   line-height: 1;
+}
+
+.item-icon-img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.item-icon-img-lg {
+  width: 52px;
+  height: 52px;
 }
 
 .accent-swatch {

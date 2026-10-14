@@ -7,6 +7,7 @@ import { useNotificationsStore } from '../stores/notifications'
 import { useBadgesStore, ALL_BADGES, type BadgeDefinition } from '../stores/badges'
 import { saveToCloud, scheduleSave, flushSave } from '../stores/sync'
 import { DEV_TOOLS } from '../config'
+import { frameStyle, frameRowStyle } from '../composables/useCosmetics'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
@@ -203,8 +204,17 @@ const maxWeeklyXp = computed(() =>
 <template>
   <div class="profile-page">
     <!-- Profile Header -->
-    <section class="profile-header">
-      <div class="avatar-wrapper" @click="triggerAvatarUpload">
+    <section
+      class="profile-header"
+      :class="{ 'has-frame': !!frameRowStyle(userStore.equippedFrame) }"
+      :style="frameRowStyle(userStore.equippedFrame) || {}"
+    >
+      <div
+        class="avatar-wrapper"
+        :class="{ 'avatar-framed': !!frameStyle(userStore.equippedFrame) }"
+        :style="frameStyle(userStore.equippedFrame) || {}"
+        @click="triggerAvatarUpload"
+      >
         <img
           v-if="userStore.avatarDataUrl"
           :src="userStore.avatarDataUrl"
@@ -488,6 +498,15 @@ const maxWeeklyXp = computed(() =>
   align-items: center;
   gap: 12px;
   padding: 24px 0 20px;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+/* When a frame is equipped the header gets the gradient border + glow + faint
+   pattern (via inline frameRowStyle). Add inner padding so content isn't flush
+   against the border. */
+.profile-header.has-frame {
+  padding: 24px 16px 20px;
 }
 
 .avatar-wrapper {
@@ -495,6 +514,22 @@ const maxWeeklyXp = computed(() =>
   width: 96px;
   height: 96px;
   cursor: pointer;
+  border-radius: 50%;
+}
+
+/* Framed avatar: the gradient ring sits as a padded background behind the
+   avatar image; drop the solid image border so the ring shows cleanly. */
+.avatar-wrapper.avatar-framed {
+  padding: 4px;
+  width: 104px;
+  height: 104px;
+}
+
+.avatar-wrapper.avatar-framed .avatar-img,
+.avatar-wrapper.avatar-framed .avatar-placeholder {
+  border-color: transparent;
+  width: 100%;
+  height: 100%;
 }
 
 .avatar-img {

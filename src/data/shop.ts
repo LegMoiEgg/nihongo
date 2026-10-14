@@ -20,8 +20,14 @@ export interface ShopItem {
   description: string
   price: number
   category: ShopCategory
-  /** Small emoji/preview shown on the shop card. */
+  /** Small emoji shown on the shop card (fallback if no iconImage). */
   icon: string
+  /**
+   * Optional custom icon image. Filename of a file placed in
+   * src/assets/shop-icons/ (e.g. 'power.png'). When present it is shown
+   * instead of the emoji; if the file is missing the emoji is used.
+   */
+  iconImage?: string
   /**
    * Cosmetic payload consumed by applyCosmetics():
    *  - accent: { accent } hex color for --accent-primary
