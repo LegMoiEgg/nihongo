@@ -1,7 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { MAX_STREAK_FREEZES } from '../data/shop'
+import { MAX_STREAK_FREEZES, SHOP_ITEMS } from '../data/shop'
 import { checkEventCode } from '../data/event-codes'
+
+/** Result the UI gets back from redeeming a code (success variants + failures). */
+export type RedeemOutcome =
+  | { ok: true; kind: 'coins'; amount: number; label: string }
+  | { ok: true; kind: 'frame'; frameName: string; label: string }
+  | { ok: false; reason: 'unknown' | 'expired' | 'already' }
 
 export interface DailyLog {
   date: string // YYYY-MM-DD
@@ -640,16 +646,38 @@ export const useUserStore = defineStore('user', () => {
    * already-redeemed set, awards coins and records the code on success.
    * Returns the result so the UI can show the right message.
    */
-  function redeemEventCode(input: string) {
+  function redeemEventCode(input: string): RedeemOutcome {
     const result = checkEventCode(input, getToday(), redeemedCodes.value)
-    if (result.ok) {
-      redeemedCodes.value = [...redeemedCodes.value, result.normalized]
-      saveToStorage('nihongo_redeemed_codes', redeemedCodes.value)
-      coins.value += result.reward
+    if (!result.ok) return result
+
+    // Mark redeemed first (so it can't be used twice regardless of reward path).
+    redeemedCodes.value = [...redeemedCodes.value, result.normalized]
+    saveToStorage('nihongo_redeemed_codes', redeemedCodes.value)
+
+    let outcome: RedeemOutcome
+    if (result.reward.kind === 'coins') {
+      coins.value += result.reward.amount
       saveToStorage('nihongo_coins', coins.value)
-      import('./sync').then(m => m.scheduleSave()).catch(() => {})
+      outcome = { ok: true, kind: 'coins', amount: result.reward.amount, label: result.label }
+    } else {
+      // randomFrame: pick a frame the user doesn't own yet.
+      const unowned = SHOP_ITEMS.filter(
+        i => i.category === 'frame' && !ownedItems.value.includes(i.id),
+      )
+      if (unowned.length > 0) {
+        const pick = unowned[Math.floor(Math.random() * unowned.length)]
+        ownedItems.value = [...ownedItems.value, pick.id]
+        saveToStorage('nihongo_owned_items', ownedItems.value)
+        outcome = { ok: true, kind: 'frame', frameName: pick.name, label: result.label }
+      } else {
+        // Already owns every frame → fallback coins.
+        coins.value += result.reward.fallbackCoins
+        saveToStorage('nihongo_coins', coins.value)
+        outcome = { ok: true, kind: 'coins', amount: result.reward.fallbackCoins, label: 'Alle Rahmen schon freigeschaltet' }
+      }
     }
-    return result
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+    return outcome
   }
 
   function setPlacementLevel(level: number) {

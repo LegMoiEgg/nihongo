@@ -130,7 +130,11 @@ function redeemCode() {
   if (!typed) return
   const res = userStore.redeemEventCode(typed)
   if (res.ok) {
-    showToast(`${res.label}: +${res.reward} 🪙`)
+    if (res.kind === 'frame') {
+      showToast(`Gewonnen: ${res.frameName}! 🖼️`)
+    } else {
+      showToast(`${res.label}: +${res.amount} 🪙`)
+    }
     codeInput.value = ''
   } else {
     const msg: Record<string, string> = {

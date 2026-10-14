@@ -11,10 +11,15 @@
  * Function would be required.
  */
 
+export type CodeReward =
+  | { kind: 'coins'; amount: number }
+  /** Grants a random not-yet-owned frame; pays `fallbackCoins` if all owned. */
+  | { kind: 'randomFrame'; fallbackCoins: number }
+
 export interface EventCode {
   /** Canonical code id (also what the user types; matched case-insensitively). */
   code: string
-  reward: number
+  reward: CodeReward
   /** Inclusive validity window as Berlin YYYY-MM-DD. from=null → always open. */
   from: string | null
   until: string | null
@@ -25,22 +30,29 @@ export interface EventCode {
 export const EVENT_CODES: EventCode[] = [
   {
     code: 'NihonGo',
-    reward: 100,
+    reward: { kind: 'coins', amount: 100 },
     from: null,            // from today / launch
     until: '2026-10-20',
     label: 'Willkommenscode',
   },
   {
     code: 'Halloween2026',
-    reward: 50,
+    reward: { kind: 'coins', amount: 50 },
     from: '2026-10-29',
     until: '2026-11-02',
     label: 'Halloween-Event',
   },
+  {
+    code: 'RandomFrame',
+    reward: { kind: 'randomFrame', fallbackCoins: 250 },
+    from: null,
+    until: '2026-12-31',
+    label: 'Zufalls-Rahmen',
+  },
 ]
 
 export type RedeemResult =
-  | { ok: true; reward: number; label: string; normalized: string }
+  | { ok: true; reward: CodeReward; label: string; normalized: string }
   | { ok: false; reason: 'unknown' | 'expired' | 'already' }
 
 /**
