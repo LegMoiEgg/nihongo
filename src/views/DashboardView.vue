@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useBadgesStore } from '../stores/badges'
+import { useScavenger, scavengerReward } from '../composables/useScavenger'
 
 const userStore = useUserStore()
 const learningStore = useLearningStore()
@@ -12,6 +13,16 @@ learningStore.initialize()
 
 const level = computed(() => userStore.currentLevel.level)
 const kanjiUnlocked = computed(() => level.value >= 15)
+
+// ── Scavenger hunt ──
+const scavenger = useScavenger()
+function onFlameTap() {
+  // Only meaningful during the hunt's final (flame) station; otherwise no-op.
+  scavenger.tapTarget('flame')
+}
+function closeScavengerReward() {
+  scavengerReward.value = null
+}
 
 // ── Week calendar logic ──
 // Week runs Mon–Sun. Sunday is test day.
@@ -79,7 +90,11 @@ const completedDays = computed(() =>
           <h1 class="app-title">NihonGo</h1>
           <p class="greeting">{{ userStore.currentLevel.label }}</p>
         </div>
-        <div class="streak-badge" :class="{ 'has-streak': userStore.currentStreak > 0 }">
+        <div
+          class="streak-badge"
+          :class="{ 'has-streak': userStore.currentStreak > 0 }"
+          @click="onFlameTap"
+        >
           <span class="streak-fire">🔥</span>
           <span class="streak-count">{{ userStore.currentStreak }}</span>
         </div>
@@ -102,6 +117,24 @@ const completedDays = computed(() =>
         </div>
       </div>
     </header>
+
+    <!-- Scavenger hunt (only during its date window) -->
+    <section v-if="scavenger.visible.value" class="scavenger-box card">
+      <div class="scavenger-head">
+        <span class="scavenger-title">🔍 Entdecker-Jagd</span>
+        <span v-if="!scavenger.finished.value" class="scavenger-progress">
+          {{ scavenger.step.value }} / {{ scavenger.total }}
+        </span>
+        <span v-else class="scavenger-progress done">✅ Abgeschlossen</span>
+      </div>
+      <template v-if="!scavenger.finished.value && scavenger.currentStation.value">
+        <p class="scavenger-hint">{{ scavenger.currentStation.value.hint }}</p>
+        <p class="scavenger-where">📍 {{ scavenger.currentStation.value.where }}</p>
+      </template>
+      <p v-else class="scavenger-done-text">
+        Du hast die Jagd gemeistert — deine Belohnung wartet im Profil. 🎁
+      </p>
+    </section>
 
     <!-- Week Calendar -->
     <section class="week-calendar card" :class="{ 'gold-week': isGoldWeek }">
@@ -231,6 +264,23 @@ const completedDays = computed(() =>
         <span class="continue-arrow">→</span>
       </router-link>
     </section>
+
+    <!-- Scavenger reward popup -->
+    <div v-if="scavengerReward" class="sc-reward-overlay" @click.self="closeScavengerReward">
+      <div class="sc-reward-card animate-pop">
+        <div class="sc-reward-icon">🎁</div>
+        <p class="sc-reward-title">Jagd abgeschlossen!</p>
+        <template v-if="scavengerReward.kind === 'frame'">
+          <div class="sc-reward-frame">🖼️ {{ scavengerReward.frameName }}</div>
+          <p class="sc-reward-sub">Neuer Profilrahmen freigeschaltet! Rüste ihn im Profil → Anpassen aus.</p>
+        </template>
+        <template v-else>
+          <div class="sc-reward-coins"><span class="sc-coin">🪙</span> +{{ scavengerReward.amount }}</div>
+          <p class="sc-reward-sub">Du besitzt schon alle Rahmen — hier sind Münzen stattdessen!</p>
+        </template>
+        <button class="btn btn-primary sc-reward-btn" @click="closeScavengerReward">Super!</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -281,6 +331,10 @@ const completedDays = computed(() =>
 .streak-badge.has-streak {
   border-color: var(--accent-warning);
   background: rgba(255, 152, 0, 0.1);
+}
+
+.streak-badge {
+  cursor: pointer;
 }
 
 .streak-fire {
@@ -621,5 +675,130 @@ const completedDays = computed(() =>
 .continue-arrow {
   font-size: 1.2rem;
   color: var(--text-muted);
+}
+
+/* ── Scavenger hunt box ── */
+.scavenger-box {
+  margin-bottom: 16px;
+  border: 2px solid var(--accent-primary);
+}
+
+.scavenger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.scavenger-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.scavenger-progress {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.scavenger-progress.done {
+  color: var(--accent-success);
+}
+
+.scavenger-hint {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.scavenger-where {
+  font-size: 0.8rem;
+  color: var(--accent-primary);
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.scavenger-done-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* ── Scavenger reward popup ── */
+.sc-reward-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+  backdrop-filter: blur(2px);
+}
+
+.sc-reward-card {
+  background: var(--bg-card);
+  border: 2px solid var(--accent-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  padding: 28px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  width: 100%;
+}
+
+.sc-reward-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.sc-reward-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.sc-reward-frame {
+  font-weight: 700;
+  color: var(--accent-primary);
+  background: var(--bg-card-hover);
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+.sc-reward-coins {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+.sc-coin {
+  font-size: 1.4rem;
+}
+
+.sc-reward-sub {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.sc-reward-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 13px;
+  font-weight: 700;
+}
+
+.animate-pop {
+  animation: sc-pop 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes sc-pop {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

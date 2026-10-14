@@ -33,6 +33,7 @@ interface CloudUserData {
   claimedMilestones: string[]
   levelMilestoneBaseline: number
   redeemedCodes: string[]
+  scavengerStep: number
   // learning store
   cardProgress: any[]
   // badges store
@@ -178,6 +179,8 @@ export async function saveToCloud(): Promise<void> {
         ...(cloud?.redeemedCodes ?? []),
         ...userStore.redeemedCodes,
       ])),
+      // scavengerStep: only moves forward (highest wins across devices).
+      scavengerStep: Math.max(userStore.scavengerStep, cloud?.scavengerStep ?? 0),
       cardProgress: progressBehind ? (cloud?.cardProgress ?? learningStore.cardProgress) : learningStore.cardProgress,
       earnedBadges: badgesStore.earnedBadges,
       lastSyncedAt: new Date().toISOString(),
@@ -395,6 +398,12 @@ function mergeCloudData(cloud: CloudUserData) {
     ]))
     userStore.redeemedCodes = union
     localStorage.setItem('nihongo_redeemed_codes', JSON.stringify(union))
+  }
+  // scavengerStep: take the higher value so progress never goes backwards.
+  if (typeof (cloud as any).scavengerStep === 'number') {
+    const higher = Math.max(userStore.scavengerStep, (cloud as any).scavengerStep)
+    userStore.scavengerStep = higher
+    localStorage.setItem('nihongo_scavenger_step', JSON.stringify(higher))
   }
   // levelMilestoneBaseline: take the higher value. This also lets the real
   // cloud baseline override a premature local baseline (e.g. a fresh "1" set

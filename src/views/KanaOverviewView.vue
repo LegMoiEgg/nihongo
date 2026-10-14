@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useLearningStore } from '../stores/learning'
 import { hiraganaData, type KanaCard } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
+import { useScavenger } from '../composables/useScavenger'
 
 const props = defineProps<{ category: 'hiragana' | 'katakana' }>()
 
@@ -75,6 +76,24 @@ function startLearning() {
 function goBack() {
   router.push('/learn')
 }
+
+// ── Scavenger hunt: is a given card the current hunt target? ──
+const scavenger = useScavenger()
+const scavengerTargetId = computed(() => {
+  if (!scavenger.inWindow.value || scavenger.finished.value) return null
+  const st = scavenger.currentStation.value
+  return st && st.targetKind === 'kana' ? st.targetId ?? null : null
+})
+function isHuntTarget(cardId: string): boolean {
+  return scavengerTargetId.value === cardId
+}
+function onCardTap(cardId: string) {
+  if (isHuntTarget(cardId)) {
+    scavenger.tapTarget('kana', cardId)
+    // Send the hunter back to the Dashboard to read the next hint.
+    router.push('/')
+  }
+}
 </script>
 
 <template>
@@ -133,8 +152,10 @@ function goBack() {
                 'is-new': card.status === 'new',
                 'is-learning': card.status === 'learning',
                 'is-mastered': card.status === 'mastered',
+                'hunt-target': isHuntTarget(card.id),
               }"
               :title="`${card.character} (${card.romaji}) — ${card.consecutiveCorrect}/${learningStore.MASTERY_STREAK}`"
+              @click="onCardTap(card.id)"
             >
               <span class="char-jp jp">{{ card.character }}</span>
               <span class="char-romaji">{{ card.romaji }}</span>
@@ -334,6 +355,12 @@ function goBack() {
 .char-cell.is-mastered {
   border-color: var(--accent-success);
   background: rgba(0, 200, 83, 0.06);
+}
+
+/* Scavenger-hunt target: tappable, but NOT visually revealed — the hunter must
+   recognise the right kana from the hint themselves. */
+.char-cell.hunt-target {
+  cursor: pointer;
 }
 
 .char-jp {

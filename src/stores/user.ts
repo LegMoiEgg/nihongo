@@ -196,6 +196,9 @@ export const useUserStore = defineStore('user', () => {
   // Event codes already redeemed (canonical lowercase ids). Synced like
   // claimedMilestones so a code can't be redeemed twice across devices.
   const redeemedCodes = ref<string[]>([])
+  // Scavenger-hunt progress: index of the CURRENT station (0-based). When it
+  // reaches SCAVENGER_TOTAL the hunt is finished. Synced like other progress.
+  const scavengerStep = ref(0)
   // The level the user was at when milestone tracking started on this account.
   // Level-up coins are only awarded for levels gained ABOVE this baseline, so a
   // placement-test jump (or pre-existing level) never pays retroactively.
@@ -325,6 +328,7 @@ export const useUserStore = defineStore('user', () => {
     claimedMilestones.value = loadFromStorage('nihongo_claimed_milestones', [])
     levelMilestoneBaseline.value = loadFromStorage('nihongo_level_milestone_baseline', -1)
     redeemedCodes.value = loadFromStorage('nihongo_redeemed_codes', [])
+    scavengerStep.value = loadFromStorage('nihongo_scavenger_step', 0)
 
     updateStreak()
   }
@@ -680,6 +684,31 @@ export const useUserStore = defineStore('user', () => {
     return outcome
   }
 
+  /** Draws a random not-yet-owned frame, or pays fallbackCoins if all owned. */
+  function grantRandomFrame(fallbackCoins: number): { kind: 'frame'; frameName: string } | { kind: 'coins'; amount: number } {
+    const unowned = SHOP_ITEMS.filter(
+      i => i.category === 'frame' && !ownedItems.value.includes(i.id),
+    )
+    if (unowned.length > 0) {
+      const pick = unowned[Math.floor(Math.random() * unowned.length)]
+      ownedItems.value = [...ownedItems.value, pick.id]
+      saveToStorage('nihongo_owned_items', ownedItems.value)
+      import('./sync').then(m => m.scheduleSave()).catch(() => {})
+      return { kind: 'frame', frameName: pick.name }
+    }
+    coins.value += fallbackCoins
+    saveToStorage('nihongo_coins', coins.value)
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+    return { kind: 'coins', amount: fallbackCoins }
+  }
+
+  /** Advance the scavenger hunt by one station (clamped). */
+  function advanceScavenger() {
+    scavengerStep.value += 1
+    saveToStorage('nihongo_scavenger_step', scavengerStep.value)
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+  }
+
   function setPlacementLevel(level: number) {
     placementLevel.value = level
     saveToStorage('nihongo_placement_level', level)
@@ -720,6 +749,7 @@ export const useUserStore = defineStore('user', () => {
     claimedMilestones,
     levelMilestoneBaseline,
     redeemedCodes,
+    scavengerStep,
     pendingMilestoneToast,
     // Computed
     currentLevel,
@@ -754,6 +784,8 @@ export const useUserStore = defineStore('user', () => {
     claimMilestone,
     setLevelMilestoneBaseline,
     redeemEventCode,
+    grantRandomFrame,
+    advanceScavenger,
     clearMilestoneToast,
   }
 })
