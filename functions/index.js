@@ -37,12 +37,12 @@ exports.streakReminder = onSchedule(
       "Du bist doch ein Macher, also mach deine Dailys! 💪",
       "Deswegen ist Böse's Arsch am Arsch! Mach die Dailys! 🔥",
       "Du musst eine Krise abwenden und dolmetschen! ⭐",
-      "にほんご ruft — und du drückst auf Snooze?! 😤",
-      "Selbst Godzilla macht seine Dailys. Und du? 🦖",
+      "Bernd Maxe weiß alles! 🕊️",
+      "Spende deine Zeit besser, als Jonas sein Geld! 💵",
       "Kein Reis ohne Schweiß! Los, an die Lektion! 🍚",
-      "Deine Sensei-Ehre steht auf dem Spiel! 🥋",
+      "Doofminik? Doorminik? Dirkminik? Was nun? Du musst Lernen!!! 👨",
       "Heute nicht lernen = morgen doppelt heulen! 😭",
-      "Mach die Lektion, sonst kommt die Katze の Rache! 🐱",
+      "Nur weil Lennart auf Tiere steht, musst du nicht auch so ein Opfer sein! 🐎",
       "DU willst im Maid-Café was bestellen!? Dann lern! 🐱",
     ];
 
