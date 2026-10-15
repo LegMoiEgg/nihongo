@@ -80,7 +80,7 @@ function goBack() {
 // ── Scavenger hunt: is a given card the current hunt target? ──
 const scavenger = useScavenger()
 const scavengerTargetId = computed(() => {
-  if (!scavenger.inWindow.value || scavenger.finished.value) return null
+  if (!scavenger.visible.value || scavenger.finished.value) return null
   const st = scavenger.currentStation.value
   return st && st.targetKind === 'kana' ? st.targetId ?? null : null
 })

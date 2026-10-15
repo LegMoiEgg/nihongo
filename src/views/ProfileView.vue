@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useLearningStore } from '../stores/learning'
 import { useAuthStore } from '../stores/auth'
@@ -8,6 +9,8 @@ import { useBadgesStore, ALL_BADGES, type BadgeDefinition } from '../stores/badg
 import { saveToCloud, scheduleSave, flushSave } from '../stores/sync'
 import { DEV_TOOLS } from '../config'
 import { frameStyle, frameRowStyle } from '../composables/useCosmetics'
+import { useScavenger } from '../composables/useScavenger'
+import { SPOT } from '../data/scavenger-hunt'
 import { hiraganaData } from '../data/hiragana'
 import { katakanaData } from '../data/katakana'
 import { kanjiData } from '../data/kanji'
@@ -20,6 +23,13 @@ const notifStore = useNotificationsStore()
 const badgesStore = useBadgesStore()
 learningStore.initialize()
 badgesStore.initialize()
+
+// Scavenger hunt: the coins badge can be a hunt "spot" target.
+const router = useRouter()
+const scavenger = useScavenger()
+function onCoinsTap() {
+  if (scavenger.tapTarget('spot', SPOT.profileCoins)) router.push('/')
+}
 
 // Latest 3 earned badges (newest first)
 const latestBadges = computed((): BadgeDefinition[] => {
@@ -260,7 +270,7 @@ const maxWeeklyXp = computed(() =>
         <span class="badge badge-level">Lv. {{ userStore.currentLevel.level }}</span>
         <span class="badge badge-xp">{{ userStore.totalXp }} XP</span>
         <span class="badge badge-streak">🔥 {{ userStore.currentStreak }}</span>
-        <span class="badge badge-coins">🪙 {{ userStore.coins }}</span>
+        <span class="badge badge-coins" @click="onCoinsTap">🪙 {{ userStore.coins }}</span>
       </div>
     </section>
 

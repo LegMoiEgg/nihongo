@@ -1,71 +1,173 @@
 /**
- * In-app scavenger hunt ("Entdecker-Jagd").
+ * In-app scavenger hunts ("Entdecker-Jagden") — supports MULTIPLE events.
  *
- * A hint box on the Dashboard shows the current station's riddle. Each station
- * has a TARGET the user must tap somewhere in the app (a specific kana in an
- * overview, or the streak flame on the Dashboard). Tapping the right target
- * advances to the next station. After the last station the user gets a reward
- * (a random not-yet-owned frame, or coins if they own all frames).
+ * Each event has its own id, date window, stations and reward type. Progress is
+ * tracked PER EVENT on the user profile (see scavengerProgress), so completing
+ * one event never affects another. The Dashboard shows whichever event is
+ * active for today's date.
  *
- * Only reachable-by-everyone targets are used (Hiragana/Katakana overviews are
- * never level-gated; the streak flame is on the Dashboard). No Kanji/Vocab, so
- * brand-new beginners can complete it too.
+ * A station's TARGET is something the user must tap somewhere in the app:
+ *  - kana  : a specific kana in the Hiragana/Katakana overview (targetId = id)
+ *  - flame : the streak flame on the Dashboard
+ *  - spot  : a fixed, always-present UI element elsewhere (targetId = a known
+ *            spot key the view checks, e.g. 'profile-coins'); the `where` text
+ *            and the station's `route` nudge the user to the right tab.
  *
- * Progress + completion are stored on the user profile (synced like other
- * progress flags). The hunt is only active within its date window.
+ * Only reachable-by-everyone targets are used (no level-gated Kanji/Vocab, no
+ * dynamic items), so brand-new beginners can finish every hunt.
  */
 
+export type ScavengerTargetKind = 'kana' | 'flame' | 'spot'
+
 export interface ScavengerStation {
-  /** Riddle shown in the Dashboard hint box. */
   hint: string
-  /**
-   * Where the target lives, so the UI knows which element to make tappable:
-   *  - kana: a character in the Hiragana/Katakana overview (targetId = card id)
-   *  - flame: the streak flame on the Dashboard (final station)
-   */
-  targetKind: 'kana' | 'flame'
-  /** Card id of the kana to tap (for targetKind 'kana'). */
+  targetKind: ScavengerTargetKind
+  /** kana card id (kana) or spot key (spot). Unused for flame. */
   targetId?: string
   /** Short "where to go" nudge shown under the hint. */
   where: string
 }
 
-/** Validity window (Berlin YYYY-MM-DD), inclusive. */
-export const SCAVENGER_FROM = '2026-10-14'
-export const SCAVENGER_UNTIL = '2026-10-21'
+export type ScavengerRewardKind = 'randomFrame' | 'randomAccent'
 
-/** Coins given if the user already owns every frame when finishing. */
-export const SCAVENGER_FALLBACK_COINS = 250
+export interface ScavengerEvent {
+  id: string
+  title: string
+  /** Validity window (Berlin YYYY-MM-DD), inclusive. */
+  from: string
+  until: string
+  reward: ScavengerRewardKind
+  /** Coins given if the user already owns everything of the reward category. */
+  fallbackCoins: number
+  stations: ScavengerStation[]
+}
 
-export const SCAVENGER_STATIONS: ScavengerStation[] = [
+/**
+ * Known "spot" target keys. A view that contains the element checks for the
+ * matching key and makes that element tappable while the hunt is on it.
+ */
+export const SPOT = {
+  profileCoins: 'profile-coins',
+  shopCodeField: 'shop-code-field',
+  socialGroups: 'social-groups',
+  dashboardWeek: 'dashboard-week',
+} as const
+
+export const SCAVENGER_EVENTS: ScavengerEvent[] = [
+  // ── Oktober 2026: Entdecker-Jagd (frame reward) ──
   {
-    hint: 'Alles beginnt mit einem Laut: dem allerersten der fünf Vokale. Finde ihn.',
-    targetKind: 'kana',
-    targetId: 'h-a', // あ
-    where: 'Hiragana-Übersicht',
+    id: 'okt2026',
+    title: 'Entdecker-Jagd',
+    from: '2026-10-14',
+    until: '2026-10-21',
+    reward: 'randomFrame',
+    fallbackCoins: 250,
+    stations: [
+      {
+        hint: 'Alles beginnt mit einem Laut: dem allerersten der fünf Vokale. Finde ihn.',
+        targetKind: 'kana',
+        targetId: 'h-a',
+        where: 'Hiragana-Übersicht',
+      },
+      {
+        hint: 'Ein Schlüssel öffnet jede Tür — auf Englisch „key". Welches Hiragana klingt so?',
+        targetKind: 'kana',
+        targetId: 'h-ki',
+        where: 'Hiragana-Übersicht',
+      },
+      {
+        hint: 'Jetzt zur eckigen Schrift der Fremdwörter. Such dort den ersten Vokal.',
+        targetKind: 'kana',
+        targetId: 'k-a',
+        where: 'Katakana-Übersicht',
+      },
+      {
+        hint: 'Fast geschafft! Deine Leidenschaft brennt — tippe auf deine Flamme.',
+        targetKind: 'flame',
+        where: 'Hier auf dem Dashboard',
+      },
+    ],
   },
+
+  // ── November 2026: Spurensuche (accent reward, 10 stations, app-wide) ──
   {
-    hint: 'Ein Schlüssel öffnet jede Tür — auf Englisch „key". Welches Hiragana klingt so?',
-    targetKind: 'kana',
-    targetId: 'h-ki', // き (klingt wie "key")
-    where: 'Hiragana-Übersicht',
-  },
-  {
-    hint: 'Jetzt zur eckigen Schrift der Fremdwörter. Such dort den ersten Vokal.',
-    targetKind: 'kana',
-    targetId: 'k-a', // ア
-    where: 'Katakana-Übersicht',
-  },
-  {
-    hint: 'Fast geschafft! Deine Leidenschaft brennt — tippe auf deine Flamme.',
-    targetKind: 'flame',
-    where: 'Hier auf dem Dashboard',
+    id: 'nov2026',
+    title: 'Spurensuche',
+    from: '2026-11-01',
+    until: '2026-11-11',
+    reward: 'randomAccent',
+    fallbackCoins: 150,
+    stations: [
+      {
+        hint: 'Zwei Zeichen wie Zwillinge — eines reckt seine Striche nach oben und klingt wie „schi". Finde es im Katakana.',
+        targetKind: 'kana',
+        targetId: 'k-shi', // シ
+        where: 'Katakana-Übersicht',
+      },
+      {
+        hint: 'Und nun sein Gegenstück, das nach unten greift: „tsu".',
+        targetKind: 'kana',
+        targetId: 'k-tsu', // ツ
+        where: 'Katakana-Übersicht',
+      },
+      {
+        hint: 'Ein Hiragana mit zwei Strichelchen, das summt wie eine Biene — „zu".',
+        targetKind: 'kana',
+        targetId: 'h-zu', // ず
+        where: 'Hiragana-Übersicht',
+      },
+      {
+        hint: 'Verlass das Rätsel und geh dorthin, wo dein Münzschatz steht.',
+        targetKind: 'spot',
+        targetId: SPOT.profileCoins,
+        where: 'Profil — tippe auf deine Münzen 🪙',
+      },
+      {
+        hint: 'Wo man geheime Codes eingibt, liegt die nächste Spur verborgen.',
+        targetKind: 'spot',
+        targetId: SPOT.shopCodeField,
+        where: 'Shop — das Code-Eingabefeld',
+      },
+      {
+        hint: 'Ein Laut aus zwei Teilen, gesprochen „kyo" — wie in „Tōkyō".',
+        targetKind: 'kana',
+        targetId: 'h-kyo', // きょ
+        where: 'Hiragana-Übersicht',
+      },
+      {
+        hint: 'Dort, wo du dich mit anderen misst, findest du Gruppen. Tippe diesen Bereich an.',
+        targetKind: 'spot',
+        targetId: SPOT.socialGroups,
+        where: 'Social-Tab',
+      },
+      {
+        hint: 'Zurück zur eckigen Schrift: finde „ra".',
+        targetKind: 'kana',
+        targetId: 'k-ra', // ラ
+        where: 'Katakana-Übersicht',
+      },
+      {
+        hint: 'Dein Wochenplan zeigt dir alle sieben Tage. Tippe ihn an.',
+        targetKind: 'spot',
+        targetId: SPOT.dashboardWeek,
+        where: 'Hier auf dem Dashboard',
+      },
+      {
+        hint: 'Deine Reise endet, wo sie begann — an deiner brennenden Flamme.',
+        targetKind: 'flame',
+        where: 'Hier auf dem Dashboard',
+      },
+    ],
   },
 ]
 
-export const SCAVENGER_TOTAL = SCAVENGER_STATIONS.length
+/** The event active for the given Berlin date, or null. */
+export function activeScavengerEvent(todayStr: string): ScavengerEvent | null {
+  return (
+    SCAVENGER_EVENTS.find(e => todayStr >= e.from && todayStr <= e.until) ?? null
+  )
+}
 
-/** Is the hunt within its active date window for the given Berlin date? */
-export function isScavengerActive(todayStr: string): boolean {
-  return todayStr >= SCAVENGER_FROM && todayStr <= SCAVENGER_UNTIL
+export function getScavengerEvent(id: string): ScavengerEvent | undefined {
+  return SCAVENGER_EVENTS.find(e => e.id === id)
 }

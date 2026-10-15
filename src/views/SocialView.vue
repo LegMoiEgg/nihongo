@@ -6,11 +6,19 @@ import { useSocialStore } from '../stores/social'
 import { useUserStore } from '../stores/user'
 import { flushSave } from '../stores/sync'
 import { frameRowStyle } from '../composables/useCosmetics'
+import { useScavenger } from '../composables/useScavenger'
+import { SPOT } from '../data/scavenger-hunt'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const socialStore = useSocialStore()
 const userStore = useUserStore()
+
+// Scavenger hunt: the Social header can be a hunt "spot" target.
+const scavenger = useScavenger()
+function onGroupsTap() {
+  if (scavenger.tapTarget('spot', SPOT.socialGroups)) router.push('/')
+}
 
 const showCreateModal = ref(false)
 const newGroupName = ref('')
@@ -357,7 +365,7 @@ function openMemberProfile(uid: string) {
     <!-- Groups List -->
     <div v-else class="social-main">
       <header class="social-header">
-        <h1>👥 Social</h1>
+        <h1 @click="onGroupsTap">👥 Social</h1>
       </header>
 
       <!-- Action button -->

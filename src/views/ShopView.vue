@@ -14,6 +14,8 @@ import {
 } from '../data/shop'
 import { applyCosmetics, frameStyle, frameRowStyle } from '../composables/useCosmetics'
 import { shopIconUrl } from '../data/shop-icons'
+import { useScavenger } from '../composables/useScavenger'
+import { SPOT } from '../data/scavenger-hunt'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -121,6 +123,12 @@ function previewVars(item: ShopItem): Record<string, string> {
     }
   }
   return {}
+}
+
+// ── Scavenger hunt: the code field can be a hunt "spot" target ──
+const scavenger = useScavenger()
+function onCodeFieldFocus() {
+  if (scavenger.tapTarget('spot', SPOT.shopCodeField)) router.push('/')
 }
 
 // ── Event codes ──
@@ -243,6 +251,7 @@ function equipFromPreview(item: ShopItem) {
           autocomplete="off"
           spellcheck="false"
           aria-label="Aktionscode"
+          @click="onCodeFieldFocus"
         />
         <button class="btn btn-primary code-btn" type="submit" :disabled="!codeInput.trim()">
           Einlösen

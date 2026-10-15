@@ -33,7 +33,7 @@ interface CloudUserData {
   claimedMilestones: string[]
   levelMilestoneBaseline: number
   redeemedCodes: string[]
-  scavengerStep: number
+  scavengerProgress: Record<string, number>
   // learning store
   cardProgress: any[]
   // badges store
@@ -44,6 +44,18 @@ interface CloudUserData {
 
 function getUserDocRef(uid: string) {
   return doc(db, 'users', uid)
+}
+
+/** Merge two per-event scavenger-progress maps, taking the higher step each. */
+function mergeScavenger(
+  a: Record<string, number> | undefined,
+  b: Record<string, number> | undefined,
+): Record<string, number> {
+  const out: Record<string, number> = { ...(a ?? {}) }
+  for (const [id, step] of Object.entries(b ?? {})) {
+    out[id] = Math.max(out[id] ?? 0, step)
+  }
+  return out
 }
 
 /** Return whichever (levelNum, levelXp) pair is further along. */
@@ -179,8 +191,8 @@ export async function saveToCloud(): Promise<void> {
         ...(cloud?.redeemedCodes ?? []),
         ...userStore.redeemedCodes,
       ])),
-      // scavengerStep: only moves forward (highest wins across devices).
-      scavengerStep: Math.max(userStore.scavengerStep, cloud?.scavengerStep ?? 0),
+      // scavengerProgress: per-event, take the higher step per event id.
+      scavengerProgress: mergeScavenger(userStore.scavengerProgress, cloud?.scavengerProgress),
       cardProgress: progressBehind ? (cloud?.cardProgress ?? learningStore.cardProgress) : learningStore.cardProgress,
       earnedBadges: badgesStore.earnedBadges,
       lastSyncedAt: new Date().toISOString(),
@@ -399,11 +411,11 @@ function mergeCloudData(cloud: CloudUserData) {
     userStore.redeemedCodes = union
     localStorage.setItem('nihongo_redeemed_codes', JSON.stringify(union))
   }
-  // scavengerStep: take the higher value so progress never goes backwards.
-  if (typeof (cloud as any).scavengerStep === 'number') {
-    const higher = Math.max(userStore.scavengerStep, (cloud as any).scavengerStep)
-    userStore.scavengerStep = higher
-    localStorage.setItem('nihongo_scavenger_step', JSON.stringify(higher))
+  // scavengerProgress: per-event merge, higher step per event wins.
+  if ((cloud as any).scavengerProgress && typeof (cloud as any).scavengerProgress === 'object') {
+    const merged = mergeScavenger(userStore.scavengerProgress, (cloud as any).scavengerProgress)
+    userStore.scavengerProgress = merged
+    localStorage.setItem('nihongo_scavenger_progress', JSON.stringify(merged))
   }
   // levelMilestoneBaseline: take the higher value. This also lets the real
   // cloud baseline override a premature local baseline (e.g. a fresh "1" set

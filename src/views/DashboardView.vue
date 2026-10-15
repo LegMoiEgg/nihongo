@@ -15,10 +15,14 @@ const level = computed(() => userStore.currentLevel.level)
 const kanjiUnlocked = computed(() => level.value >= 15)
 
 // ── Scavenger hunt ──
+import { SPOT } from '../data/scavenger-hunt'
 const scavenger = useScavenger()
 function onFlameTap() {
-  // Only meaningful during the hunt's final (flame) station; otherwise no-op.
+  // Only meaningful during a hunt's final (flame) station; otherwise no-op.
   scavenger.tapTarget('flame')
+}
+function onWeekTap() {
+  scavenger.tapTarget('spot', SPOT.dashboardWeek)
 }
 function closeScavengerReward() {
   scavengerReward.value = null
@@ -118,12 +122,12 @@ const completedDays = computed(() =>
       </div>
     </header>
 
-    <!-- Scavenger hunt (only during its date window) -->
+    <!-- Scavenger hunt (only during an event's date window) -->
     <section v-if="scavenger.visible.value" class="scavenger-box card">
       <div class="scavenger-head">
-        <span class="scavenger-title">🔍 Entdecker-Jagd</span>
+        <span class="scavenger-title">🔍 {{ scavenger.event.value?.title }}</span>
         <span v-if="!scavenger.finished.value" class="scavenger-progress">
-          {{ scavenger.step.value }} / {{ scavenger.total }}
+          {{ scavenger.step.value }} / {{ scavenger.total.value }}
         </span>
         <span v-else class="scavenger-progress done">✅ Abgeschlossen</span>
       </div>
@@ -137,7 +141,7 @@ const completedDays = computed(() =>
     </section>
 
     <!-- Week Calendar -->
-    <section class="week-calendar card" :class="{ 'gold-week': isGoldWeek }">
+    <section class="week-calendar card" :class="{ 'gold-week': isGoldWeek }" @click="onWeekTap">
       <div class="week-header">
         <h2>Diese Woche</h2>
         <span class="week-progress">{{ completedDays }} / 7</span>
@@ -274,9 +278,13 @@ const completedDays = computed(() =>
           <div class="sc-reward-frame">🖼️ {{ scavengerReward.frameName }}</div>
           <p class="sc-reward-sub">Neuer Profilrahmen freigeschaltet! Rüste ihn im Profil → Anpassen aus.</p>
         </template>
+        <template v-else-if="scavengerReward.kind === 'accent'">
+          <div class="sc-reward-frame">🎨 {{ scavengerReward.accentName }}</div>
+          <p class="sc-reward-sub">Neue Akzentfarbe freigeschaltet! Rüste sie im Profil → Anpassen aus.</p>
+        </template>
         <template v-else>
           <div class="sc-reward-coins"><span class="sc-coin">🪙</span> +{{ scavengerReward.amount }}</div>
-          <p class="sc-reward-sub">Du besitzt schon alle Rahmen — hier sind Münzen stattdessen!</p>
+          <p class="sc-reward-sub">Du besitzt schon alles — hier sind Münzen stattdessen!</p>
         </template>
         <button class="btn btn-primary sc-reward-btn" @click="closeScavengerReward">Super!</button>
       </div>

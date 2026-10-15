@@ -196,9 +196,10 @@ export const useUserStore = defineStore('user', () => {
   // Event codes already redeemed (canonical lowercase ids). Synced like
   // claimedMilestones so a code can't be redeemed twice across devices.
   const redeemedCodes = ref<string[]>([])
-  // Scavenger-hunt progress: index of the CURRENT station (0-based). When it
-  // reaches SCAVENGER_TOTAL the hunt is finished. Synced like other progress.
-  const scavengerStep = ref(0)
+  // Scavenger-hunt progress PER EVENT: { [eventId]: currentStationIndex }.
+  // When an event's value reaches its station count, that hunt is finished.
+  // Synced like other progress. (Migrates the old single-event field below.)
+  const scavengerProgress = ref<Record<string, number>>({})
   // The level the user was at when milestone tracking started on this account.
   // Level-up coins are only awarded for levels gained ABOVE this baseline, so a
   // placement-test jump (or pre-existing level) never pays retroactively.
@@ -328,7 +329,13 @@ export const useUserStore = defineStore('user', () => {
     claimedMilestones.value = loadFromStorage('nihongo_claimed_milestones', [])
     levelMilestoneBaseline.value = loadFromStorage('nihongo_level_milestone_baseline', -1)
     redeemedCodes.value = loadFromStorage('nihongo_redeemed_codes', [])
-    scavengerStep.value = loadFromStorage('nihongo_scavenger_step', 0)
+    scavengerProgress.value = loadFromStorage('nihongo_scavenger_progress', {})
+    // Migrate the old single-event step (okt2026) into the per-event map.
+    const legacyStep = loadFromStorage<number>('nihongo_scavenger_step', 0)
+    if (legacyStep > 0 && scavengerProgress.value['okt2026'] === undefined) {
+      scavengerProgress.value = { ...scavengerProgress.value, okt2026: legacyStep }
+      saveToStorage('nihongo_scavenger_progress', scavengerProgress.value)
+    }
 
     updateStreak()
   }
@@ -702,11 +709,30 @@ export const useUserStore = defineStore('user', () => {
     return { kind: 'coins', amount: fallbackCoins }
   }
 
-  /** Advance the scavenger hunt by one station (clamped). */
-  function advanceScavenger() {
-    scavengerStep.value += 1
-    saveToStorage('nihongo_scavenger_step', scavengerStep.value)
+  /** Advance a specific scavenger event by one station. */
+  function advanceScavenger(eventId: string) {
+    const cur = scavengerProgress.value[eventId] ?? 0
+    scavengerProgress.value = { ...scavengerProgress.value, [eventId]: cur + 1 }
+    saveToStorage('nihongo_scavenger_progress', scavengerProgress.value)
     import('./sync').then(m => m.scheduleSave()).catch(() => {})
+  }
+
+  /** Draws a random not-yet-owned ACCENT, or pays fallbackCoins if all owned. */
+  function grantRandomAccent(fallbackCoins: number): { kind: 'accent'; accentName: string } | { kind: 'coins'; amount: number } {
+    const unowned = SHOP_ITEMS.filter(
+      i => i.category === 'accent' && !ownedItems.value.includes(i.id),
+    )
+    if (unowned.length > 0) {
+      const pick = unowned[Math.floor(Math.random() * unowned.length)]
+      ownedItems.value = [...ownedItems.value, pick.id]
+      saveToStorage('nihongo_owned_items', ownedItems.value)
+      import('./sync').then(m => m.scheduleSave()).catch(() => {})
+      return { kind: 'accent', accentName: pick.name }
+    }
+    coins.value += fallbackCoins
+    saveToStorage('nihongo_coins', coins.value)
+    import('./sync').then(m => m.scheduleSave()).catch(() => {})
+    return { kind: 'coins', amount: fallbackCoins }
   }
 
   function setPlacementLevel(level: number) {
@@ -749,7 +775,7 @@ export const useUserStore = defineStore('user', () => {
     claimedMilestones,
     levelMilestoneBaseline,
     redeemedCodes,
-    scavengerStep,
+    scavengerProgress,
     pendingMilestoneToast,
     // Computed
     currentLevel,
@@ -785,6 +811,7 @@ export const useUserStore = defineStore('user', () => {
     setLevelMilestoneBaseline,
     redeemEventCode,
     grantRandomFrame,
+    grantRandomAccent,
     advanceScavenger,
     clearMilestoneToast,
   }
